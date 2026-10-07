@@ -2,10 +2,13 @@ package com.kappmaker.devicepreview.devices
 
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.LayoutDirection
 import com.kappmaker.devicepreview.core.DeviceInsets
 import com.kappmaker.devicepreview.core.DeviceKind
 import com.kappmaker.devicepreview.core.DeviceType
 import com.kappmaker.devicepreview.frame.DeviceFramePainter
+import com.kappmaker.devicepreview.frame.SystemUiPainter
+import com.kappmaker.devicepreview.svg.SvgDrawing
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -70,6 +73,58 @@ class DevicePresetsTest {
             val landscapeSize = Size(preset.portraitSize.height, preset.portraitSize.width)
             val landscape = assertNotNull(painter.screenClip(landscapeSize, isPortrait = false), preset.id)
             assertRoughly(Rect(0f, 0f, landscapeSize.width, landscapeSize.height), landscape.getBounds(), preset.id)
+        }
+    }
+
+    @Test
+    fun systemUiAndKeyboardsAreCarriedOver() {
+        val iPhone = DevicePresets.iPhone16Pro
+        assertEquals(335f, iPhone.portraitKeyboardHeight)
+        assertEquals(208f, iPhone.landscapeKeyboardHeight)
+        assertEquals(30f, iPhone.systemUi?.statusBar?.inset)
+        assertEquals(8f, iPhone.systemUi?.navigationBar?.bottomInset)
+
+        val pixel = DevicePresets.pixel9
+        assertEquals(336f, pixel.portraitKeyboardHeight)
+        assertEquals(252f, pixel.landscapeKeyboardHeight)
+        assertEquals(18f, pixel.systemUi?.statusBar?.inset)
+        assertEquals(9f, pixel.systemUi?.navigationBar?.bottomInset)
+
+        // A home-button iPhone has a status bar and no gesture pill.
+        val se = assertNotNull(DevicePresets.iPhoneSe3.systemUi)
+        assertNotNull(se.statusBar)
+        assertNull(se.navigationBar)
+
+        val desktop = DevicePresets.largeDesktopWindow
+        assertNull(desktop.systemUi)
+        assertNull(desktop.portraitKeyboardHeight)
+        assertNull(desktop.landscapeKeyboardHeight)
+        assertEquals(31, DevicePresets.all.count { it.systemUi != null })
+    }
+
+    @Test
+    fun everySystemUiParsesAndFitsItsBars() {
+        for (preset in DevicePresets.all) {
+            val systemUi = preset.systemUi ?: continue
+            val bars = listOfNotNull(systemUi.statusBar, systemUi.navigationBar)
+            for (artwork in bars.flatMap { listOf(it.leading, it.center, it.trailing) }.filter { it.isNotEmpty() }) {
+                val drawing = SvgDrawing.parse(artwork)
+                assertTrue(!drawing.isEmpty && !drawing.size.isEmpty(), "${preset.id}: empty system UI artwork")
+            }
+            for (isPortrait in listOf(true, false)) {
+                val screen = if (isPortrait) preset.portraitSize else Size(preset.portraitSize.height, preset.portraitSize.width)
+                val safeArea = if (isPortrait) preset.portraitSafeArea else preset.landscapeSafeArea
+                for (placed in SystemUiPainter(systemUi).layout(screen, safeArea, LayoutDirection.Ltr)) {
+                    val bounds = placed.bounds
+                    val inStatusBar = bounds.top < safeArea.top
+                    val bar = if (inStatusBar) 0f..safeArea.top else (screen.height - safeArea.bottom)..screen.height
+                    assertTrue(
+                        bounds.left >= 0f && bounds.right <= screen.width &&
+                            bounds.top >= bar.start && bounds.bottom <= bar.endInclusive + 0.01f,
+                        "${preset.id} (${if (isPortrait) "portrait" else "landscape"}): $bounds outside its bar",
+                    )
+                }
+            }
         }
     }
 

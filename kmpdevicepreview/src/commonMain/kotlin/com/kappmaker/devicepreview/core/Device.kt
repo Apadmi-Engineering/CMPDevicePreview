@@ -17,4 +17,22 @@ public interface Device {
     /** The safe area in landscape, in logical pixels. */
     public val landscapeSafeArea: DeviceInsets
         get() = DeviceInsets.rotateToLandscape(portraitSafeArea)
+
+    /** The device's status bar and gesture pill artwork, or null to leave the screen bare. */
+    public val systemUi: DeviceSystemUi?
+        get() = null
+
+    /**
+     * The height the device's software keyboard covers in portrait, in logical pixels, or null when
+     * the device has no software keyboard.
+     */
+    public val portraitKeyboardHeight: Float?
+        get() = null
+
+    /**
+     * The height the device's software keyboard covers in landscape, in logical pixels, or null
+     * when the device has no software keyboard in landscape.
+     */
+    public val landscapeKeyboardHeight: Float?
+        get() = null
 }

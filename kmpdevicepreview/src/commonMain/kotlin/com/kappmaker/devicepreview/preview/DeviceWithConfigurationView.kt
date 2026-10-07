@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
@@ -152,10 +153,13 @@ public fun DeviceWithConfigurationView(
     }
 }
 
-/** The content on the real device, with the real device's safe area. */
+/** The content on the real device, with the real device's safe area and keyboard. */
 @Composable
 private fun RealDeviceContent(content: @Composable () -> Unit) {
-    CompositionLocalProvider(SimulatedDeviceSafeArea provides WindowInsets.safeDrawing) {
+    CompositionLocalProvider(
+        SimulatedDeviceSafeArea provides WindowInsets.safeDrawing,
+        SimulatedDeviceKeyboardInsets provides WindowInsets.ime,
+    ) {
         content()
     }
 }

@@ -32,11 +32,16 @@ public fun SimulatedDevicePreview(
         remember(simulatedDevice.configuration.isDarkMode) { mutableStateOf(simulatedDevice.configuration.isDarkMode) }
 
     CompositionLocalProvider(SimulatedDeviceThemeIsDark provides isDarkState) {
+        val configuration = simulatedDevice.configuration
         DeviceFrameView(
             device = simulatedDevice.device,
             modifier = modifier.padding(20.dp),
-            isPortrait = simulatedDevice.configuration.isPortrait,
-            isFrameVisible = simulatedDevice.configuration.isFrameVisible,
+            isPortrait = configuration.isPortrait,
+            isFrameVisible = configuration.isFrameVisible,
+            isSystemUiVisible = configuration.isSystemUiVisible,
+            isKeyboardVisible = configuration.isKeyboardVisible,
+            // The content may flip the theme itself; the status bar icons follow it.
+            isDarkMode = isDarkState.value,
             content = content,
         )
     }

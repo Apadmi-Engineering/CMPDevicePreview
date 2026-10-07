@@ -3,13 +3,13 @@
 // the source of truth for the Flutter package's `DevicePresets`).
 //
 // One `device_specs/<id>.json` in, one `DevicePreset` property out: the screen
-// size, pixel ratio, safe areas and frame artwork (screen outline and body).
+// size, pixel ratio, safe areas, frame artwork (screen outline and body), the
+// status bar and gesture pill artwork (`systemUi`) and the keyboard heights.
 // The generated file lands in the build directory and is wired into
 // `commonMain` by `build.gradle.kts`, so the specs stay the only thing to edit.
 //
-// The specs also describe things this library does not simulate (yet): the
-// status bar artwork (`systemUi`), keyboard heights and fold display features.
-// Those keys are accepted and ignored.
+// The specs also describe fold display features, which this library does not
+// simulate (yet), and `systemUi.platform`: both are accepted and ignored.
 
 import groovy.json.JsonSlurper
 
@@ -46,7 +46,7 @@ abstract class GenerateDevicePresetsTask : DefaultTask() {
             names.put(name, id)?.let { clash ->
                 throw GradleException("${file.name}: property name \"$name\" collides with $clash")
             }
-            name to spec
+            preset(name, spec)
         }
 
         val source = buildString {
@@ -63,22 +63,30 @@ abstract class GenerateDevicePresetsTask : DefaultTask() {
             appendLine("import com.kappmaker.devicepreview.core.DeviceInsets")
             appendLine("import com.kappmaker.devicepreview.core.DeviceKind")
             appendLine("import com.kappmaker.devicepreview.core.DevicePreset")
+            appendLine("import com.kappmaker.devicepreview.core.DeviceSystemUi")
             appendLine("import com.kappmaker.devicepreview.core.DeviceType")
+            appendLine("import com.kappmaker.devicepreview.core.SystemUiBar")
             appendLine()
             appendLine("/**")
             appendLine(" * The built-in device catalog: ${presets.size} devices, generated from the device specs")
-            appendLine(" * shared with flutter_device_preview — screen size, pixel ratio, safe areas and frame")
-            appendLine(" * artwork included.")
+            appendLine(" * shared with flutter_device_preview — screen size, pixel ratio, safe areas, frame")
+            appendLine(" * artwork, status bar artwork and keyboard heights included.")
             appendLine(" */")
             appendLine("public object DevicePresets {")
-            for ((name, spec) in presets) append(preset(name, spec))
+            for (preset in presets) append(preset.property)
             appendLine("    /** All built-in presets, sorted by id. */")
             appendLine("    public val all: List<DevicePreset> = listOf(")
-            for ((name, _) in presets) appendLine("        $name,")
+            for (preset in presets) appendLine("        ${preset.name},")
             appendLine("    )")
             appendLine()
             appendLine("    /** Returns the built-in preset with the given [id], or null. */")
             appendLine("    public fun byId(id: String): DevicePreset? = all.firstOrNull { it.id == id }")
+            // One builder function per preset keeps each JVM method, and the object's static
+            // initializer, far from the 64 KB method size limit.
+            for (preset in presets) {
+                appendLine()
+                append(preset.builder)
+            }
             appendLine("}")
         }
 
@@ -90,7 +98,10 @@ abstract class GenerateDevicePresetsTask : DefaultTask() {
         }
     }
 
-    private fun preset(name: String, spec: Map<String, Any?>): String = buildString {
+    /** A preset's public property, and the private function that builds it. */
+    private class Preset(val name: String, val property: String, val builder: String)
+
+    private fun preset(name: String, spec: Map<String, Any?>): Preset {
         val fileName = "${spec["id"]}.json"
         val displayName = string(spec, "name", fileName)
         val brand = spec["brand"]?.let { string(spec, "brand", fileName) }
@@ -115,21 +126,36 @@ abstract class GenerateDevicePresetsTask : DefaultTask() {
 
         val details = listOfNotNull(brand, year?.toString()).joinToString(", ")
         val summary = "${format(width)} × ${format(height)} at ${format(pixelRatio)}x"
-        appendLine("    /** $displayName${if (details.isEmpty()) "" else " ($details)"}: $summary. */")
-        appendLine("    public val $name: DevicePreset = DevicePreset(")
-        appendLine("        id = ${literal(spec["id"] as String)},")
-        appendLine("        name = ${literal(displayName)},")
-        appendLine("        type = DeviceType.$type,")
-        appendLine("        kind = DeviceKind.$kind,")
-        if (brand != null) appendLine("        brand = ${literal(brand)},")
-        if (year != null) appendLine("        year = $year,")
-        appendLine("        portraitSize = Size(${float(width)}, ${float(height)}),")
-        appendLine("        devicePixelRatio = ${float(pixelRatio)},")
-        spec["portraitPadding"]?.let { appendLine("        portraitSafeArea = ${insets(it, "portraitPadding", fileName)},") }
-        spec["landscapePadding"]?.let { appendLine("        landscapeSafeArea = ${insets(it, "landscapePadding", fileName)},") }
-        spec["frame"]?.let { append(frame(map(it, "frame", fileName), fileName)) }
-        appendLine("    )")
-        appendLine()
+        val property = buildString {
+            appendLine("    /** $displayName${if (details.isEmpty()) "" else " ($details)"}: $summary. */")
+            appendLine("    public val $name: DevicePreset = ${name}Preset()")
+            appendLine()
+        }
+        val builder = buildString {
+            appendLine("    private fun ${name}Preset(): DevicePreset = DevicePreset(")
+            appendLine("        id = ${literal(spec["id"] as String)},")
+            appendLine("        name = ${literal(displayName)},")
+            appendLine("        type = DeviceType.$type,")
+            appendLine("        kind = DeviceKind.$kind,")
+            if (brand != null) appendLine("        brand = ${literal(brand)},")
+            if (year != null) appendLine("        year = $year,")
+            appendLine("        portraitSize = Size(${float(width)}, ${float(height)}),")
+            appendLine("        devicePixelRatio = ${float(pixelRatio)},")
+            spec["portraitPadding"]?.let { appendLine("        portraitSafeArea = ${insets(it, "portraitPadding", fileName)},") }
+            spec["landscapePadding"]?.let { appendLine("        landscapeSafeArea = ${insets(it, "landscapePadding", fileName)},") }
+            spec["frame"]?.let { append(frame(map(it, "frame", fileName), fileName)) }
+            spec["systemUi"]?.let { append(systemUi(map(it, "systemUi", fileName), fileName)) }
+            // The keyboard covers part of the screen's height in its orientation: the portrait
+            // height in portrait, the portrait width in landscape.
+            keyboardHeight(spec, "portraitKeyboardHeight", height, fileName)?.let {
+                appendLine("        portraitKeyboardHeight = ${float(it)},")
+            }
+            keyboardHeight(spec, "landscapeKeyboardHeight", width, fileName)?.let {
+                appendLine("        landscapeKeyboardHeight = ${float(it)},")
+            }
+            appendLine("    )")
+        }
+        return Preset(name, property, builder)
     }
 
     private fun frame(frame: Map<String, Any?>, fileName: String): String = buildString {
@@ -150,20 +176,67 @@ abstract class GenerateDevicePresetsTask : DefaultTask() {
             val path = it as? String ?: throw GradleException("$fileName: frame.screenPath must be a string")
             if (path.isNotEmpty()) appendLine("            screenPath = ${literal(path)},")
         }
-        frame["body"]?.let { body ->
-            // A string, or an array of lines joined with newlines (kept as lines for readability).
-            val lines = when (body) {
-                is String -> listOf(body)
-                is List<*> -> body.map { it as? String ?: throw GradleException("$fileName: frame.body lines must be strings") }
-                else -> throw GradleException("$fileName: frame.body must be a string or an array of strings")
-            }
-            if (lines.isNotEmpty()) {
-                appendLine("            body = listOf(")
-                for (line in lines) appendLine("                ${literal(line)},")
-                appendLine("            ).joinToString(\"\\n\"),")
-            }
-        }
+        artwork("body", artworkLines(frame["body"], "frame.body", fileName), indent = "            ")?.let(::append)
         appendLine("        ),")
+    }
+
+    /** `systemUi`, minus its `platform`; empty bars are left out, and so is an empty `systemUi`. */
+    private fun systemUi(systemUi: Map<String, Any?>, fileName: String): String {
+        val bars = listOf("statusBar", "navigationBar").mapNotNull { key ->
+            systemUi[key]?.let { bar(map(it, "systemUi.$key", fileName), key, fileName) }
+        }
+        if (bars.isEmpty()) return ""
+        return buildString {
+            appendLine("        systemUi = DeviceSystemUi(")
+            for (bar in bars) append(bar)
+            appendLine("        ),")
+        }
+    }
+
+    private fun bar(bar: Map<String, Any?>, key: String, fileName: String): String? {
+        val slots = listOf("leading", "center", "trailing").mapNotNull { slot ->
+            artwork(slot, artworkLines(bar[slot], "systemUi.$key.$slot", fileName), indent = "                ")
+        }
+        if (slots.isEmpty()) return null
+        return buildString {
+            appendLine("            $key = SystemUiBar(")
+            for (slot in slots) append(slot)
+            for (inset in listOf("inset", "bottomInset")) {
+                val value = bar[inset]?.let { number(it, "systemUi.$key.$inset", fileName) } ?: continue
+                if (value < 0) throw GradleException("$fileName: systemUi.$key.$inset must not be negative")
+                appendLine("                $inset = ${float(value)},")
+            }
+            appendLine("            ),")
+        }
+    }
+
+    private fun keyboardHeight(spec: Map<String, Any?>, key: String, extent: Double, fileName: String): Double? {
+        val height = spec[key]?.let { number(it, key, fileName) } ?: return null
+        if (height <= 0 || height > extent) {
+            throw GradleException("$fileName: \"$key\" must be positive and at most ${format(extent)}")
+        }
+        return height
+    }
+
+    /** SVG artwork: a string, or an array of lines joined with newlines. Null when absent or empty. */
+    private fun artworkLines(value: Any?, key: String, fileName: String): List<String>? {
+        val lines = when (value) {
+            null -> return null
+            is String -> listOf(value)
+            is List<*> -> value.map { it as? String ?: throw GradleException("$fileName: $key lines must be strings") }
+            else -> throw GradleException("$fileName: $key must be a string or an array of strings")
+        }
+        return lines.takeUnless { it.isEmpty() || it.all(String::isEmpty) }
+    }
+
+    /** A `name = listOf(…).joinToString("\n"),` argument, keeping the spec's lines for readability. */
+    private fun artwork(name: String, lines: List<String>?, indent: String): String? {
+        if (lines == null) return null
+        return buildString {
+            appendLine("$indent$name = listOf(")
+            for (line in lines) appendLine("$indent    ${literal(line)},")
+            appendLine("$indent).joinToString(\"\\n\"),")
+        }
     }
 
     private fun insets(value: Any?, key: String, fileName: String): String {

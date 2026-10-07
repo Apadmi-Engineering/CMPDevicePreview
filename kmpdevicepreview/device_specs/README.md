@@ -24,9 +24,11 @@ cp ../../../flutter_device_preview/device_specs/*.json .
 | `portraitSize`, `devicePixelRatio` | The logical screen size and density |
 | `portraitPadding`, `landscapePadding` | `portraitSafeArea`, `landscapeSafeArea` (landscape defaults to the rotation rule) |
 | `frame` | `DeviceFrame`: `size`, `screenOffset`, `screenPath`, `body` |
+| `systemUi` | `DevicePreset.systemUi`: the status bar and gesture pill artwork (its `platform` is ignored) |
+| `portraitKeyboardHeight`, `landscapeKeyboardHeight` | The same names on `DevicePreset`, in logical pixels; no rotation rule between them |
 
-`systemUi`, the keyboard heights and `displayFeatures` are accepted and
-ignored: this library does not simulate the status bar, the keyboard or folds.
+`displayFeatures` (fold lines) are accepted and ignored: this library does not
+simulate folds yet.
 
 All lengths are logical pixels, described in portrait. The frame is drawn
 rotated a quarter turn in landscape.
@@ -49,6 +51,24 @@ as Flutter's: `<svg>`, `<g>`, `<defs>`, `<clipPath>`, filled `<path>`,
 and `clip-path="url(#id)"`. Strokes, gradients, filters, text, images and masks
 are ignored.
 
+## `systemUi`
+
+```jsonc
+"systemUi": {
+  "statusBar": { "inset": 30, "leading": [/* clock SVG */], "trailing": [/* icons SVG */] },
+  "navigationBar": { "center": [/* home indicator SVG */], "bottomInset": 8 }
+}
+```
+
+Each bar fills the safe area on its side of the screen, and isn't drawn when
+that side is 0 (an iPhone's status bar in landscape). `leading`, `center` and
+`trailing` are SVG documents drawn at their view box size, never stretched:
+`inset` is the distance from the screen edge to `leading` and `trailing`
+(default 16), and `bottomInset` pins the artwork that far from the bar's outer
+edge instead of centring it. Shapes with `fill="currentColor"` (or no fill) are
+tinted to contrast with the simulated theme; use `fill-opacity` for secondary
+detail.
+
 ## Adding a device
 
 1. Copy the closest spec to `<brand>-<model>.json`, keeping `id` in sync with
@@ -57,4 +77,5 @@ are ignored.
 3. Build: the preset appears as `DevicePresets.<name>`, named from the id
    without its brand (`samsung-galaxy-s25` → `galaxyS25`).
 4. Run `./gradlew :kmpdevicepreview:jvmTest`, which checks that every frame
-   parses and that its screen outline matches its screen size.
+   and status bar parses, that the screen outline matches the screen size, and
+   that the status bar artwork fits its bars.

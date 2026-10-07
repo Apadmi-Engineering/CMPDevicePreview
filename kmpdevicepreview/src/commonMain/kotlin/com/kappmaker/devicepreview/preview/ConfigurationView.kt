@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Computer
@@ -43,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -68,7 +70,7 @@ public fun ConfigurationView(
     if (isAllDevicesShown) {
         AllDevicesView(
             onClickDevice = {
-                onChangeConfiguration(simulatedDevice.copy(device = it))
+                onChangeConfiguration(simulatedDevice.copy(device = it).droppingUnavailableKeyboard())
                 isAllDevicesShown = false
             },
             onDismiss = {
@@ -114,7 +116,7 @@ public fun ConfigurationView(
                         configuration = configuration.copy(
                             isPortrait = configuration.isPortrait.not()
                         )
-                    )
+                    ).droppingUnavailableKeyboard()
                 )
             }
 
@@ -131,30 +133,53 @@ public fun ConfigurationView(
                 )
             }
 
-            FrameVisibilityView(
+            SwitchRow(
                 modifier = Modifier.fillMaxWidth(),
-                isFrameVisible = configuration.isFrameVisible
+                title = "Device Frame",
+                status = if (configuration.isFrameVisible) "Visible" else "Hidden",
+                checked = configuration.isFrameVisible,
             ) {
-                onChangeConfiguration(
-                    simulatedDevice.copy(
-                        configuration = configuration.copy(
-                            isFrameVisible = configuration.isFrameVisible.not()
-                        )
-                    )
-                )
+                onChangeConfiguration(simulatedDevice.copy(configuration = configuration.copy(isFrameVisible = it)))
             }
 
-            TestPreviewMode(
+            val hasSystemUi = device.systemUi?.isEmpty == false
+            SwitchRow(
                 modifier = Modifier.fillMaxWidth(),
-                isPreviewModeEnabled = configuration.isPreviewModeEnabled
+                title = "System UI",
+                status = when {
+                    !hasSystemUi -> NotAvailable
+                    configuration.isSystemUiVisible -> "Visible"
+                    else -> "Hidden"
+                },
+                checked = hasSystemUi && configuration.isSystemUiVisible,
+                enabled = hasSystemUi,
             ) {
-                onChangeConfiguration(
-                    simulatedDevice.copy(
-                        configuration = configuration.copy(
-                            isPreviewModeEnabled = configuration.isPreviewModeEnabled.not()
-                        )
-                    )
-                )
+                onChangeConfiguration(simulatedDevice.copy(configuration = configuration.copy(isSystemUiVisible = it)))
+            }
+
+            val keyboardHeight = simulatedDevice.currentKeyboardHeight
+            val isKeyboardShown = keyboardHeight != null && configuration.isKeyboardVisible
+            SwitchRow(
+                modifier = Modifier.fillMaxWidth(),
+                title = "Keyboard",
+                status = when {
+                    keyboardHeight == null -> NotAvailable
+                    isKeyboardShown -> "Shown · ${keyboardHeight.roundToInt()} dp"
+                    else -> "Hidden"
+                },
+                checked = isKeyboardShown,
+                enabled = keyboardHeight != null,
+            ) {
+                onChangeConfiguration(simulatedDevice.copy(configuration = configuration.copy(isKeyboardVisible = it)))
+            }
+
+            SwitchRow(
+                modifier = Modifier.fillMaxWidth(),
+                title = "Preview Mode",
+                status = if (configuration.isPreviewModeEnabled) "Enabled" else "Disabled",
+                checked = configuration.isPreviewModeEnabled,
+            ) {
+                onChangeConfiguration(simulatedDevice.copy(configuration = configuration.copy(isPreviewModeEnabled = it)))
             }
 
 
@@ -271,32 +296,42 @@ private fun SelectedDeviceView(
     }
 }
 
+private const val NotAvailable = "Not available on this device"
+
 @Composable
-private fun FrameVisibilityView(
+private fun SwitchRow(
+    title: String,
+    status: String,
+    checked: Boolean,
     modifier: Modifier = Modifier,
-    isFrameVisible: Boolean = true,
-    onClickChange: () -> Unit
+    enabled: Boolean = true,
+    onCheckedChange: (Boolean) -> Unit,
 ) {
+    val color = if (enabled) Color.White else Color.White.copy(alpha = 0.38f)
     Row(
-        modifier = modifier.clickable { onClickChange() }.padding(8.dp),
+        modifier = modifier
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
+            .padding(8.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                "Device Frame",
+                title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
-                color = Color.White
+                color = color
             )
-            Text(if (isFrameVisible) "Visible" else "Hidden", color = Color.White)
+            Text(status, color = color)
         }
 
 
         Spacer(modifier = Modifier.weight(1f).defaultMinSize(minWidth = 16.dp))
+        // The row handles the toggle, so the whole row is one target.
         Switch(
-            checked = isFrameVisible,
-            onCheckedChange = { onClickChange() },
+            checked = checked,
+            onCheckedChange = null,
+            enabled = enabled,
             colors = SwitchDefaults.colors(
                 checkedIconColor = Color.White,
                 checkedThumbColor = Color.White
@@ -305,39 +340,16 @@ private fun FrameVisibilityView(
     }
 }
 
-@Composable
-private fun TestPreviewMode(
-    modifier: Modifier = Modifier,
-    isPreviewModeEnabled: Boolean = false,
-    onClickChange: () -> Unit
-) {
-    Row(
-        modifier = modifier.clickable { onClickChange() }.padding(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                "Preview Mode",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = Color.White
-            )
-            Text(if (isPreviewModeEnabled) "Enabled" else "Disabled", color = Color.White)
-        }
-
-
-        Spacer(modifier = Modifier.weight(1f).defaultMinSize(minWidth = 16.dp))
-        Switch(
-            checked = isPreviewModeEnabled,
-            onCheckedChange = { onClickChange() },
-            colors = SwitchDefaults.colors(
-                checkedIconColor = Color.White,
-                checkedThumbColor = Color.White
-            )
-        )
+/**
+ * Keeps a raised keyboard raised across a device or orientation change, at the new height, unless
+ * the device has no keyboard there.
+ */
+private fun SimulatedDevice.droppingUnavailableKeyboard(): SimulatedDevice =
+    if (configuration.isKeyboardVisible && currentKeyboardHeight == null) {
+        copy(configuration = configuration.copy(isKeyboardVisible = false))
+    } else {
+        this
     }
-}
 
 @Composable
 private fun AllDevicesView(

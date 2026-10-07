@@ -25,7 +25,9 @@ internal class DeviceFramePainter(val frame: DeviceFrame) {
 
     /** The parsed body artwork, or null when absent or malformed. */
     val body: SvgDrawing? by lazy(LazyThreadSafetyMode.NONE) {
-        frame.body.takeIf { it.isNotEmpty() }?.let { guard("body artwork") { SvgDrawing.parse(it) } }
+        frame.body.takeIf { it.isNotEmpty() }?.let {
+            reportingParseFailure("device frame body artwork") { SvgDrawing.parse(it) }
+        }
     }
 
     /**
@@ -33,7 +35,9 @@ internal class DeviceFramePainter(val frame: DeviceFrame) {
      * (a rectangular screen).
      */
     val screenPath: Path? by lazy(LazyThreadSafetyMode.NONE) {
-        frame.screenPath.takeIf { it.isNotEmpty() }?.let { guard("screen outline") { parseSvgPathData(it) } }
+        frame.screenPath.takeIf { it.isNotEmpty() }?.let {
+            reportingParseFailure("device frame screen outline") { parseSvgPathData(it) }
+        }
     }
 
     /**
@@ -65,13 +69,6 @@ internal class DeviceFramePainter(val frame: DeviceFrame) {
         }
         drawing.paintInto(canvas, Rect(Offset(-frame.screenOffset.x, -frame.screenOffset.y), frame.size))
         canvas.restore()
-    }
-
-    private fun <T : Any> guard(what: String, parse: () -> T): T? = try {
-        parse()
-    } catch (error: Exception) {
-        println("DevicePreview: could not parse the device frame $what, it will not be drawn: $error")
-        null
     }
 
     private companion object {

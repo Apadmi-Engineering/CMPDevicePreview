@@ -15,6 +15,11 @@ import androidx.compose.ui.geometry.Size
  * @property devicePixelRatio Physical pixels per logical pixel.
  * @property brand The manufacturer, e.g. `Apple`, or null when unspecified.
  * @property year The release year, or null when unspecified.
+ * @property systemUi The status bar and gesture pill artwork, or null.
+ * @property portraitKeyboardHeight What the stock software keyboard covers in portrait, in dp, or
+ * null when the device has none.
+ * @property landscapeKeyboardHeight The same in landscape. There is no rotation rule between the
+ * two heights.
  */
 public data class DevicePreset(
     val id: String,
@@ -28,6 +33,9 @@ public data class DevicePreset(
     override val portraitSafeArea: DeviceInsets = DeviceInsets.Zero,
     override val landscapeSafeArea: DeviceInsets = DeviceInsets.rotateToLandscape(portraitSafeArea),
     override val frame: DeviceFrame? = null,
+    override val systemUi: DeviceSystemUi? = null,
+    override val portraitKeyboardHeight: Float? = null,
+    override val landscapeKeyboardHeight: Float? = null,
 ) : Device {
 
     override val screenSize: ScreenSize

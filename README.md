@@ -29,7 +29,7 @@ https://github.com/user-attachments/assets/6393bd5b-a148-4903-a641-5d83bbc80d1d
 ## Advanced Configuration
 
 ### Devices and frames
-The built-in catalog, `DevicePresets`, holds the same 33 devices as [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview): current iPhones and iPads, Google Pixels, Samsung Galaxy phones, tablets and foldables, and two desktop windows. Each one comes with its screen size, pixel ratio, safe areas and frame artwork (bezel, rounded screen corners, notch, punch-hole or Dynamic Island). The catalog is generated from the JSON specs in [`kmpdevicepreview/device_specs`](kmpdevicepreview/device_specs).
+The built-in catalog, `DevicePresets`, holds the same 33 devices as [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview): current iPhones and iPads, Google Pixels, Samsung Galaxy phones, tablets and foldables, and two desktop windows. Each one comes with its screen size, pixel ratio, safe areas, frame artwork (bezel, rounded screen corners, notch, punch-hole or Dynamic Island), status bar and gesture pill, and keyboard height. The catalog is generated from the JSON specs in [`kmpdevicepreview/device_specs`](kmpdevicepreview/device_specs).
 
 To preview only SimulatedDevice without any configuration view:
 ```kotlin
@@ -37,7 +37,13 @@ To preview only SimulatedDevice without any configuration view:
 SimulatedDevicePreview(
     simulatedDevice = SimulatedDevice(
         device = DevicePresets.iPhone16Pro, // Use a predefined device or create your own
-        configuration = DeviceConfiguration(isDarkMode = true, isPortrait = true, isFrameVisible = true) // Set dark mode, orientation and frame
+        configuration = DeviceConfiguration(
+            isDarkMode = true,
+            isPortrait = true,
+            isFrameVisible = true,
+            isSystemUiVisible = true, // Status bar and gesture pill
+            isKeyboardVisible = false, // Simulated software keyboard
+        )
     )
 ) {
     // Your composable content
@@ -46,7 +52,7 @@ SimulatedDevicePreview(
 
 ```
 
-`DeviceFrameView(device = DevicePresets.galaxyS25) { App() }` draws a device around any content, without the simulated theme.
+`DeviceFrameView(device = DevicePresets.galaxyS25) { App() }` draws a device around any content, without the simulated theme. It takes the same `isPortrait`, `isFrameVisible`, `isSystemUiVisible` and `isKeyboardVisible` flags, and `isDarkMode`, which only picks the status bar's icon colour.
 
 You can create a custom device by implementing the `Device` interface (or creating a `DevicePreset`) and overriding its size properties, then pass it into `SimulatedDevice`. Give it a `DeviceFrame` to draw a body around it.
 
@@ -60,6 +66,22 @@ LazyColumn(contentPadding = SimulatedDeviceSafeArea.current.asPaddingValues()) {
 ```
 
 When the preview mode is turned off, `DeviceWithConfigurationView` provides the real device's `WindowInsets.safeDrawing` instead.
+
+### Status bar
+Devices draw their status bar and gesture pill (or home indicator) over your content, in the safe area. They're static decoration: the clock never ticks, and the icons are white in dark mode and near-black in light mode. Turn them off with the **System UI** switch or `isSystemUiVisible = false`; the safe area stays the same either way.
+
+### Keyboard
+The **Keyboard** switch raises the device's software keyboard, at the height the real keyboard covers on that device (each iPhone and iPad measured; every Android device shares one representative height). Focusing a text field can't raise it: Compose text fields talk to the platform's keyboard directly, so the preview never hears about it.
+
+While it's up, a translucent band covers the bottom of the screen and:
+- `SimulatedDeviceSafeArea` includes it, like `WindowInsets.safeDrawing`, so content padded by the safe area stays clear of it.
+- `SimulatedDeviceKeyboardInsets` is the keyboard alone, like `WindowInsets.ime`.
+
+```kotlin
+Scaffold(contentWindowInsets = SimulatedDeviceSafeArea.current) { ... }
+```
+
+Compose's own `imePadding()` and Scaffold's default insets read the real device's keyboard, not the simulated one. When the preview mode is turned off, `DeviceWithConfigurationView` provides the real `WindowInsets.ime`.
 
 ### Theme Configuration
 Use `SimulatedDeviceThemeIsDark.current` for testing light/dark mode previews:

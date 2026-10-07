@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -27,14 +28,23 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.kappmaker.devicepreview.core.Device
+import com.kappmaker.devicepreview.core.DeviceInsets
+import com.kappmaker.devicepreview.core.keyboardHeightIn
+import com.kappmaker.devicepreview.core.portraitScreenSize
+import com.kappmaker.devicepreview.core.safeAreaIn
 import com.kappmaker.devicepreview.frame.DeviceFramePainter
 import com.kappmaker.devicepreview.frame.DeviceScreenShape
+import com.kappmaker.devicepreview.frame.SystemUiColors
+import com.kappmaker.devicepreview.frame.SystemUiPainter
+import com.kappmaker.devicepreview.frame.paintSimulatedKeyboard
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
  * The safe area of the device showing the content — the notch, Dynamic Island, status bar and
- * home indicator areas it should keep clear of — in the current orientation.
+ * home indicator areas it should keep clear of — in the current orientation. Like
+ * `WindowInsets.safeDrawing`, it also covers the keyboard while one is raised.
  *
  * Inside a [DeviceFrameView] (and so inside [SimulatedDevicePreview]) this is the simulated
  * device's; [DeviceWithConfigurationView] provides the real `WindowInsets.safeDrawing` when its
@@ -48,16 +58,35 @@ public val SimulatedDeviceSafeArea: ProvidableCompositionLocal<WindowInsets> =
     compositionLocalOf { WindowInsets(0, 0, 0, 0) }
 
 /**
+ * The keyboard of the device showing the content, the analogue of `WindowInsets.ime`: the height
+ * the simulated keyboard covers at the bottom of the screen, or zero while it is hidden.
+ *
+ * [DeviceWithConfigurationView] provides the real `WindowInsets.ime` when its preview mode is off.
+ */
+public val SimulatedDeviceKeyboardInsets: ProvidableCompositionLocal<WindowInsets> =
+    compositionLocalOf { WindowInsets(0, 0, 0, 0) }
+
+/**
  * Draws [device] around [content]: the body artwork behind the screen and the screen outline
  * (rounded corners, notch, punch-hole or Dynamic Island) as a clip on the content.
  *
  * The content is laid out at the device's logical screen size — its dp are the device's — and the
- * whole device is scaled to fit the available space. [SimulatedDeviceSafeArea] gives the content
- * the device's safe area for the current orientation.
+ * whole device is scaled to fit the available space. [SimulatedDeviceSafeArea] and
+ * [SimulatedDeviceKeyboardInsets] give the content the device's safe area and keyboard for the
+ * current orientation.
+ *
+ * The device's status bar and gesture pill, and the band of a raised keyboard, are painted over the
+ * content. They are decoration: they don't take touches, and hiding them changes nothing the content
+ * can observe.
  *
  * @param isPortrait Landscape rotates the device a quarter turn, frame included.
  * @param isFrameVisible When false the body is not drawn; the content is still clipped to the
  * device's screen outline.
+ * @param isSystemUiVisible Whether the status bar, gesture pill and keyboard band are drawn.
+ * @param isKeyboardVisible Whether the device's software keyboard is raised. Has no effect on a
+ * device without a keyboard height for this orientation.
+ * @param isDarkMode Whether the simulated system is in dark mode, which gives the status bar light
+ * icons. It doesn't theme the content: see [SimulatedDeviceThemeIsDark].
  */
 @Composable
 public fun DeviceFrameView(
@@ -65,13 +94,19 @@ public fun DeviceFrameView(
     modifier: Modifier = Modifier,
     isPortrait: Boolean = true,
     isFrameVisible: Boolean = true,
+    isSystemUiVisible: Boolean = true,
+    isKeyboardVisible: Boolean = false,
+    isDarkMode: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val frame = device.frame
     val painter = remember(frame) { frame?.let(::DeviceFramePainter) }
-    val portraitScreen = device.screenSize.let { Size(it.width / it.density, it.height / it.density) }
+    val portraitScreen = device.portraitScreenSize
     val screenSize = if (isPortrait) portraitScreen else Size(portraitScreen.height, portraitScreen.width)
-    val safeArea = if (isPortrait) device.portraitSafeArea else device.landscapeSafeArea
+    val safeArea = device.safeAreaIn(isPortrait)
+    val keyboardInset = if (isKeyboardVisible) device.keyboardHeightIn(isPortrait) ?: 0f else 0f
+    // Like `WindowInsets.safeDrawing`, the content's safe area is the union with the keyboard.
+    val contentSafeArea = safeArea.copy(bottom = max(safeArea.bottom, keyboardInset))
 
     val bodyPainter = painter?.takeIf { isFrameVisible && it.body != null }
     // What has to stay visible, in screen coordinates: the whole body when it is drawn.
@@ -87,6 +122,27 @@ public fun DeviceFrameView(
             Modifier.border(shape = shape, border = BorderStroke(2.dp, Color.Black)).clip(shape)
         }
         else -> Modifier.clipToBounds()
+    }
+
+    val systemUiPainter = remember(device.systemUi) {
+        device.systemUi?.takeUnless { it.isEmpty }?.let(::SystemUiPainter)
+    }
+    // Drawn over the content and inside the screen clip, so the screen outline cuts it too. The
+    // bars use the device's own safe area: the gesture pill stays on top of the keyboard band.
+    val overlayModifier = if (isSystemUiVisible && (systemUiPainter != null || keyboardInset > 0f)) {
+        val iconColor = SystemUiColors.icons(isDarkMode)
+        Modifier.drawWithContent {
+            drawContent()
+            drawIntoCanvas { canvas ->
+                canvas.save()
+                canvas.scale(size.width / screenSize.width, size.height / screenSize.height)
+                paintSimulatedKeyboard(canvas, screenSize, keyboardInset)
+                systemUiPainter?.paint(canvas, screenSize, safeArea, iconColor, layoutDirection)
+                canvas.restore()
+            }
+        }
+    } else {
+        Modifier
     }
 
     BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
@@ -110,10 +166,11 @@ public fun DeviceFrameView(
         Layout(
             modifier = bodyModifier,
             content = {
-                Box(screenModifier) {
+                Box(screenModifier.then(overlayModifier)) {
                     CompositionLocalProvider(
                         LocalDensity provides simulatedDensity,
-                        SimulatedDeviceSafeArea provides safeArea.toWindowInsets(),
+                        SimulatedDeviceSafeArea provides contentSafeArea.toWindowInsets(),
+                        SimulatedDeviceKeyboardInsets provides DeviceInsets(bottom = keyboardInset).toWindowInsets(),
                     ) {
                         content()
                     }
