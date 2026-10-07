@@ -1,5 +1,8 @@
 package com.kappmaker.devicepreview.preview
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -8,9 +11,14 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,6 +30,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
@@ -38,9 +47,13 @@ import com.kappmaker.devicepreview.frame.DeviceScreenShape
 import com.kappmaker.devicepreview.frame.SystemUiColors
 import com.kappmaker.devicepreview.frame.SystemUiPainter
 import com.kappmaker.devicepreview.frame.paintSimulatedKeyboard
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sin
 
 /**
  * The safe area of the device showing the content — the notch, Dynamic Island, status bar and
@@ -83,7 +96,9 @@ public val SimulatedDeviceKeyboardInsets: ProvidableCompositionLocal<WindowInset
  * On the web, the mouse acts as a finger on a touchscreen device: dragging the screen scrolls, as
  * it would on the device. The wheel and hover work as usual.
  *
- * @param isPortrait Landscape rotates the device a quarter turn, frame included.
+ * @param isPortrait Landscape rotates the device a quarter turn, frame included. A change is
+ * animated: the device turns, then the content is laid out in the new orientation. The device
+ * keeps its portrait size in landscape, unless it has to shrink to fit.
  * @param isFrameVisible When false the body is not drawn; the content is still clipped to the
  * device's screen outline.
  * @param isSystemUiVisible Whether the status bar, gesture pill and keyboard band are drawn.
@@ -103,21 +118,44 @@ public fun DeviceFrameView(
     isDarkMode: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    // A change of orientation turns the device a quarter turn, then lays it out in the new
+    // orientation: until then the content keeps the old one, as on a phone being turned.
+    var layoutPortrait by remember { mutableStateOf(isPortrait) }
+    // Degrees the device is turned from its layout orientation, clockwise.
+    var turn by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(isPortrait) {
+        val target = when {
+            isPortrait == layoutPortrait -> 0f
+            // Landscape is portrait turned counter-clockwise.
+            isPortrait -> 90f
+            else -> -90f
+        }
+        if (turn != target) {
+            animate(turn, target, animationSpec = tween(TurnMillis, easing = FastOutSlowInEasing)) { value, _ ->
+                turn = value
+            }
+        }
+        if (isPortrait != layoutPortrait) {
+            layoutPortrait = isPortrait
+            turn = 0f
+        }
+    }
+
     val frame = device.frame
     val painter = remember(frame) { frame?.let(::DeviceFramePainter) }
     val portraitScreen = device.portraitScreenSize
-    val screenSize = if (isPortrait) portraitScreen else Size(portraitScreen.height, portraitScreen.width)
-    val safeArea = device.safeAreaIn(isPortrait)
-    val keyboardInset = if (isKeyboardVisible) device.keyboardHeightIn(isPortrait) ?: 0f else 0f
+    val screenSize = if (layoutPortrait) portraitScreen else Size(portraitScreen.height, portraitScreen.width)
+    val safeArea = device.safeAreaIn(layoutPortrait)
+    val keyboardInset = if (isKeyboardVisible) device.keyboardHeightIn(layoutPortrait) ?: 0f else 0f
     // Like `WindowInsets.safeDrawing`, the content's safe area is the union with the keyboard.
     val contentSafeArea = safeArea.copy(bottom = max(safeArea.bottom, keyboardInset))
 
     val bodyPainter = painter?.takeIf { isFrameVisible && it.body != null }
     // What has to stay visible, in screen coordinates: the whole body when it is drawn.
-    val bounds = bodyPainter?.frame?.bodyBounds(screenSize, isPortrait) ?: Rect(Offset.Zero, screenSize)
+    val bounds = bodyPainter?.frame?.bodyBounds(screenSize, layoutPortrait) ?: Rect(Offset.Zero, screenSize)
 
-    val screenShape = remember(painter, screenSize, isPortrait) {
-        painter?.screenClip(screenSize, isPortrait)?.let { DeviceScreenShape(it, screenSize) }
+    val screenShape = remember(painter, screenSize, layoutPortrait) {
+        painter?.screenClip(screenSize, layoutPortrait)?.let { DeviceScreenShape(it, screenSize) }
     }
     val screenModifier = when {
         screenShape != null -> Modifier.clip(screenShape)
@@ -151,8 +189,20 @@ public fun DeviceFrameView(
     val inputModifier = if (device.isTouchscreen) Modifier.mouseAsTouch() else Modifier
 
     BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
+        val fallback = LocalDensity.current.density
+        val portraitBounds = if (layoutPortrait) bounds.size else Size(bounds.height, bounds.width)
+        val layoutDegrees = if (layoutPortrait) 0f else -90f
         // Pixels per logical pixel of the simulated device.
-        val scale = fitScale(constraints, bounds.size, fallback = LocalDensity.current.density)
+        val scale = turnedFitScale(constraints, portraitBounds, layoutDegrees, fallback)
+        // Mid-turn the device shrinks a little to stay inside the space. Only the layer is scaled,
+        // so the content isn't laid out again on every frame of the turn.
+        val turnModifier = Modifier.graphicsLayer {
+            val degrees = turn
+            val turnScale = turnedFitScale(constraints, portraitBounds, layoutDegrees + degrees, fallback) / scale
+            rotationZ = degrees
+            scaleX = turnScale
+            scaleY = turnScale
+        }
         val simulatedDensity = remember(scale) { Density(density = scale, fontScale = 1f) }
         val bodyModifier = if (bodyPainter != null) {
             Modifier.drawBehind {
@@ -160,7 +210,7 @@ public fun DeviceFrameView(
                     canvas.save()
                     canvas.scale(scale, scale)
                     canvas.translate(-bounds.left, -bounds.top)
-                    bodyPainter.paintBody(canvas, screenSize, isPortrait)
+                    bodyPainter.paintBody(canvas, screenSize, layoutPortrait)
                     canvas.restore()
                 }
             }
@@ -169,7 +219,7 @@ public fun DeviceFrameView(
         }
 
         Layout(
-            modifier = bodyModifier,
+            modifier = turnModifier.then(bodyModifier),
             content = {
                 Box(screenModifier.then(overlayModifier).then(inputModifier)) {
                     CompositionLocalProvider(
@@ -193,6 +243,25 @@ public fun DeviceFrameView(
             }
         }
     }
+}
+
+/** How long the device takes to turn between portrait and landscape. */
+private const val TurnMillis = 450
+
+/**
+ * The scale at which a device whose portrait bounds are [portraitBounds] fits [constraints] when
+ * turned [degrees] clockwise from portrait, and never larger than in portrait: turning a device
+ * doesn't make it bigger, though it shrinks when it would otherwise not fit.
+ */
+internal fun turnedFitScale(constraints: Constraints, portraitBounds: Size, degrees: Float, fallback: Float): Float {
+    val radians = degrees * PI.toFloat() / 180f
+    val cos = abs(cos(radians))
+    val sin = abs(sin(radians))
+    val turned = Size(
+        width = portraitBounds.width * cos + portraitBounds.height * sin,
+        height = portraitBounds.width * sin + portraitBounds.height * cos,
+    )
+    return min(fitScale(constraints, portraitBounds, fallback), fitScale(constraints, turned, fallback))
 }
 
 /** The largest scale at which [content] fits [constraints], or [fallback] when unbounded. */
