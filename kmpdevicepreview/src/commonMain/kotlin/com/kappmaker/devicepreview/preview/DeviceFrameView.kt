@@ -90,7 +90,7 @@ public val SimulatedDeviceKeyboardInsets: ProvidableCompositionLocal<WindowInset
  * current orientation.
  *
  * The device's status bar and gesture pill, and the band of a raised keyboard, are painted over the
- * content. They are decoration: they don't take touches, and hiding them changes nothing the content
+ * content. They don't take touches. The bars are decoration: hiding them changes nothing the content
  * can observe.
  *
  * On the web, the mouse acts as a finger on a touchscreen device: dragging the screen scrolls, as
@@ -101,9 +101,11 @@ public val SimulatedDeviceKeyboardInsets: ProvidableCompositionLocal<WindowInset
  * keeps its portrait size in landscape, unless it has to shrink to fit.
  * @param isFrameVisible When false the body is not drawn; the content is still clipped to the
  * device's screen outline.
- * @param isSystemUiVisible Whether the status bar, gesture pill and keyboard band are drawn.
- * @param isKeyboardVisible Whether the device's software keyboard is raised. Has no effect on a
- * device without a keyboard height for this orientation.
+ * @param isSystemUiVisible Whether the status bar and gesture pill are drawn. The safe area stays
+ * the same either way.
+ * @param isKeyboardVisible Whether the device's software keyboard is raised, which draws its band
+ * and adds it to the insets. Has no effect on a device without a keyboard height for this
+ * orientation.
  * @param isDarkMode Whether the simulated system is in dark mode, which gives the status bar light
  * icons. It doesn't theme the content: see [SimulatedDeviceThemeIsDark].
  */
@@ -168,10 +170,10 @@ public fun DeviceFrameView(
 
     val systemUiPainter = remember(device.systemUi) {
         device.systemUi?.takeUnless { it.isEmpty }?.let(::SystemUiPainter)
-    }
+    }.takeIf { isSystemUiVisible }
     // Drawn over the content and inside the screen clip, so the screen outline cuts it too. The
     // bars use the device's own safe area: the gesture pill stays on top of the keyboard band.
-    val overlayModifier = if (isSystemUiVisible && (systemUiPainter != null || keyboardInset > 0f)) {
+    val overlayModifier = if (systemUiPainter != null || keyboardInset > 0f) {
         val iconColor = SystemUiColors.icons(isDarkMode)
         Modifier.drawWithContent {
             drawContent()

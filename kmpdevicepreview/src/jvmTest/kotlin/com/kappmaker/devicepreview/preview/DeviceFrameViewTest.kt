@@ -96,7 +96,7 @@ class DeviceFrameViewTest {
     }
 
     @Test
-    fun hidingTheSystemUiKeepsTheInsets() {
+    fun hidingTheSystemUiKeepsTheInsetsAndTheKeyboard() {
         val captured = Captured()
         val pixels = render(
             isSystemUiVisible = false,
@@ -106,7 +106,9 @@ class DeviceFrameViewTest {
             captured = captured,
         )
         assertEquals(0, lightPixels(pixels, 30..61, 25..37), "no clock")
-        assertEquals(Color.Black, pixels[10, 800], "no keyboard band")
+        assertEquals(335, captured.safeAreaBottom, "the safe area includes the keyboard, as with the bars shown")
+        // The keyboard is its own switch: hiding the bars doesn't hide it.
+        assertTrue(pixels[10, 800] != Color.Black, "the keyboard band")
         assertEquals(335, captured.keyboardBottom)
     }
 

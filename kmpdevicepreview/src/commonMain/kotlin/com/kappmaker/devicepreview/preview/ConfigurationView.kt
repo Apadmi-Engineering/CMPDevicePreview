@@ -2,61 +2,69 @@ package com.kappmaker.devicepreview.preview
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.DeviceHub
-import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.PhoneIphone
-import androidx.compose.material.icons.filled.ScreenRotation
-import androidx.compose.material.icons.filled.TabletAndroid
-import androidx.compose.material.icons.filled.TabletMac
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Devices
+import androidx.compose.material.icons.outlined.Keyboard
+import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.SignalCellularAlt
+import androidx.compose.material.icons.outlined.Smartphone
+import androidx.compose.material.icons.outlined.StayCurrentLandscape
+import androidx.compose.material.icons.outlined.StayCurrentPortrait
+import androidx.compose.material.icons.outlined.UnfoldMore
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.unit.sp
 import com.kappmaker.devicepreview.core.Device
-import com.kappmaker.devicepreview.core.DeviceKind
 import com.kappmaker.devicepreview.core.DevicePreset
-import com.kappmaker.devicepreview.core.DeviceType
 import com.kappmaker.devicepreview.core.SimulatedDevice
-import com.kappmaker.devicepreview.devices.allDevices
-import kotlinx.coroutines.delay
+import com.kappmaker.devicepreview.core.portraitScreenSize
 import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.seconds
+
+private val OrientationOptions = listOf(
+    SegmentOption("Portrait", Icons.Outlined.StayCurrentPortrait),
+    SegmentOption("Landscape", Icons.Outlined.StayCurrentLandscape),
+)
+
+private val AppearanceOptions = listOf(
+    SegmentOption("Light", Icons.Outlined.LightMode),
+    SegmentOption("Dark", Icons.Outlined.DarkMode),
+)
+
+private const val NotAvailable = "Not available on this device"
 
 @Composable
 public fun ConfigurationView(
@@ -66,277 +74,173 @@ public fun ConfigurationView(
 ) {
     val configuration = simulatedDevice.configuration
     val device = simulatedDevice.device
-    var isAllDevicesShown by remember { mutableStateOf(false) }
-    if (isAllDevicesShown) {
-        AllDevicesView(
-            onClickDevice = {
-                onChangeConfiguration(simulatedDevice.copy(device = it).droppingUnavailableKeyboard())
-                isAllDevicesShown = false
-            },
-            onDismiss = {
-                isAllDevicesShown = false
-            })
-    }
+    fun update(change: SimulatedDevice.() -> SimulatedDevice) = onChangeConfiguration(simulatedDevice.change())
 
-    Column(
-        modifier = modifier
-            .background(Color.DarkGray),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-
-        Text(
-            modifier = Modifier.padding(16.dp),
-            text = "Configuration",
-            fontWeight = FontWeight.SemiBold,
-            color = Color.White,
-            style = MaterialTheme.typography.titleLarge
-        )
+    PanelTheme {
+        var isPickerShown by remember { mutableStateOf(false) }
+        if (isPickerShown) {
+            DevicePickerDialog(
+                selected = device,
+                onPick = {
+                    update { copy(device = it).droppingUnavailableKeyboard() }
+                    isPickerShown = false
+                },
+                onDismiss = { isPickerShown = false },
+            )
+        }
 
         Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = modifier
+                .background(PanelColors.Background)
+                .drawBehind { drawLine(PanelColors.Border, Offset.Zero, Offset(0f, size.height), 1.dp.toPx()) }
         ) {
+            PanelHeader()
 
-            SelectedDeviceView(
-                modifier = Modifier.fillMaxWidth(),
-                device = device
+            Column(
+                Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp)
             ) {
-                isAllDevicesShown = true
-            }
+                DeviceCard(device, isPortrait = configuration.isPortrait) { isPickerShown = true }
 
-            OrientationView(
-                modifier = Modifier.fillMaxWidth(),
-                isPortrait = configuration.isPortrait
-            ) {
-                onChangeConfiguration(
-                    simulatedDevice.copy(
-                        configuration = configuration.copy(
-                            isPortrait = configuration.isPortrait.not()
-                        )
-                    ).droppingUnavailableKeyboard()
+                Spacer(Modifier.height(24.dp))
+                SectionLabel("Orientation")
+                SegmentedControl(
+                    options = OrientationOptions,
+                    selectedIndex = if (configuration.isPortrait) 0 else 1,
+                    onSelect = { index ->
+                        update {
+                            copy(configuration = configuration.copy(isPortrait = index == 0)).droppingUnavailableKeyboard()
+                        }
+                    },
+                )
+
+                Spacer(Modifier.height(20.dp))
+                SectionLabel("Appearance")
+                SegmentedControl(
+                    options = AppearanceOptions,
+                    selectedIndex = if (configuration.isDarkMode) 1 else 0,
+                    onSelect = { index -> update { copy(configuration = configuration.copy(isDarkMode = index == 1)) } },
+                )
+
+                Spacer(Modifier.height(20.dp))
+                SectionLabel("Display")
+                ToggleRow(
+                    icon = Icons.Outlined.Smartphone,
+                    title = "Device frame",
+                    note = "Bezel and screen corners",
+                    checked = configuration.isFrameVisible,
+                    onCheckedChange = { update { copy(configuration = configuration.copy(isFrameVisible = it)) } },
+                )
+                val hasSystemUi = device.systemUi?.isEmpty == false
+                ToggleRow(
+                    icon = Icons.Outlined.SignalCellularAlt,
+                    title = "System UI",
+                    note = if (hasSystemUi) "Status bar and gesture bar" else NotAvailable,
+                    checked = hasSystemUi && configuration.isSystemUiVisible,
+                    enabled = hasSystemUi,
+                    onCheckedChange = { update { copy(configuration = configuration.copy(isSystemUiVisible = it)) } },
+                )
+                val keyboardHeight = simulatedDevice.currentKeyboardHeight
+                val isKeyboardShown = keyboardHeight != null && configuration.isKeyboardVisible
+                ToggleRow(
+                    icon = Icons.Outlined.Keyboard,
+                    title = "Keyboard",
+                    note = if (keyboardHeight == null) NotAvailable else "On-screen keyboard",
+                    badge = keyboardHeight?.takeIf { isKeyboardShown }?.let { "${it.roundToInt()} dp" },
+                    checked = isKeyboardShown,
+                    enabled = keyboardHeight != null,
+                    onCheckedChange = { update { copy(configuration = configuration.copy(isKeyboardVisible = it)) } },
                 )
             }
 
-            DarkLightModeView(
-                modifier = Modifier.fillMaxWidth(),
-                isLightMode = configuration.isDarkMode.not()
-            ) {
-                onChangeConfiguration(
-                    simulatedDevice.copy(
-                        configuration = configuration.copy(
-                            isDarkMode = configuration.isDarkMode.not()
-                        )
-                    )
-                )
-            }
-
-            SwitchRow(
-                modifier = Modifier.fillMaxWidth(),
-                title = "Device Frame",
-                status = if (configuration.isFrameVisible) "Visible" else "Hidden",
-                checked = configuration.isFrameVisible,
-            ) {
-                onChangeConfiguration(simulatedDevice.copy(configuration = configuration.copy(isFrameVisible = it)))
-            }
-
-            val hasSystemUi = device.systemUi?.isEmpty == false
-            SwitchRow(
-                modifier = Modifier.fillMaxWidth(),
-                title = "System UI",
-                status = when {
-                    !hasSystemUi -> NotAvailable
-                    configuration.isSystemUiVisible -> "Visible"
-                    else -> "Hidden"
-                },
-                checked = hasSystemUi && configuration.isSystemUiVisible,
-                enabled = hasSystemUi,
-            ) {
-                onChangeConfiguration(simulatedDevice.copy(configuration = configuration.copy(isSystemUiVisible = it)))
-            }
-
-            val keyboardHeight = simulatedDevice.currentKeyboardHeight
-            val isKeyboardShown = keyboardHeight != null && configuration.isKeyboardVisible
-            SwitchRow(
-                modifier = Modifier.fillMaxWidth(),
-                title = "Keyboard",
-                status = when {
-                    keyboardHeight == null -> NotAvailable
-                    isKeyboardShown -> "Shown · ${keyboardHeight.roundToInt()} dp"
-                    else -> "Hidden"
-                },
-                checked = isKeyboardShown,
-                enabled = keyboardHeight != null,
-            ) {
-                onChangeConfiguration(simulatedDevice.copy(configuration = configuration.copy(isKeyboardVisible = it)))
-            }
-
-            SwitchRow(
-                modifier = Modifier.fillMaxWidth(),
-                title = "Preview Mode",
-                status = if (configuration.isPreviewModeEnabled) "Enabled" else "Disabled",
+            HorizontalDivider(color = PanelColors.Border)
+            ToggleRow(
+                icon = Icons.Outlined.Visibility,
+                title = "Preview mode",
+                note = "Off runs the app full screen",
                 checked = configuration.isPreviewModeEnabled,
-            ) {
-                onChangeConfiguration(simulatedDevice.copy(configuration = configuration.copy(isPreviewModeEnabled = it)))
-            }
-
-
-        }
-    }
-}
-
-@Composable
-private fun OrientationView(
-    modifier: Modifier = Modifier,
-    isPortrait: Boolean = true,
-    onChangeOrientation: () -> Unit
-) {
-    Row(
-        modifier = modifier.padding(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                "Orientation",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = Color.White
-            )
-            Text(if (isPortrait) "Portrait" else "Landscape", color = Color.White)
-        }
-
-
-        Spacer(modifier = Modifier.weight(1f).defaultMinSize(minWidth = 16.dp))
-        IconButton(onClick = { onChangeOrientation() }) {
-            val animatedRotation by animateFloatAsState(
-                targetValue = if (isPortrait) 45f else 135f,
-                label = "rotation"
-            )
-            //Animate rotation
-            Icon(
-                tint = Color.White,
-                modifier = Modifier.rotate(animatedRotation),
-                imageVector = Icons.Default.ScreenRotation,
-                contentDescription = null
+                onCheckedChange = { update { copy(configuration = configuration.copy(isPreviewModeEnabled = it)) } },
+                modifier = Modifier.padding(8.dp),
             )
         }
     }
 }
 
 @Composable
-private fun DarkLightModeView(
-    modifier: Modifier = Modifier,
-    isLightMode: Boolean = true,
-    onChangeMode: () -> Unit
-) {
+private fun PanelHeader() {
     Row(
-        modifier = modifier.padding(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
+        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                "Theme",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = Color.White
-            )
-            Text(if (isLightMode) "Light" else "Dark", color = Color.White)
+        Box(
+            Modifier
+                .size(28.dp)
+                .background(Brush.linearGradient(listOf(PanelColors.Accent, Color(0xFF4FA3FF))), RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Outlined.Devices, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
         }
-
-
-        Spacer(modifier = Modifier.weight(1f).defaultMinSize(minWidth = 16.dp))
-        IconButton(onClick = { onChangeMode() }) {
-            val icon = if (isLightMode) Icons.Default.LightMode else Icons.Default.DarkMode
-            //Animate rotation
-            Icon(
-                tint = Color.White,
-                imageVector = icon,
-                contentDescription = null
-            )
-        }
-    }
-}
-
-@Composable
-private fun SelectedDeviceView(
-    modifier: Modifier = Modifier,
-    device: Device,
-    onClickChange: () -> Unit
-) {
-    Row(
-        modifier = modifier.clickable { onClickChange() }.padding(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                "Device",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = Color.White
-            )
-            Text(device.name, color = Color.White)
-        }
-
-
-        Spacer(modifier = Modifier.weight(1f).defaultMinSize(minWidth = 16.dp))
-        IconButton(onClick = { onClickChange() }) {
-            val icon = deviceIcon(device)
-            //Animate rotation
-            Icon(
-                tint = Color.White,
-                imageVector = icon,
-                contentDescription = null
-            )
-        }
-    }
-}
-
-private const val NotAvailable = "Not available on this device"
-
-@Composable
-private fun SwitchRow(
-    title: String,
-    status: String,
-    checked: Boolean,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    val color = if (enabled) Color.White else Color.White.copy(alpha = 0.38f)
-    Row(
-        modifier = modifier
-            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
-            .padding(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = color
-            )
-            Text(status, color = color)
-        }
-
-
-        Spacer(modifier = Modifier.weight(1f).defaultMinSize(minWidth = 16.dp))
-        // The row handles the toggle, so the whole row is one target.
-        Switch(
-            checked = checked,
-            onCheckedChange = null,
-            enabled = enabled,
-            colors = SwitchDefaults.colors(
-                checkedIconColor = Color.White,
-                checkedThumbColor = Color.White
-            )
+        Text(
+            "Device Preview",
+            modifier = Modifier.padding(start = 12.dp),
+            color = PanelColors.TextPrimary,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
         )
+    }
+}
+
+/** The current device, which opens the picker. Its thumbnail turns with the device. */
+@Composable
+private fun DeviceCard(device: Device, isPortrait: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    val turn by animateFloatAsState(if (isPortrait) 0f else -90f, label = "thumbnailTurn")
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(PanelColors.SurfaceRaised, PanelColors.Surface)))
+            .border(1.dp, PanelColors.Border, shape)
+            .clickable(role = Role.Button, onClickLabel = "Change device", onClick = onClick)
+            .pointerHoverIcon(PointerIcon.Hand)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier.size(56.dp).background(PanelColors.Background, RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            DeviceThumbnail(device, Modifier.size(44.dp).graphicsLayer { rotationZ = turn }, isHighlighted = true)
+        }
+        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            val preset = device as? DevicePreset
+            val origin = listOfNotNull(preset?.brand, preset?.year?.toString())
+                .ifEmpty { listOf(device.type.displayName) }
+                .joinToString(" · ")
+            val size = device.portraitScreenSize
+            Text(device.name, color = PanelColors.TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(origin, color = PanelColors.TextSecondary, fontSize = 12.sp)
+            Text(
+                "${size.width.roundToInt()} × ${size.height.roundToInt()} · ${formatPixelRatio(device.screenSize.density)}",
+                color = PanelColors.TextTertiary,
+                fontSize = 12.sp,
+            )
+        }
+        Icon(Icons.Outlined.UnfoldMore, contentDescription = null, tint = PanelColors.TextSecondary, modifier = Modifier.size(20.dp))
+    }
+}
+
+/** E.g. "3x" or "2.625x". */
+internal fun formatPixelRatio(ratio: Float): String {
+    val thousandths = (ratio * 1000).roundToInt()
+    val fraction = thousandths % 1000
+    return if (fraction == 0) {
+        "${thousandths / 1000}x"
+    } else {
+        "${thousandths / 1000}.${fraction.toString().padStart(3, '0').trimEnd('0')}x"
     }
 }
 
@@ -350,81 +254,3 @@ private fun SimulatedDevice.droppingUnavailableKeyboard(): SimulatedDevice =
     } else {
         this
     }
-
-@Composable
-private fun AllDevicesView(
-    modifier: Modifier = Modifier,
-    onClickDevice: (Device) -> Unit,
-    onDismiss: () -> Unit
-) {
-
-    Dialog(onDismissRequest = { onDismiss() }) {
-        LazyColumn(modifier = modifier.background(Color.DarkGray)) {
-            val groupedDevices = allDevices.groupBy { it.type }
-            val sortedDeviceTypes = groupedDevices.keys.sortedBy { it.order }
-            sortedDeviceTypes.forEach { deviceType ->
-                val devices = groupedDevices[deviceType] ?: emptyList()
-                item {
-                    Text(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        text = deviceType.displayName,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-                item {
-                    HorizontalDivider(modifier = Modifier.fillMaxWidth())
-                }
-                items(devices.size) {
-                    val device = devices[it]
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable {
-                            onClickDevice(device)
-                        }.padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            tint = Color.White,
-                            imageVector = deviceIcon(device),
-                            contentDescription = null
-                        )
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(text = device.name, color = Color.White)
-                            Text(
-                                text = deviceDetails(device),
-                                color = Color.LightGray,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-
-                }
-            }
-
-        }
-    }
-
-
-}
-
-private fun deviceIcon(device: Device): ImageVector {
-    val isApple = device.type == DeviceType.IOS
-    return when ((device as? DevicePreset)?.kind) {
-        DeviceKind.TABLET -> if (isApple) Icons.Filled.TabletMac else Icons.Filled.TabletAndroid
-        DeviceKind.DESKTOP -> Icons.Filled.Computer
-        else -> when (device.type) {
-            DeviceType.ANDROID -> Icons.Filled.PhoneAndroid
-            DeviceType.IOS -> Icons.Filled.PhoneIphone
-            DeviceType.OTHER -> Icons.Filled.DeviceHub
-        }
-    }
-}
-
-/** E.g. "Apple · 2024 · 402 × 874": brand, release year and logical portrait size. */
-private fun deviceDetails(device: DevicePreset): String = listOfNotNull(
-    device.brand,
-    device.year?.toString(),
-    "${device.portraitSize.width.roundToInt()} × ${device.portraitSize.height.roundToInt()}",
-).joinToString(" · ")

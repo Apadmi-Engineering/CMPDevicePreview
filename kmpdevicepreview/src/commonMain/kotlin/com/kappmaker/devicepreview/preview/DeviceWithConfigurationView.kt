@@ -1,19 +1,25 @@
 package com.kappmaker.devicepreview.preview
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -27,7 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kappmaker.devicepreview.core.SimulatedDevice
 import com.kappmaker.devicepreview.devices.DevicePresets
@@ -55,7 +61,7 @@ public fun DeviceWithConfigurationViewExpanded(
             content = content
         )
         ConfigurationView(
-            modifier = Modifier.fillMaxHeight().width(IntrinsicSize.Max),
+            modifier = Modifier.fillMaxHeight().width(PanelWidth),
             simulatedDevice = simulatedDevice,
             onChangeConfiguration = {
                 simulatedDevice = it
@@ -75,11 +81,12 @@ public fun DeviceWithConfigurationViewCompact(
 
     if (showBottomSheet) {
         ModalBottomSheet(
-            dragHandle = {},
+            dragHandle = { BottomSheetDefaults.DragHandle(color = PanelColors.SwitchOff) },
             onDismissRequest = {
                 showBottomSheet = false
             },
-            sheetState = sheetState
+            sheetState = sheetState,
+            containerColor = PanelColors.Background,
         ) {
             // Sheet content
             ConfigurationView(
@@ -104,11 +111,16 @@ public fun DeviceWithConfigurationViewCompact(
         )
 
         Button(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
+            modifier = Modifier.fillMaxWidth().padding(16.dp).height(48.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = PanelColors.Background,
+                contentColor = PanelColors.TextPrimary,
+            ),
             onClick = { showBottomSheet = true })
         {
-            Text("Show Configuration")
+            Icon(Icons.Outlined.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(simulatedDevice.device.name, modifier = Modifier.padding(start = 10.dp), fontWeight = FontWeight.Medium)
         }
 
     }

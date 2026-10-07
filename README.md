@@ -68,7 +68,7 @@ LazyColumn(contentPadding = SimulatedDeviceSafeArea.current.asPaddingValues()) {
 When the preview mode is turned off, `DeviceWithConfigurationView` provides the real device's `WindowInsets.safeDrawing` instead.
 
 ### Status bar
-Devices draw their status bar and gesture pill (or home indicator) over your content, in the safe area. They're static decoration: the clock never ticks, and the icons are white in dark mode and near-black in light mode. Turn them off with the **System UI** switch or `isSystemUiVisible = false`; the safe area stays the same either way.
+Devices draw their status bar and gesture pill (or home indicator) over your content, in the safe area. They're static decoration: the clock never ticks, and the icons are white in dark mode and near-black in light mode. Turn them off with the **System UI** switch or `isSystemUiVisible = false`; the safe area stays the same either way, and the keyboard has its own switch.
 
 ### Keyboard
 The **Keyboard** switch raises the device's software keyboard, at the height the real keyboard covers on that device (each iPhone and iPad measured; every Android device shares one representative height). Focusing a text field can't raise it: Compose text fields talk to the platform's keyboard directly, so the preview never hears about it.

@@ -309,17 +309,16 @@ public final class com/kappmaker/devicepreview/devices/other/GenericDevice : com
 	public fun getType ()Lcom/kappmaker/devicepreview/core/DeviceType;
 }
 
-public final class com/kappmaker/devicepreview/preview/ComposableSingletons$ConfigurationViewKt {
-	public static final field INSTANCE Lcom/kappmaker/devicepreview/preview/ComposableSingletons$ConfigurationViewKt;
+public final class com/kappmaker/devicepreview/preview/ComposableSingletons$DevicePickerKt {
+	public static final field INSTANCE Lcom/kappmaker/devicepreview/preview/ComposableSingletons$DevicePickerKt;
 	public fun <init> ()V
-	public final fun getLambda$1367227887$KAppMaker_DevicePreview_kmpdevicepreview ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$1415232787$KAppMaker_DevicePreview_kmpdevicepreview ()Lkotlin/jvm/functions/Function2;
 }
 
 public final class com/kappmaker/devicepreview/preview/ComposableSingletons$DeviceWithConfigurationViewKt {
 	public static final field INSTANCE Lcom/kappmaker/devicepreview/preview/ComposableSingletons$DeviceWithConfigurationViewKt;
 	public fun <init> ()V
 	public final fun getLambda$-490656188$KAppMaker_DevicePreview_kmpdevicepreview ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$5023716$KAppMaker_DevicePreview_kmpdevicepreview ()Lkotlin/jvm/functions/Function3;
 }
 
 public final class com/kappmaker/devicepreview/preview/ConfigurationViewKt {
