@@ -1,5 +1,7 @@
 package com.kappmaker.devicepreview.preview
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -8,6 +10,7 @@ import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kappmaker.devicepreview.core.DeviceConfiguration
@@ -17,6 +20,8 @@ import com.kappmaker.devicepreview.devices.DevicePresets
 public val SimulatedDeviceThemeIsDark: ProvidableCompositionLocal<MutableState<Boolean>> =
     compositionLocalOf { mutableStateOf(false) }
 
+/** How much of the space, in each direction, the device may fill: the rest is margin. */
+private const val DeviceFraction = 0.9f
 
 @Composable
 public fun SimulatedDevicePreview(
@@ -33,17 +38,19 @@ public fun SimulatedDevicePreview(
 
     CompositionLocalProvider(SimulatedDeviceThemeIsDark provides isDarkState) {
         val configuration = simulatedDevice.configuration
-        DeviceFrameView(
-            device = simulatedDevice.device,
-            modifier = modifier.padding(20.dp),
-            isPortrait = configuration.isPortrait,
-            isFrameVisible = configuration.isFrameVisible,
-            isSystemUiVisible = configuration.isSystemUiVisible,
-            isKeyboardVisible = configuration.isKeyboardVisible,
-            // The content may flip the theme itself; the status bar icons follow it.
-            isDarkMode = isDarkState.value,
-            content = content,
-        )
+        Box(modifier = modifier.fillMaxSize().dotGrid(), contentAlignment = Alignment.Center) {
+            DeviceFrameView(
+                device = simulatedDevice.device,
+                modifier = Modifier.padding(16.dp).fillMaxSize(DeviceFraction),
+                isPortrait = configuration.isPortrait,
+                isFrameVisible = configuration.isFrameVisible,
+                isSystemUiVisible = configuration.isSystemUiVisible,
+                isKeyboardVisible = configuration.isKeyboardVisible,
+                // The content may flip the theme itself; the status bar icons follow it.
+                isDarkMode = isDarkState.value,
+                content = content,
+            )
+        }
     }
 
 }
