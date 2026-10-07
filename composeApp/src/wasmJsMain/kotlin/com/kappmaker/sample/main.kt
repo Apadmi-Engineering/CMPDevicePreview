@@ -4,12 +4,15 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
+import com.kappmaker.devicepreview.preview.DeviceWithConfigurationView
 import kotlinx.browser.document
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3WindowSizeClassApi::class)
 fun main() {
     ComposeViewport(document.body!!) {
-        val size = calculateWindowSizeClass()
-        App(size = size)
+        // The app runs inside the device preview; take this wrapper away and it runs on its own.
+        DeviceWithConfigurationView(size = calculateWindowSizeClass()) {
+            App()
+        }
     }
 }

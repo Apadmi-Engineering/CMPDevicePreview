@@ -40,6 +40,20 @@ kotlin {
     }
     jvm()
 
+    // Everything but Android draws with Skia, and shares Compose's hooks for window insets and the
+    // system theme.
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    applyDefaultHierarchyTemplate {
+        common {
+            group("skiko") {
+                withJvm()
+                withIos()
+                withJs()
+                withWasmJs()
+            }
+        }
+    }
+
     sourceSets {
         commonMain {
             kotlin.srcDir(generateDevicePresets)

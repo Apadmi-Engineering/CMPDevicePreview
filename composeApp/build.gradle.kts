@@ -59,7 +59,6 @@ kotlin {
             implementation(libs.androidx.activity.compose)
         }
         commonMain.dependencies {
-            implementation(project(":kmpdevicepreview"))
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -69,6 +68,11 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime.compose)
+        }
+        // Only the web build shows the app inside the device preview; the app's own code doesn't
+        // know about it.
+        wasmJsMain.dependencies {
+            implementation(project(":kmpdevicepreview"))
             implementation(libs.jetbrains.material3.windowssizeclass)
         }
     }

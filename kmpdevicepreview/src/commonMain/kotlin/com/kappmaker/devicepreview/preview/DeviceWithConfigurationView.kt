@@ -2,14 +2,11 @@ package com.kappmaker.devicepreview.preview
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,7 +23,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,7 +42,7 @@ public fun DeviceWithConfigurationViewExpanded(
 ) {
     var simulatedDevice by remember { mutableStateOf(SimulatedDevice(device = DefaultDevice)) }
     if (simulatedDevice.configuration.isPreviewModeEnabled.not()) {
-        RealDeviceContent(content)
+        content()
         return
     }
     Row(modifier = modifier) {
@@ -99,7 +95,7 @@ public fun DeviceWithConfigurationViewCompact(
 
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         if (simulatedDevice.configuration.isPreviewModeEnabled.not()) {
-            RealDeviceContent(content)
+            content()
             return
         }
         val contentModifier = Modifier.weight(1f)
@@ -161,16 +157,5 @@ public fun DeviceWithConfigurationView(
             modifier = modifier,
             content = content
         )
-    }
-}
-
-/** The content on the real device, with the real device's safe area and keyboard. */
-@Composable
-private fun RealDeviceContent(content: @Composable () -> Unit) {
-    CompositionLocalProvider(
-        SimulatedDeviceSafeArea provides WindowInsets.safeDrawing,
-        SimulatedDeviceKeyboardInsets provides WindowInsets.ime,
-    ) {
-        content()
     }
 }

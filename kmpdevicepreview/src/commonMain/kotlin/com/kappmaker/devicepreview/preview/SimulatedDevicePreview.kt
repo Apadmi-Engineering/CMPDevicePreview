@@ -4,12 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.ProvidableCompositionLocal
-import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -17,9 +11,6 @@ import com.kappmaker.devicepreview.core.DeviceConfiguration
 import com.kappmaker.devicepreview.core.DevicePreset
 import com.kappmaker.devicepreview.core.SimulatedDevice
 import com.kappmaker.devicepreview.devices.DevicePresets
-
-public val SimulatedDeviceThemeIsDark: ProvidableCompositionLocal<MutableState<Boolean>> =
-    compositionLocalOf { mutableStateOf(false) }
 
 /** The device the preview starts with. */
 internal val DefaultDevice: DevicePreset get() = DevicePresets.galaxyS25
@@ -36,25 +27,17 @@ public fun SimulatedDevicePreview(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-
-    val isDarkState =
-        remember(simulatedDevice.configuration.isDarkMode) { mutableStateOf(simulatedDevice.configuration.isDarkMode) }
-
-    CompositionLocalProvider(SimulatedDeviceThemeIsDark provides isDarkState) {
-        val configuration = simulatedDevice.configuration
-        Box(modifier = modifier.fillMaxSize().dotGrid(), contentAlignment = Alignment.Center) {
-            DeviceFrameView(
-                device = simulatedDevice.device,
-                modifier = Modifier.padding(16.dp).fillMaxSize(DeviceFraction),
-                isPortrait = configuration.isPortrait,
-                isFrameVisible = configuration.isFrameVisible,
-                isSystemUiVisible = configuration.isSystemUiVisible,
-                isKeyboardVisible = configuration.isKeyboardVisible,
-                // The content may flip the theme itself; the status bar icons follow it.
-                isDarkMode = isDarkState.value,
-                content = content,
-            )
-        }
+    val configuration = simulatedDevice.configuration
+    Box(modifier = modifier.fillMaxSize().dotGrid(), contentAlignment = Alignment.Center) {
+        DeviceFrameView(
+            device = simulatedDevice.device,
+            modifier = Modifier.padding(16.dp).fillMaxSize(DeviceFraction),
+            isPortrait = configuration.isPortrait,
+            isFrameVisible = configuration.isFrameVisible,
+            isSystemUiVisible = configuration.isSystemUiVisible,
+            isKeyboardVisible = configuration.isKeyboardVisible,
+            isDarkMode = configuration.isDarkMode,
+            content = content,
+        )
     }
-
 }

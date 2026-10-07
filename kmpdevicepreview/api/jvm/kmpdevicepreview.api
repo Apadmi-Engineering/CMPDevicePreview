@@ -327,8 +327,6 @@ public final class com/kappmaker/devicepreview/preview/ConfigurationViewKt {
 
 public final class com/kappmaker/devicepreview/preview/DeviceFrameViewKt {
 	public static final fun DeviceFrameView (Lcom/kappmaker/devicepreview/core/Device;Landroidx/compose/ui/Modifier;ZZZZZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
-	public static final fun getSimulatedDeviceKeyboardInsets ()Landroidx/compose/runtime/ProvidableCompositionLocal;
-	public static final fun getSimulatedDeviceSafeArea ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 }
 
 public final class com/kappmaker/devicepreview/preview/DeviceWithConfigurationViewKt {
@@ -340,6 +338,5 @@ public final class com/kappmaker/devicepreview/preview/DeviceWithConfigurationVi
 
 public final class com/kappmaker/devicepreview/preview/SimulatedDevicePreviewKt {
 	public static final fun SimulatedDevicePreview (Lcom/kappmaker/devicepreview/core/SimulatedDevice;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
-	public static final fun getSimulatedDeviceThemeIsDark ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 }
 

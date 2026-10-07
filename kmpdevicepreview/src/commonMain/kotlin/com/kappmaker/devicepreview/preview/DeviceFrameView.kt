@@ -7,13 +7,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.ProvidableCompositionLocal
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -37,7 +34,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.kappmaker.devicepreview.core.Device
-import com.kappmaker.devicepreview.core.DeviceInsets
 import com.kappmaker.devicepreview.core.isTouchscreen
 import com.kappmaker.devicepreview.core.keyboardHeightIn
 import com.kappmaker.devicepreview.core.portraitScreenSize
@@ -50,44 +46,22 @@ import com.kappmaker.devicepreview.frame.paintSimulatedKeyboard
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
-import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
-
-/**
- * The safe area of the device showing the content — the notch, Dynamic Island, status bar and
- * home indicator areas it should keep clear of — in the current orientation. Like
- * `WindowInsets.safeDrawing`, it also covers the keyboard while one is raised.
- *
- * Inside a [DeviceFrameView] (and so inside [SimulatedDevicePreview]) this is the simulated
- * device's; [DeviceWithConfigurationView] provides the real `WindowInsets.safeDrawing` when its
- * preview mode is off. Use it like any insets:
- *
- * ```kotlin
- * Modifier.windowInsetsPadding(SimulatedDeviceSafeArea.current)
- * ```
- */
-public val SimulatedDeviceSafeArea: ProvidableCompositionLocal<WindowInsets> =
-    compositionLocalOf { WindowInsets(0, 0, 0, 0) }
-
-/**
- * The keyboard of the device showing the content, the analogue of `WindowInsets.ime`: the height
- * the simulated keyboard covers at the bottom of the screen, or zero while it is hidden.
- *
- * [DeviceWithConfigurationView] provides the real `WindowInsets.ime` when its preview mode is off.
- */
-public val SimulatedDeviceKeyboardInsets: ProvidableCompositionLocal<WindowInsets> =
-    compositionLocalOf { WindowInsets(0, 0, 0, 0) }
 
 /**
  * Draws [device] around [content]: the body artwork behind the screen and the screen outline
  * (rounded corners, notch, punch-hole or Dynamic Island) as a clip on the content.
  *
  * The content is laid out at the device's logical screen size — its dp are the device's — and the
- * whole device is scaled to fit the available space. [SimulatedDeviceSafeArea] and
- * [SimulatedDeviceKeyboardInsets] give the content the device's safe area and keyboard for the
- * current orientation.
+ * whole device is scaled to fit the available space.
+ *
+ * Inside the device, Compose's own APIs describe it, so the content needs nothing from this library:
+ * `WindowInsets` (`safeDrawing`, `statusBars`, `navigationBars`, `displayCutout`, `ime`, and the
+ * padding modifiers and Material defaults built on them) report its safe area and keyboard, and
+ * `isSystemInDarkTheme()` reports [isDarkMode]. Android has no hooks for this: there the content
+ * sees the real window.
  *
  * The device's status bar and gesture pill, and the band of a raised keyboard, are painted over the
  * content. They don't take touches. The bars are decoration: hiding them changes nothing the content
@@ -106,8 +80,8 @@ public val SimulatedDeviceKeyboardInsets: ProvidableCompositionLocal<WindowInset
  * @param isKeyboardVisible Whether the device's software keyboard is raised, which draws its band
  * and adds it to the insets. Has no effect on a device without a keyboard height for this
  * orientation.
- * @param isDarkMode Whether the simulated system is in dark mode, which gives the status bar light
- * icons. It doesn't theme the content: see [SimulatedDeviceThemeIsDark].
+ * @param isDarkMode Whether the simulated system is in dark mode: what `isSystemInDarkTheme()`
+ * returns inside the device, and the colour of the status bar's icons.
  */
 @Composable
 public fun DeviceFrameView(
@@ -149,8 +123,6 @@ public fun DeviceFrameView(
     val screenSize = if (layoutPortrait) portraitScreen else Size(portraitScreen.height, portraitScreen.width)
     val safeArea = device.safeAreaIn(layoutPortrait)
     val keyboardInset = if (isKeyboardVisible) device.keyboardHeightIn(layoutPortrait) ?: 0f else 0f
-    // Like `WindowInsets.safeDrawing`, the content's safe area is the union with the keyboard.
-    val contentSafeArea = safeArea.copy(bottom = max(safeArea.bottom, keyboardInset))
 
     val bodyPainter = painter?.takeIf { isFrameVisible && it.body != null }
     // What has to stay visible, in screen coordinates: the whole body when it is drawn.
@@ -224,12 +196,8 @@ public fun DeviceFrameView(
             modifier = turnModifier.then(bodyModifier),
             content = {
                 Box(screenModifier.then(overlayModifier).then(inputModifier)) {
-                    CompositionLocalProvider(
-                        LocalDensity provides simulatedDensity,
-                        SimulatedDeviceSafeArea provides contentSafeArea.toWindowInsets(),
-                        SimulatedDeviceKeyboardInsets provides DeviceInsets(bottom = keyboardInset).toWindowInsets(),
-                    ) {
-                        content()
+                    CompositionLocalProvider(LocalDensity provides simulatedDensity) {
+                        SimulatedPlatform(safeArea, keyboardInset, isDarkMode, content)
                     }
                 }
             },

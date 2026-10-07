@@ -1,14 +1,21 @@
 package com.kappmaker.devicepreview.preview
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.renderComposeScene
@@ -27,7 +34,14 @@ class DeviceFrameViewTest {
 
     private val iPhone = DevicePresets.iPhone16Pro
 
-    private class Captured(var safeAreaBottom: Int = -1, var keyboardBottom: Int = -1)
+    /** What the content sees, through Compose's own APIs. */
+    private class Captured(
+        var safeAreaBottom: Int = -1,
+        var keyboardBottom: Int = -1,
+        var statusBarTop: Int = -1,
+        var isDark: Boolean? = null,
+        var paddedHeight: Int = -1,
+    )
 
     private fun render(
         device: Device = iPhone,
@@ -47,9 +61,13 @@ class DeviceFrameViewTest {
                 isDarkMode = isDarkMode,
             ) {
                 val density = LocalDensity.current
-                captured.safeAreaBottom = SimulatedDeviceSafeArea.current.getBottom(density)
-                captured.keyboardBottom = SimulatedDeviceKeyboardInsets.current.getBottom(density)
-                Box(Modifier.fillMaxSize().background(background))
+                captured.safeAreaBottom = WindowInsets.safeDrawing.getBottom(density)
+                captured.keyboardBottom = WindowInsets.ime.getBottom(density)
+                captured.statusBarTop = WindowInsets.statusBars.getTop(density)
+                captured.isDark = isSystemInDarkTheme()
+                Box(Modifier.fillMaxSize().background(background)) {
+                    Box(Modifier.fillMaxSize().safeDrawingPadding().onSizeChanged { captured.paddedHeight = it.height })
+                }
             }
         }
     }.toComposeImageBitmap().toPixelMap()
@@ -110,6 +128,19 @@ class DeviceFrameViewTest {
         // The keyboard is its own switch: hiding the bars doesn't hide it.
         assertTrue(pixels[10, 800] != Color.Black, "the keyboard band")
         assertEquals(335, captured.keyboardBottom)
+    }
+
+    @Test
+    fun composeApisDescribeTheSimulatedDevice() {
+        val captured = Captured().also { render(isDarkMode = true, captured = it) }
+        assertEquals(62, captured.statusBarTop)
+        assertEquals(true, captured.isDark)
+        // The padding modifiers read the same insets: 874 less the status bar and home indicator.
+        assertEquals(874 - 62 - 34, captured.paddedHeight)
+
+        val light = Captured().also { render(isDarkMode = false, isKeyboardVisible = true, captured = it) }
+        assertEquals(false, light.isDark)
+        assertEquals(874 - 62 - 335, light.paddedHeight, "the raised keyboard pads the content too")
     }
 
     private fun lightPixels(pixels: PixelMap, xs: IntRange, ys: IntRange): Int =
