@@ -43,14 +43,6 @@ fun App(size: WindowSizeClass) {
         val isDark by SimulatedDeviceThemeIsDark.current //Should be replaced with a real theme change
         MaterialTheme(colorScheme = if (isDark) darkColorScheme() else lightColorScheme()) {
             var background by remember { mutableStateOf(StatusBarBackground.None) }
-            var icons by remember { mutableStateOf(StatusBarIcons.Theme) }
-            StatusBarIconsEffect(
-                lightIcons = when (icons) {
-                    StatusBarIcons.Theme -> isDark
-                    StatusBarIcons.Light -> true
-                    StatusBarIcons.Dark -> false
-                }
-            )
 
             val safeArea = SimulatedDeviceSafeArea.current
             Scaffold(
@@ -75,12 +67,7 @@ fun App(size: WindowSizeClass) {
             ) { padding ->
                 LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = padding) {
                     item {
-                        StatusBarControls(
-                            background = background,
-                            onBackgroundChange = { background = it },
-                            icons = icons,
-                            onIconsChange = { icons = it },
-                        )
+                        StatusBarControls(background = background, onBackgroundChange = { background = it })
                     }
                     item {
                         // Focusing the field can't raise the simulated keyboard: use the Keyboard
@@ -123,19 +110,10 @@ private fun StatusBarBackground.color(): Color? = when (this) {
     StatusBarBackground.Inverse -> MaterialTheme.colorScheme.inverseSurface
 }
 
-private enum class StatusBarIcons(val label: String) {
-    /** Contrasting with the theme, as `enableEdgeToEdge()` and iOS do by default. */
-    Theme("Theme"),
-    Light("Light"),
-    Dark("Dark"),
-}
-
 @Composable
 private fun StatusBarControls(
     background: StatusBarBackground,
     onBackgroundChange: (StatusBarBackground) -> Unit,
-    icons: StatusBarIcons,
-    onIconsChange: (StatusBarIcons) -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(16.dp),
@@ -143,14 +121,6 @@ private fun StatusBarControls(
     ) {
         Text("Status bar background", style = MaterialTheme.typography.titleSmall)
         Choices(StatusBarBackground.entries, background, onBackgroundChange) { it.label }
-        Text("Status bar icons", style = MaterialTheme.typography.titleSmall)
-        Choices(StatusBarIcons.entries, icons, onIconsChange) { it.label }
-        Text(
-            "The icons are set through the platform's own API, so the simulated status bar " +
-                "doesn't see them: its icons follow the theme.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
