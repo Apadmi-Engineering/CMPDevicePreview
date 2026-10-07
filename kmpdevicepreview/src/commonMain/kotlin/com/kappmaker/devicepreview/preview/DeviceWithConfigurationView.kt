@@ -36,7 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kappmaker.devicepreview.core.SimulatedDevice
-import com.kappmaker.devicepreview.devices.DevicePresets
 import com.kappmaker.devicepreview.getSourceSetName
 
 
@@ -45,7 +44,7 @@ public fun DeviceWithConfigurationViewExpanded(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    var simulatedDevice by remember { mutableStateOf(SimulatedDevice(device = DevicePresets.pixel9)) }
+    var simulatedDevice by remember { mutableStateOf(SimulatedDevice(device = DefaultDevice)) }
     if (simulatedDevice.configuration.isPreviewModeEnabled.not()) {
         RealDeviceContent(content)
         return
@@ -75,7 +74,7 @@ public fun DeviceWithConfigurationViewCompact(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    var simulatedDevice by remember { mutableStateOf(SimulatedDevice(device = DevicePresets.pixel9)) }
+    var simulatedDevice by remember { mutableStateOf(SimulatedDevice(device = DefaultDevice)) }
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
 
