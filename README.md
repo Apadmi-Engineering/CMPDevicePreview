@@ -83,6 +83,9 @@ Scaffold(contentWindowInsets = SimulatedDeviceSafeArea.current) { ... }
 
 Compose's own `imePadding()` and Scaffold's default insets read the real device's keyboard, not the simulated one. When the preview mode is turned off, `DeviceWithConfigurationView` provides the real `WindowInsets.ime`.
 
+### Mouse input
+In a browser, the mouse acts as a finger on a phone, tablet or foldable: dragging the screen scrolls lists, as it would on the device (Compose ignores mouse drags otherwise). A press that starts on the screen is sent to your content as a touch until it's released. The wheel, hover and right-click work as usual, and a desktop window keeps the mouse as a mouse. Other hosts, such as a JVM desktop app, keep the mouse as it is.
+
 ### Theme Configuration
 Use `SimulatedDeviceThemeIsDark.current` for testing light/dark mode previews:
 

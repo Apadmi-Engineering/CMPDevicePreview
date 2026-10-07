@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.kappmaker.devicepreview.core.Device
 import com.kappmaker.devicepreview.core.DeviceInsets
+import com.kappmaker.devicepreview.core.isTouchscreen
 import com.kappmaker.devicepreview.core.keyboardHeightIn
 import com.kappmaker.devicepreview.core.portraitScreenSize
 import com.kappmaker.devicepreview.core.safeAreaIn
@@ -78,6 +79,9 @@ public val SimulatedDeviceKeyboardInsets: ProvidableCompositionLocal<WindowInset
  * The device's status bar and gesture pill, and the band of a raised keyboard, are painted over the
  * content. They are decoration: they don't take touches, and hiding them changes nothing the content
  * can observe.
+ *
+ * On the web, the mouse acts as a finger on a touchscreen device: dragging the screen scrolls, as
+ * it would on the device. The wheel and hover work as usual.
  *
  * @param isPortrait Landscape rotates the device a quarter turn, frame included.
  * @param isFrameVisible When false the body is not drawn; the content is still clipped to the
@@ -144,6 +148,7 @@ public fun DeviceFrameView(
     } else {
         Modifier
     }
+    val inputModifier = if (device.isTouchscreen) Modifier.mouseAsTouch() else Modifier
 
     BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
         // Pixels per logical pixel of the simulated device.
@@ -166,7 +171,7 @@ public fun DeviceFrameView(
         Layout(
             modifier = bodyModifier,
             content = {
-                Box(screenModifier.then(overlayModifier)) {
+                Box(screenModifier.then(overlayModifier).then(inputModifier)) {
                     CompositionLocalProvider(
                         LocalDensity provides simulatedDensity,
                         SimulatedDeviceSafeArea provides contentSafeArea.toWindowInsets(),

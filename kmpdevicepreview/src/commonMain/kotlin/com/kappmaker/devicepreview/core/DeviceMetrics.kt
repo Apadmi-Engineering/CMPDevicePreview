@@ -18,3 +18,13 @@ internal fun Device.safeAreaIn(isPortrait: Boolean): DeviceInsets =
  */
 internal fun Device.keyboardHeightIn(isPortrait: Boolean): Float? =
     if (isPortrait) portraitKeyboardHeight else landscapeKeyboardHeight
+
+/**
+ * Whether the device has a touchscreen, so the host's mouse acts as a finger on it. A desktop
+ * window doesn't; a device of unknown kind does when it runs Android or iOS.
+ */
+internal val Device.isTouchscreen: Boolean
+    get() = when (this) {
+        is DevicePreset -> kind != DeviceKind.DESKTOP
+        else -> type == DeviceType.ANDROID || type == DeviceType.IOS
+    }
