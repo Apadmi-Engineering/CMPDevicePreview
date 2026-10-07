@@ -11,4 +11,11 @@ public data class SimulatedDevice(
         } else {
             device.screenSize.rotated()
         }
+
+    val currentSafeArea: DeviceInsets
+        get() = if (configuration.isPortrait) {
+            device.portraitSafeArea
+        } else {
+            device.landscapeSafeArea
+        }
 }

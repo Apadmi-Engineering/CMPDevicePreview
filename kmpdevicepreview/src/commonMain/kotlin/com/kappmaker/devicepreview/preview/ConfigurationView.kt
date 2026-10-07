@@ -14,12 +14,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeviceHub
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.PhoneIphone
 import androidx.compose.material.icons.filled.ScreenRotation
+import androidx.compose.material.icons.filled.TabletAndroid
+import androidx.compose.material.icons.filled.TabletMac
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,14 +42,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.kappmaker.devicepreview.core.Device
+import com.kappmaker.devicepreview.core.DeviceKind
+import com.kappmaker.devicepreview.core.DevicePreset
 import com.kappmaker.devicepreview.core.DeviceType
 import com.kappmaker.devicepreview.core.SimulatedDevice
 import com.kappmaker.devicepreview.devices.allDevices
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
@@ -119,6 +126,19 @@ public fun ConfigurationView(
                     simulatedDevice.copy(
                         configuration = configuration.copy(
                             isDarkMode = configuration.isDarkMode.not()
+                        )
+                    )
+                )
+            }
+
+            FrameVisibilityView(
+                modifier = Modifier.fillMaxWidth(),
+                isFrameVisible = configuration.isFrameVisible
+            ) {
+                onChangeConfiguration(
+                    simulatedDevice.copy(
+                        configuration = configuration.copy(
+                            isFrameVisible = configuration.isFrameVisible.not()
                         )
                     )
                 )
@@ -240,11 +260,7 @@ private fun SelectedDeviceView(
 
         Spacer(modifier = Modifier.weight(1f).defaultMinSize(minWidth = 16.dp))
         IconButton(onClick = { onClickChange() }) {
-            val icon = when (device.type) {
-                DeviceType.ANDROID -> Icons.Filled.PhoneAndroid
-                DeviceType.IOS -> Icons.Filled.PhoneIphone
-                DeviceType.OTHER -> Icons.Filled.DeviceHub
-            }
+            val icon = deviceIcon(device)
             //Animate rotation
             Icon(
                 tint = Color.White,
@@ -252,6 +268,40 @@ private fun SelectedDeviceView(
                 contentDescription = null
             )
         }
+    }
+}
+
+@Composable
+private fun FrameVisibilityView(
+    modifier: Modifier = Modifier,
+    isFrameVisible: Boolean = true,
+    onClickChange: () -> Unit
+) {
+    Row(
+        modifier = modifier.clickable { onClickChange() }.padding(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                "Device Frame",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = Color.White
+            )
+            Text(if (isFrameVisible) "Visible" else "Hidden", color = Color.White)
+        }
+
+
+        Spacer(modifier = Modifier.weight(1f).defaultMinSize(minWidth = 16.dp))
+        Switch(
+            checked = isFrameVisible,
+            onCheckedChange = { onClickChange() },
+            colors = SwitchDefaults.colors(
+                checkedIconColor = Color.White,
+                checkedThumbColor = Color.White
+            )
+        )
     }
 }
 
@@ -316,13 +366,27 @@ private fun AllDevicesView(
                 }
                 items(devices.size) {
                     val device = devices[it]
-                    Text(
+                    Row(
                         modifier = Modifier.fillMaxWidth().clickable {
                             onClickDevice(device)
                         }.padding(16.dp),
-                        text = device.name,
-                        color = Color.White,
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            tint = Color.White,
+                            imageVector = deviceIcon(device),
+                            contentDescription = null
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(text = device.name, color = Color.White)
+                            Text(
+                                text = deviceDetails(device),
+                                color = Color.LightGray,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
 
                 }
             }
@@ -332,3 +396,23 @@ private fun AllDevicesView(
 
 
 }
+
+private fun deviceIcon(device: Device): ImageVector {
+    val isApple = device.type == DeviceType.IOS
+    return when ((device as? DevicePreset)?.kind) {
+        DeviceKind.TABLET -> if (isApple) Icons.Filled.TabletMac else Icons.Filled.TabletAndroid
+        DeviceKind.DESKTOP -> Icons.Filled.Computer
+        else -> when (device.type) {
+            DeviceType.ANDROID -> Icons.Filled.PhoneAndroid
+            DeviceType.IOS -> Icons.Filled.PhoneIphone
+            DeviceType.OTHER -> Icons.Filled.DeviceHub
+        }
+    }
+}
+
+/** E.g. "Apple · 2024 · 402 × 874": brand, release year and logical portrait size. */
+private fun deviceDetails(device: DevicePreset): String = listOfNotNull(
+    device.brand,
+    device.year?.toString(),
+    "${device.portraitSize.width.roundToInt()} × ${device.portraitSize.height.roundToInt()}",
+).joinToString(" · ")

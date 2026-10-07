@@ -28,14 +28,16 @@ https://github.com/user-attachments/assets/6393bd5b-a148-4903-a641-5d83bbc80d1d
 
 ## Advanced Configuration
 
-### Custom Device
+### Devices and frames
+The built-in catalog, `DevicePresets`, holds the same 33 devices as [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview): current iPhones and iPads, Google Pixels, Samsung Galaxy phones, tablets and foldables, and two desktop windows. Each one comes with its screen size, pixel ratio, safe areas and frame artwork (bezel, rounded screen corners, notch, punch-hole or Dynamic Island). The catalog is generated from the JSON specs in [`kmpdevicepreview/device_specs`](kmpdevicepreview/device_specs).
+
 To preview only SimulatedDevice without any configuration view:
 ```kotlin
 
 SimulatedDevicePreview(
     simulatedDevice = SimulatedDevice(
-        device = Pixel6(), // Use a predefined device or create your own
-        configuration = DeviceConfiguration(isDarkMode = true, isPortrait = true) // Set dark mode and orientation
+        device = DevicePresets.iPhone16Pro, // Use a predefined device or create your own
+        configuration = DeviceConfiguration(isDarkMode = true, isPortrait = true, isFrameVisible = true) // Set dark mode, orientation and frame
     )
 ) {
     // Your composable content
@@ -44,7 +46,20 @@ SimulatedDevicePreview(
 
 ```
 
-You can create custom device size by implementing the `Device` interface and override its size properties, then pass it into `SimulatedDevice`.
+`DeviceFrameView(device = DevicePresets.galaxyS25) { App() }` draws a device around any content, without the simulated theme.
+
+You can create a custom device by implementing the `Device` interface (or creating a `DevicePreset`) and overriding its size properties, then pass it into `SimulatedDevice`. Give it a `DeviceFrame` to draw a body around it.
+
+### Safe area
+Use `SimulatedDeviceSafeArea.current` to keep content clear of the simulated device's notch, Dynamic Island, status bar and home indicator:
+
+```kotlin
+LazyColumn(contentPadding = SimulatedDeviceSafeArea.current.asPaddingValues()) {
+    ...
+}
+```
+
+When the preview mode is turned off, `DeviceWithConfigurationView` provides the real device's `WindowInsets.safeDrawing` instead.
 
 ### Theme Configuration
 Use `SimulatedDeviceThemeIsDark.current` for testing light/dark mode previews:

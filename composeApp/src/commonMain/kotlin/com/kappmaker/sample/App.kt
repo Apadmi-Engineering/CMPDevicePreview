@@ -1,6 +1,7 @@
 package com.kappmaker.sample
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kappmaker.devicepreview.preview.DeviceWithConfigurationView
+import com.kappmaker.devicepreview.preview.SimulatedDeviceSafeArea
 import com.kappmaker.devicepreview.preview.SimulatedDeviceThemeIsDark
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -26,7 +28,9 @@ fun App(size: WindowSizeClass) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
+                    .background(MaterialTheme.colorScheme.background),
+                // Keeps the first and last items clear of the notch / Dynamic Island and home indicator.
+                contentPadding = SimulatedDeviceSafeArea.current.asPaddingValues()
             ) {
                 items(50) {
                     Text(

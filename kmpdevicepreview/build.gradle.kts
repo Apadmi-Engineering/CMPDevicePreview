@@ -12,6 +12,11 @@ plugins {
     alias(libs.plugins.mavenPublish)
 
 }
+
+// Registers generateDevicePresets: device_specs/*.json -> DevicePresets.kt.
+apply(from = "device-presets.gradle.kts")
+val generateDevicePresets = tasks.named("generateDevicePresets")
+
 kotlin {
     explicitApi()
 
@@ -36,6 +41,9 @@ kotlin {
     jvm()
 
     sourceSets {
+        commonMain {
+            kotlin.srcDir(generateDevicePresets)
+        }
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -45,7 +53,17 @@ kotlin {
             implementation(compose.components.resources)
             implementation(libs.jetbrains.material3.windowssizeclass)
         }
+        jvmTest.dependencies {
+            implementation(kotlin("test"))
+            // Skiko's native runtime, which Compose's Path needs outside a window.
+            implementation(compose.desktop.currentOs)
+        }
     }
+}
+
+// Let the IDE resolve the generated catalog right after a Gradle sync.
+tasks.matching { it.name == "prepareKotlinIdeaImport" }.configureEach {
+    dependsOn(generateDevicePresets)
 }
 
 
