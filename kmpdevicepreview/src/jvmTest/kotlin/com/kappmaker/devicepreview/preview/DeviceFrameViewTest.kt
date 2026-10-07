@@ -18,8 +18,12 @@ import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.renderComposeScene
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import com.kappmaker.devicepreview.core.Device
 import com.kappmaker.devicepreview.devices.DevicePresets
 import kotlin.test.Test
@@ -41,6 +45,7 @@ class DeviceFrameViewTest {
         var statusBarTop: Int = -1,
         var isDark: Boolean? = null,
         var paddedHeight: Int = -1,
+        var windowSize: DpSize = DpSize.Unspecified,
     )
 
     private fun render(
@@ -65,6 +70,7 @@ class DeviceFrameViewTest {
                 captured.keyboardBottom = WindowInsets.ime.getBottom(density)
                 captured.statusBarTop = WindowInsets.statusBars.getTop(density)
                 captured.isDark = isSystemInDarkTheme()
+                captured.windowSize = with(density) { LocalWindowInfo.current.containerSize.toSize().toDpSize() }
                 Box(Modifier.fillMaxSize().background(background)) {
                     Box(Modifier.fillMaxSize().safeDrawingPadding().onSizeChanged { captured.paddedHeight = it.height })
                 }
@@ -141,6 +147,8 @@ class DeviceFrameViewTest {
         val light = Captured().also { render(isDarkMode = false, isKeyboardVisible = true, captured = it) }
         assertEquals(false, light.isDark)
         assertEquals(874 - 62 - 335, light.paddedHeight, "the raised keyboard pads the content too")
+        // The window is the device's screen, so window size classes follow the device.
+        assertEquals(DpSize(402.dp, 874.dp), captured.windowSize)
     }
 
     private fun lightPixels(pixels: PixelMap, xs: IntRange, ys: IntRange): Int =

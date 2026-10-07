@@ -68,6 +68,7 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime.compose)
+            implementation(libs.jetbrains.material3.adaptive)
         }
         // Only the web build shows the app inside the device preview; the app's own code doesn't
         // know about it.

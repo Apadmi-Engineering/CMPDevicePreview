@@ -65,6 +65,7 @@ You can create a custom device by implementing the `Device` interface (or creati
 Inside the simulated device, Compose's own APIs describe it, so your app doesn't need to know it's being previewed:
 - `WindowInsets.safeDrawing`, `statusBars`, `navigationBars`, `displayCutout` and `ime`, the padding modifiers built on them (`safeDrawingPadding()`, `imePadding()`, …) and Material's defaults (Scaffold, TopAppBar) report the simulated device's notch, Dynamic Island, status bar, home indicator and keyboard.
 - `isSystemInDarkTheme()` follows the **Appearance** switch.
+- `LocalWindowInfo` reports the device's screen as the window, so window size classes (`currentWindowAdaptiveInfoV2()` and the breakpoints built on it) follow the simulated device rather than the browser window. The sample app switches between a bottom bar, a navigation rail and a navigation drawer this way.
 
 ```kotlin
 MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
@@ -72,7 +73,7 @@ MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else li
 }
 ```
 
-This works on the web, desktop and iOS, through Compose Multiplatform hooks that are internal to Compose (one is deprecated), so a future Compose release may need a library update. Android has no such hooks: there, your app sees the real phone's insets and theme.
+The insets and theme work on the web, desktop and iOS, through Compose Multiplatform hooks that are internal to Compose (one is deprecated), so a future Compose release may need a library update. Android has no such hooks: there, your app sees the real phone's insets and theme. The window size works everywhere.
 
 ### Status bar
 Devices draw their status bar and gesture pill (or home indicator) over your content, in the safe area. They're static decoration: the clock never ticks, and the icons are white in dark mode and near-black in light mode. Turn them off with the **System UI** switch or `isSystemUiVisible = false`; the safe area stays the same either way, and the keyboard has its own switch.

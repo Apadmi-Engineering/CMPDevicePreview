@@ -30,8 +30,12 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.kappmaker.devicepreview.core.Device
 import com.kappmaker.devicepreview.core.isTouchscreen
@@ -61,7 +65,8 @@ import kotlin.math.sin
  * `WindowInsets` (`safeDrawing`, `statusBars`, `navigationBars`, `displayCutout`, `ime`, and the
  * padding modifiers and Material defaults built on them) report its safe area and keyboard, and
  * `isSystemInDarkTheme()` reports [isDarkMode]. Android has no hooks for this: there the content
- * sees the real window.
+ * sees the real window's insets and theme. On every platform, `LocalWindowInfo` reports the
+ * device's screen as the window, so window size classes (`currentWindowAdaptiveInfo()`) follow it.
  *
  * The device's status bar and gesture pill, and the band of a raised keyboard, are painted over the
  * content. They don't take touches. The bars are decoration: hiding them changes nothing the content
@@ -178,6 +183,11 @@ public fun DeviceFrameView(
             scaleY = turnScale
         }
         val simulatedDensity = remember(scale) { Density(density = scale, fontScale = 1f) }
+        // The window the content sees is the device's screen, so window size classes follow it.
+        val hostWindowInfo = LocalWindowInfo.current
+        val simulatedWindowInfo = remember(hostWindowInfo, screenSize, scale) {
+            SimulatedWindowInfo(hostWindowInfo, screenSize, scale)
+        }
         val bodyModifier = if (bodyPainter != null) {
             Modifier.drawBehind {
                 drawIntoCanvas { canvas ->
@@ -196,7 +206,10 @@ public fun DeviceFrameView(
             modifier = turnModifier.then(bodyModifier),
             content = {
                 Box(screenModifier.then(overlayModifier).then(inputModifier)) {
-                    CompositionLocalProvider(LocalDensity provides simulatedDensity) {
+                    CompositionLocalProvider(
+                        LocalDensity provides simulatedDensity,
+                        LocalWindowInfo provides simulatedWindowInfo,
+                    ) {
                         SimulatedPlatform(safeArea, keyboardInset, isDarkMode, content)
                     }
                 }
@@ -213,6 +226,18 @@ public fun DeviceFrameView(
             }
         }
     }
+}
+
+/** The host's window, resized to a device screen of [screenSize] logical pixels at [scale]. */
+private class SimulatedWindowInfo(
+    private val host: WindowInfo,
+    screenSize: Size,
+    scale: Float,
+) : WindowInfo {
+    override val isWindowFocused: Boolean get() = host.isWindowFocused
+    override val containerSize: IntSize =
+        IntSize((screenSize.width * scale).roundToInt(), (screenSize.height * scale).roundToInt())
+    override val containerDpSize: DpSize = DpSize(screenSize.width.dp, screenSize.height.dp)
 }
 
 /** How long the device takes to turn between portrait and landscape. */
