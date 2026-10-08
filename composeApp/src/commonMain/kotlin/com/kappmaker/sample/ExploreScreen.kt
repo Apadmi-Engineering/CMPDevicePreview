@@ -40,7 +40,12 @@ private fun ExploreHeader(state: WanderState, layout: AppLayout, modifier: Modif
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         BreakpointBadge(layout)
         Column {
-            Text("Where to next?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Where to next?",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Bold
+            )
             Text(
                 "${destinations.size} places to explore",
                 style = MaterialTheme.typography.bodyLarge,
