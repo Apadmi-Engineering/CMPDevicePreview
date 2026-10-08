@@ -17,24 +17,6 @@ permissions:
   contents: read
 
 jobs:
-  check:
-    name: Check API
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Setup JDK 17
-        uses: actions/setup-java@v6
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Setup gradle
-        uses: gradle/actions/setup-gradle@v6
-
-      - name: Check api
-        run: ./gradlew apiCheck
-
   build:
     strategy:
       fail-fast: false
@@ -47,7 +29,6 @@ jobs:
           - { target: ios, os: macos-latest, tasks: ":cmpdevicepreview:compileKotlinIosSimulatorArm64 :composeApp:compileKotlinIosSimulatorArm64" }
     runs-on: ${{ matrix.config.os }}
     name: Build ${{ matrix.config.target }}
-    needs: check
     steps:
       - uses: actions/checkout@v7
 

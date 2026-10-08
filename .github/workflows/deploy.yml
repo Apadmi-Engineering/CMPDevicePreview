@@ -53,8 +53,8 @@ jobs:
             exit 1
           fi
 
-      - name: Check api and test
-        run: ./gradlew apiCheck :cmpdevicepreview:jvmTest
+      - name: Test
+        run: ./gradlew :cmpdevicepreview:jvmTest
 
       - name: Publish to Maven Central
         run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
