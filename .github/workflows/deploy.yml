@@ -1,0 +1,109 @@
+name: Deploy
+
+# Publishes a release when a version tag is pushed: the library to Maven Central, the docs to
+# GitHub Pages, and a GitHub release. Pull request checks live in build.yml.
+#
+# Repository secrets used by the publish job (read by the Vanniktech Maven Publish plugin):
+#   MAVEN_CENTRAL_USERNAME, MAVEN_CENTRAL_PASSWORD  Central Portal user token
+#   SIGNING_KEY                                     ASCII-armored private PGP key
+#   SIGNING_KEY_ID                                  the key's id (its last 8 characters)
+#   SIGNING_KEY_PASSWORD                            the key's passphrase
+# cmpdevicepreview/build.gradle.kts signs the publications when SIGNING_KEY_ID is set.
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to Maven Central
+    # The iOS artifacts can only be built on macOS.
+    runs-on: macos-latest
+    env:
+      ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+      ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+      ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+      ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+      ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v6
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      # A version on Maven Central can't be replaced, so refuse a tag that disagrees with the build.
+      - name: Check the tag matches the version
+        run: |
+          version=$(sed -n 's/^devicePreviewVersion=//p' gradle.properties)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match devicePreviewVersion=$version in gradle.properties"
+            exit 1
+          fi
+
+      - name: Check api and test
+        run: ./gradlew apiCheck :cmpdevicepreview:jvmTest
+
+      - name: Publish to Maven Central
+        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
+
+  docs:
+    name: Publish docs
+    runs-on: macos-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v6
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+
+      - name: Generate docs with dokka
+        run: ./gradlew :cmpdevicepreview:dokkaGeneratePublicationHtml
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ github.workspace }}/cmpdevicepreview/build/dokka/html
+
+      - name: Release to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+  release:
+    name: Create GitHub release
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create new release from tag
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
