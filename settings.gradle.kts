@@ -1,4 +1,4 @@
-rootProject.name = "KAppMaker-DevicePreview"
+rootProject.name = "Apadmi-CmpDevicePreview"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
@@ -29,4 +29,4 @@ dependencyResolutionManagement {
 }
 
 include(":composeApp")
-include(":kmpdevicepreview")
+include(":cmpdevicepreview")

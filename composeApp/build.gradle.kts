@@ -12,7 +12,7 @@ plugins {
 
 kotlin {
     android {
-        namespace = "com.kappmaker.devicepreview.sample"
+        namespace = "com.apadmi.devicepreview.sample"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 
@@ -73,7 +73,7 @@ kotlin {
         // Only the web build shows the app inside the device preview; the app's own code doesn't
         // know about it.
         wasmJsMain.dependencies {
-            implementation(project(":kmpdevicepreview"))
+            implementation(project(":cmpdevicepreview"))
             implementation(libs.jetbrains.material3.windowssizeclass)
         }
     }

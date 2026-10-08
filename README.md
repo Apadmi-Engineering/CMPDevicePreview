@@ -1,16 +1,16 @@
-# KMPDevicePreview - Kotlin & Compose Multiplatform Preview Library
+# CmpDevicePreview - Compose Multiplatform Device Preview Library
 
-KMPDevicePreview is a Compose Multiplatform library for previewing and simulating your app. It lets you test your app or any part of it on different screen sizes, devices, and settings like dark mode or portrait/landscape orientation. This library works on Android, iOS, Web (WASM/Kotlin), JS and  Desktop (JVM). You can even use it to create web-based demos to showcase your app online.
+CmpDevicePreview is a Compose Multiplatform library for previewing and simulating your app. It lets you test your app or any part of it on different screen sizes, devices, and settings like dark mode or portrait/landscape orientation. This library works on Android, iOS, Web (WASM/Kotlin), JS and  Desktop (JVM). You can even use it to create web-based demos to showcase your app online.
 
-[![Android Weekly badge](https://androidweekly.net/issues/issue-650/badge)](https://androidweekly.net/issues/issue-650)
+> **Device frames by Flutter Device Preview.** The device catalog, including every frame (bezel, screen outline, notch, punch-hole and Dynamic Island), status bar, gesture pill and keyboard height, comes from [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview) by Aloïs Deniel, whose device specs are used here unchanged. CmpDevicePreview is also a fork of [KMPDevicePreview](https://github.com/KAppMaker/KMPDevicePreview) by KAppMaker. See [Credits](#credits).
 
 
 ## Getting Started
-To use **KMPDevicePreview**, add the library to your build.gradle file:
-Latest version: [![Maven Central](https://img.shields.io/maven-central/v/com.kappmaker/kmpdevicepreview?color=blue)](https://search.maven.org/search?q=g:com.kappmaker).
+To use **CmpDevicePreview**, add the library to your build.gradle file:
+Latest version: [![Maven Central](https://img.shields.io/maven-central/v/com.apadmi/cmpdevicepreview?color=blue)](https://search.maven.org/search?q=g:com.apadmi).
 
 ```gradle
-implementation("com.kappmaker:kmpdevicepreview:<version>")
+implementation("com.apadmi:cmpdevicepreview:<version>")
 
 ```
 Wrap your root App composable or any view with `DeviceWithConfigurationView` to display a preview. Your app needs nothing else from the library, so you can wrap it in a web-only entry point and leave the rest of your code untouched:
@@ -26,15 +26,10 @@ fun main() {
 ```
 
 
-
-https://github.com/user-attachments/assets/6393bd5b-a148-4903-a641-5d83bbc80d1d
-
-
-
 ## Advanced Configuration
 
 ### Devices and frames
-The built-in catalog, `DevicePresets`, holds the same 33 devices as [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview): current iPhones and iPads, Google Pixels, Samsung Galaxy phones, tablets and foldables, and two desktop windows. Each one comes with its screen size, pixel ratio, safe areas, frame artwork (bezel, rounded screen corners, notch, punch-hole or Dynamic Island), status bar and gesture pill, and keyboard height. The catalog is generated from the JSON specs in [`kmpdevicepreview/device_specs`](kmpdevicepreview/device_specs).
+The built-in catalog, `DevicePresets`, is [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview)'s own: the same 33 devices, built from the same device specs, which Aloïs Deniel created. It holds current iPhones and iPads, Google Pixels, Samsung Galaxy phones, tablets and foldables, and two desktop windows. Each one comes with its screen size, pixel ratio, safe areas, frame artwork (bezel, rounded screen corners, notch, punch-hole or Dynamic Island), status bar and gesture pill, and keyboard height. The catalog is generated from the JSON specs in [`cmpdevicepreview/device_specs`](cmpdevicepreview/device_specs), copied unchanged from Flutter Device Preview.
 
 To preview only SimulatedDevice without any configuration view:
 ```kotlin
@@ -138,6 +133,25 @@ DeviceWithConfigurationView(
 ### Mouse input
 In a browser, the mouse acts as a finger on a phone, tablet or foldable: dragging the screen scrolls lists, as it would on the device (Compose ignores mouse drags otherwise). A press that starts on the screen is sent to your content as a touch until it's released. The wheel, hover and right-click work as usual, and a desktop window keeps the mouse as a mouse. Other hosts, such as a JVM desktop app, keep the mouse as it is.
 
-####
-This library is inspired by [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview). It brings similar functionality to the Compose Multiplatform ecosystem.
+## Credits
+
+### Flutter Device Preview
+
+The device frames, and the whole device catalog behind them, are the work of **Aloïs Deniel**, from [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview) (MIT). CmpDevicePreview brings that library's approach to Compose Multiplatform, and would not look like a device without it:
+
+- **Device specs.** The 33 JSON files in [`cmpdevicepreview/device_specs`](cmpdevicepreview/device_specs) are copied unchanged from Flutter Device Preview's `device_specs/`. They carry each device's screen size, pixel ratio and safe areas, its **frame artwork** (the body, the screen outline, and the notch, punch-hole or Dynamic Island), the status bar and gesture pill artwork, and the keyboard heights.
+- **Rendering.** The SVG subset that draws that artwork (`SvgDrawing`) and the status bar and gesture pill layout (`SystemUiPainter`, with its tests) are ported from Flutter Device Preview, which the specs are authored against.
+- **Idea.** Previewing a running app on another device, with its screen size, safe areas, keyboard, text scale and brightness, is Flutter Device Preview's idea, and this library follows it.
+
+### KMPDevicePreview
+
+CmpDevicePreview is a fork of [KMPDevicePreview](https://github.com/KAppMaker/KMPDevicePreview) by **KAppMaker** (Mirzamehdi Karimov, MIT), the original Compose Multiplatform device preview library, which Android Weekly covered in [issue #650](https://androidweekly.net/issues/issue-650).
+
+## License
+
+CmpDevicePreview is released under the [MIT License](LICENSE). It keeps the copyright notices of the projects it is built on:
+
+- Copyright (c) 2026 Apadmi Ltd
+- Copyright (c) 2024 KAppMaker (KMPDevicePreview)
+- Copyright (c) 2019 Aloïs Deniel (Flutter Device Preview)
 
