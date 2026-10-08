@@ -139,8 +139,8 @@ internal fun DevicePickerDialog(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("Choose a device", color = PanelColors.TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-                        Text("${allDevices.size} devices", color = PanelColors.TextTertiary, fontSize = 12.sp)
+                        Text("Choose a frame", color = PanelColors.TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                        Text("${allDevices.size} frames", color = PanelColors.TextTertiary, fontSize = 12.sp)
                     }
                     IconButton(onClick = onDismiss, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)) {
                         Icon(Icons.Outlined.Close, contentDescription = "Close", tint = PanelColors.TextSecondary)
@@ -167,7 +167,7 @@ internal fun DevicePickerDialog(
 
                 if (results.isEmpty() && !showFreeform) {
                     Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                        Text("No devices match \"$query\"", color = PanelColors.TextTertiary, fontSize = 14.sp)
+                        Text("No frames match \"$query\"", color = PanelColors.TextTertiary, fontSize = 14.sp)
                     }
                 } else {
                     LazyColumn(

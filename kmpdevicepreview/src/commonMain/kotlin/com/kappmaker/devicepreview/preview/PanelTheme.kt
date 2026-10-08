@@ -278,7 +278,8 @@ private fun RowScope.SettingLabel(icon: ImageVector, title: String, note: String
                 note,
                 color = PanelColors.TextTertiary,
                 fontSize = 12.sp,
-                maxLines = 1,
+                lineHeight = 16.sp,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }

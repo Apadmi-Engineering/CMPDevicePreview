@@ -65,7 +65,7 @@ SimulatedDevicePreview(
 You can create a custom device by implementing the `Device` interface (or creating a `DevicePreset`) and overriding its size properties, then pass it into `SimulatedDevice`. Give it a `DeviceFrame` to draw a body around it.
 
 ### Freeform
-**Freeform** is a plain window of any size, for testing responsive layouts at sizes no device has, such as the width where a bottom bar becomes a navigation rail. It is the first row in the device picker, and `FreeformDevice(Size(834f, 1112f))` (in dp) gives you one in code. It has a border and a soft shadow (the **Device frame** switch turns them off), and no insets, status bar, keyboard or touch input; like a desktop window, it can't be turned.
+**Freeform** is a plain window of any size, for testing responsive layouts at sizes no device has, such as the width where a bottom bar becomes a navigation rail. It is the first row in the device picker, and `FreeformDevice(Size(834f, 1112f))` (in dp) gives you one in code. It has a border and a soft shadow (the **Border** switch turns them off), and no insets, status bar, keyboard or touch input; like a desktop window, it can't be turned.
 
 You don't have to pick it first: drag any corner of any device and it becomes a freeform window.
 - **Corners** (and, for a freeform window, **edges**) are handles. A device shows them when the mouse is over it; a freeform window always shows its corners. Phones and tablets have no hover, so there the picker is the way in.

@@ -23,10 +23,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.FormatTextdirectionLToR
 import androidx.compose.material.icons.automirrored.outlined.FormatTextdirectionRToL
 import androidx.compose.material.icons.outlined.BrightnessAuto
+import androidx.compose.material.icons.outlined.CropFree
 import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.GridOn
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.PhoneAndroid
@@ -113,7 +114,7 @@ private val BackdropOptions = listOf(
     SegmentOption("Auto", Icons.Outlined.BrightnessAuto),
 )
 
-private const val NotAvailable = "Not available on this device"
+private const val NotAvailable = "Not available for this frame"
 
 /** E.g. "Galaxy S25 1080x2340.png", or "Galaxy S25 with frame.png". */
 private fun screenshotName(device: Device, image: ImageBitmap, includesFrame: Boolean): String =
@@ -166,7 +167,9 @@ public fun ConfigurationView(
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp)
             ) {
+                SectionLabel("Frame")
                 DeviceCard(device, isPortrait = device.laidOutInPortrait(configuration.isPortrait)) { isPickerShown = true }
+                FrameDisclaimer()
 
                 Spacer(Modifier.height(24.dp))
                 if (device is FreeformDevice) {
@@ -243,8 +246,8 @@ public fun ConfigurationView(
                 SectionLabel("Display")
                 ToggleRow(
                     icon = Icons.Outlined.Smartphone,
-                    title = "Device frame",
-                    note = if (device is FreeformDevice) "Window border" else "Bezel and screen corners",
+                    title = if (device is FreeformDevice) "Border" else "Bezel",
+                    note = if (device is FreeformDevice) "Window border and shadow" else "Body and screen corners",
                     checked = configuration.isFrameVisible,
                     onCheckedChange = { update { copy(configuration = configuration.copy(isFrameVisible = it)) } },
                 )
@@ -252,7 +255,7 @@ public fun ConfigurationView(
                 ToggleRow(
                     icon = Icons.Outlined.SignalCellularAlt,
                     title = "System UI",
-                    note = if (hasSystemUi) "Status bar and gesture bar" else NotAvailable,
+                    note = if (hasSystemUi) "A static status bar and gesture bar" else NotAvailable,
                     checked = hasSystemUi && configuration.isSystemUiVisible,
                     enabled = hasSystemUi,
                     onCheckedChange = { update { copy(configuration = configuration.copy(isSystemUiVisible = it)) } },
@@ -262,7 +265,7 @@ public fun ConfigurationView(
                 ToggleRow(
                     icon = Icons.Outlined.Keyboard,
                     title = "Keyboard",
-                    note = if (keyboardHeight == null) NotAvailable else "On-screen keyboard",
+                    note = if (keyboardHeight == null) NotAvailable else "The space a keyboard covers",
                     badge = keyboardHeight?.takeIf { isKeyboardShown }?.let { "${it.roundToInt()} dp" },
                     checked = isKeyboardShown,
                     enabled = keyboardHeight != null,
@@ -280,7 +283,7 @@ public fun ConfigurationView(
                 ToggleRow(
                     icon = Icons.Outlined.GridOn,
                     title = "Dot grid",
-                    note = "Dots behind the device",
+                    note = "Dots behind the frame",
                     checked = configuration.isDotGridVisible,
                     onCheckedChange = { update { copy(configuration = configuration.copy(isDotGridVisible = it)) } },
                 )
@@ -306,7 +309,7 @@ public fun ConfigurationView(
                         }
                     }
                     Text(
-                        "A PNG at the device's own resolution",
+                        "A PNG at the frame's full resolution",
                         modifier = Modifier.padding(start = 4.dp, top = 8.dp),
                         color = PanelColors.TextTertiary,
                         fontSize = 12.sp,
@@ -344,7 +347,7 @@ private fun PanelHeader() {
                 .background(Brush.linearGradient(listOf(PanelColors.Accent, Color(0xFF4FA3FF))), RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Outlined.Devices, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+            Icon(Icons.Outlined.CropFree, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
         }
         Text(
             "Device Preview",
@@ -356,7 +359,7 @@ private fun PanelHeader() {
     }
 }
 
-/** The current device, which opens the picker. Its thumbnail turns with the device. */
+/** The current frame, which opens the picker. Its thumbnail turns with the frame. */
 @Composable
 private fun DeviceCard(device: Device, isPortrait: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
@@ -367,7 +370,7 @@ private fun DeviceCard(device: Device, isPortrait: Boolean, onClick: () -> Unit)
             .clip(shape)
             .background(Brush.verticalGradient(listOf(PanelColors.SurfaceRaised, PanelColors.Surface)))
             .border(1.dp, PanelColors.Border, shape)
-            .clickable(role = Role.Button, onClickLabel = "Change device", onClick = onClick)
+            .clickable(role = Role.Button, onClickLabel = "Change frame", onClick = onClick)
             .pointerHoverIcon(PointerIcon.Hand)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -399,6 +402,30 @@ private fun DeviceCard(device: Device, isPortrait: Boolean, onClick: () -> Unit)
             )
         }
         Icon(Icons.Outlined.UnfoldMore, contentDescription = null, tint = PanelColors.TextSecondary, modifier = Modifier.size(20.dp))
+    }
+}
+
+/**
+ * That a frame is only a frame: it shows a device's size and shape, but the app runs where it is,
+ * not on the device.
+ */
+@Composable
+private fun FrameDisclaimer() {
+    Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 10.dp)) {
+        Icon(
+            Icons.Outlined.Info,
+            contentDescription = null,
+            tint = PanelColors.TextTertiary,
+            modifier = Modifier.padding(top = 1.dp).size(14.dp),
+        )
+        Text(
+            "Frames give a feel for a device's size and shape. They don't simulate the device: your " +
+                "app runs here, in a window that size.",
+            modifier = Modifier.padding(start = 6.dp),
+            color = PanelColors.TextTertiary,
+            fontSize = 12.sp,
+            lineHeight = 16.sp,
+        )
     }
 }
 
