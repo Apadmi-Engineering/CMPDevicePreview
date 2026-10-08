@@ -51,6 +51,8 @@ import androidx.compose.ui.unit.sp
 import com.kappmaker.devicepreview.core.Device
 import com.kappmaker.devicepreview.core.DevicePreset
 import com.kappmaker.devicepreview.core.SimulatedDevice
+import com.kappmaker.devicepreview.core.isRotatable
+import com.kappmaker.devicepreview.core.laidOutInPortrait
 import com.kappmaker.devicepreview.core.portraitScreenSize
 import kotlin.math.roundToInt
 
@@ -103,19 +105,29 @@ public fun ConfigurationView(
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp)
             ) {
-                DeviceCard(device, isPortrait = configuration.isPortrait) { isPickerShown = true }
+                DeviceCard(device, isPortrait = device.laidOutInPortrait(configuration.isPortrait)) { isPickerShown = true }
 
                 Spacer(Modifier.height(24.dp))
                 SectionLabel("Orientation")
+                // A desktop window can't turn: it is locked to its natural, wide shape, which is landscape.
                 SegmentedControl(
                     options = OrientationOptions,
-                    selectedIndex = if (configuration.isPortrait) 0 else 1,
+                    selectedIndex = if (device.isRotatable && configuration.isPortrait) 0 else 1,
                     onSelect = { index ->
                         update {
                             copy(configuration = configuration.copy(isPortrait = index == 0)).droppingUnavailableKeyboard()
                         }
                     },
+                    enabled = device.isRotatable,
                 )
+                if (!device.isRotatable) {
+                    Text(
+                        "Desktop windows are landscape only",
+                        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+                        color = PanelColors.TextTertiary,
+                        fontSize = 12.sp,
+                    )
+                }
 
                 Spacer(Modifier.height(20.dp))
                 SectionLabel("Appearance")

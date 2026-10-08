@@ -21,6 +21,29 @@ class SimulatedDeviceTest {
     }
 
     @Test
+    fun aDesktopWindowCannotBeTurned() {
+        val desktop = DevicePresets.largeDesktopWindow
+        assertFalse(desktop.isRotatable)
+        assertTrue(desktop.laidOutInPortrait(isPortrait = false))
+
+        // Asking for landscape changes nothing: the window keeps its natural, wide shape.
+        val natural = SimulatedDevice(desktop).currentScreenSize
+        val asked = SimulatedDevice(desktop, DeviceConfiguration(isPortrait = false)).currentScreenSize
+        assertEquals(natural, asked)
+        assertTrue(asked.width > asked.height, "a desktop window is wider than tall")
+
+        // Everything else still turns.
+        for (device in listOf(DevicePresets.pixel9, DevicePresets.galaxyTabS11, DevicePresets.pixel10ProFold)) {
+            assertTrue(device.isRotatable, device.name)
+            val upright = SimulatedDevice(device).currentScreenSize
+            val turned = SimulatedDevice(device, DeviceConfiguration(isPortrait = false)).currentScreenSize
+            assertEquals(upright.rotated(), turned, device.name)
+        }
+        // A device of unknown kind can be turned.
+        assertTrue(GenericDevice().isRotatable)
+    }
+
+    @Test
     fun theSafeAreaDoesNotIncludeTheKeyboard() {
         val device = SimulatedDevice(DevicePresets.iPhone16Pro, DeviceConfiguration(isKeyboardVisible = true))
         assertEquals(DeviceInsets(top = 62f, bottom = 34f), device.currentSafeArea)

@@ -57,7 +57,7 @@ SimulatedDevicePreview(
 
 ```
 
-`DeviceFrameView(device = DevicePresets.galaxyS25) { App() }` draws a device around any content, without the configuration panel. It takes the same `isPortrait`, `isFrameVisible`, `isSystemUiVisible`, `isKeyboardVisible` and `isDarkMode` flags.
+`DeviceFrameView(device = DevicePresets.galaxyS25) { App() }` draws a device around any content, without the configuration panel. It takes the same `isPortrait`, `isFrameVisible`, `isSystemUiVisible`, `isKeyboardVisible` and `isDarkMode` flags. Desktop windows ignore `isPortrait`: they are resized rather than turned, so they always keep their natural, landscape shape (and the panel's Orientation switch is disabled for them).
 
 You can create a custom device by implementing the `Device` interface (or creating a `DevicePreset`) and overriding its size properties, then pass it into `SimulatedDevice`. Give it a `DeviceFrame` to draw a body around it.
 

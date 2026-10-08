@@ -101,6 +101,7 @@ internal fun SegmentedControl(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val shape = RoundedCornerShape(10.dp)
     BoxWithConstraints(
@@ -111,6 +112,7 @@ internal fun SegmentedControl(
             .background(PanelColors.Surface)
             .border(1.dp, PanelColors.Border, shape)
             .padding(3.dp)
+            .alpha(if (enabled) 1f else 0.45f)
     ) {
         val segmentWidth = maxWidth / options.size
         val indicatorOffset by animateDpAsState(segmentWidth * selectedIndex, label = "segment")
@@ -134,7 +136,7 @@ internal fun SegmentedControl(
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(8.dp))
-                        .selectable(selected = selected, role = Role.RadioButton) { onSelect(index) },
+                        .selectable(selected = selected, enabled = enabled, role = Role.RadioButton) { onSelect(index) },
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

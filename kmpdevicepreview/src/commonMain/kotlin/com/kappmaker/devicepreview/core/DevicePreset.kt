@@ -11,7 +11,8 @@ import androidx.compose.ui.geometry.Size
  *
  * @property id Stable identifier, e.g. `apple-iphone-16-pro`.
  * @property portraitSize The logical screen size in portrait, in dp. Desktop presets use their
- * natural window size here (wider than tall).
+ * natural window size here (wider than tall), and are always shown in it: a desktop window is
+ * resized rather than turned, so its orientation can't be changed.
  * @property devicePixelRatio Physical pixels per logical pixel.
  * @property brand The manufacturer, e.g. `Apple`, or null when unspecified.
  * @property year The release year, or null when unspecified.

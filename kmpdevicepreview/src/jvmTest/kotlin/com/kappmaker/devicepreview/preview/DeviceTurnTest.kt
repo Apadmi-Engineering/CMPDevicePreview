@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntSize
+import com.kappmaker.devicepreview.core.Device
 import com.kappmaker.devicepreview.devices.DevicePresets
 import kotlin.math.abs
 import kotlin.test.Test
@@ -73,6 +74,45 @@ class DeviceTurnTest {
             val turnedBox = deviceBox(turned)
             assertTrue(abs(turnedBox.width - uprightBox.height) <= 2, "$turnedBox vs $uprightBox")
             assertTrue(abs(turnedBox.height - uprightBox.width) <= 2, "$turnedBox vs $uprightBox")
+        } finally {
+            scene.close()
+        }
+    }
+
+    @Test
+    fun aDesktopWindowStaysLandscapeWhateverIsAsked() {
+        var isPortrait by mutableStateOf(true)
+        var device by mutableStateOf<Device>(DevicePresets.largeDesktopWindow)
+        var contentSize = IntSize.Zero
+        val scene = ImageComposeScene(width = 1000, height = 600) {
+            Box(Modifier.fillMaxSize().background(Color.White)) {
+                DeviceFrameView(device, Modifier.fillMaxSize(), isPortrait = isPortrait) {
+                    Box(Modifier.fillMaxSize().background(Color.Red).onSizeChanged { contentSize = it })
+                }
+            }
+        }
+        try {
+            scene.frame(0)
+            assertTrue(contentSize.width > contentSize.height, "a desktop window is wide")
+            val upright = deviceBox(scene.frame(16))
+
+            // Asking for portrait neither turns the window nor lays it out tall, not even mid-turn.
+            isPortrait = false
+            for (millis in listOf(32L, 32L + 225, 32L + 500, 32L + 516)) {
+                val pixels = scene.frame(millis)
+                assertTrue(contentSize.width > contentSize.height, "still wide at ${millis}ms")
+                assertEquals(upright, deviceBox(pixels), "the window doesn't move at ${millis}ms")
+            }
+
+            // Swapping to a phone that is asked to be in landscape shows it in landscape, not turning.
+            device = DevicePresets.pixel9
+            scene.frame(600)
+            assertTrue(contentSize.width > contentSize.height, "the phone is in landscape")
+            // And back: a desktop window straight away, without turning from the phone's orientation.
+            device = DevicePresets.largeDesktopWindow
+            scene.frame(616)
+            assertTrue(contentSize.width > contentSize.height, "the window is wide at once")
+            assertEquals(upright, deviceBox(scene.frame(632)))
         } finally {
             scene.close()
         }

@@ -6,6 +6,20 @@ import androidx.compose.ui.geometry.Size
 internal val Device.portraitScreenSize: Size
     get() = screenSize.let { Size(it.width / it.density, it.height / it.density) }
 
+/**
+ * Whether the device can be turned between portrait and landscape. A desktop window can't: it is
+ * resized rather than rotated, so it stays in its natural, wide shape.
+ */
+internal val Device.isRotatable: Boolean
+    get() = (this as? DevicePreset)?.kind != DeviceKind.DESKTOP
+
+/**
+ * Whether the device is laid out in portrait, the orientation its sizes and frame are described
+ * in, when [isPortrait] is asked for. A device that can't rotate always is: a desktop preset's
+ * portrait size is its natural window size, which is wider than tall.
+ */
+internal fun Device.laidOutInPortrait(isPortrait: Boolean): Boolean = isPortrait || !isRotatable
+
 /** The safe area in the given orientation. */
 internal fun Device.safeAreaIn(isPortrait: Boolean): DeviceInsets =
     if (isPortrait) portraitSafeArea else landscapeSafeArea

@@ -38,8 +38,10 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.kappmaker.devicepreview.core.Device
+import com.kappmaker.devicepreview.core.isRotatable
 import com.kappmaker.devicepreview.core.isTouchscreen
 import com.kappmaker.devicepreview.core.keyboardHeightIn
+import com.kappmaker.devicepreview.core.laidOutInPortrait
 import com.kappmaker.devicepreview.core.portraitScreenSize
 import com.kappmaker.devicepreview.core.safeAreaIn
 import com.kappmaker.devicepreview.frame.DeviceFramePainter
@@ -77,7 +79,8 @@ import kotlin.math.sin
  *
  * @param isPortrait Landscape rotates the device a quarter turn, frame included. A change is
  * animated: the device turns, then the content is laid out in the new orientation. The device
- * keeps its portrait size in landscape, unless it has to shrink to fit.
+ * keeps its portrait size in landscape, unless it has to shrink to fit. A desktop window can't be
+ * turned: it ignores this and stays in its natural, wide shape.
  * @param isFrameVisible When false the body is not drawn; the content is still clipped to the
  * device's screen outline.
  * @param isSystemUiVisible Whether the status bar and gesture pill are drawn. The safe area stays
@@ -99,16 +102,20 @@ public fun DeviceFrameView(
     isDarkMode: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    // A device that can't rotate, like a desktop window, stays in its natural orientation.
+    val wantsPortrait = device.laidOutInPortrait(isPortrait)
     // A change of orientation turns the device a quarter turn, then lays it out in the new
-    // orientation: until then the content keeps the old one, as on a phone being turned.
-    var layoutPortrait by remember { mutableStateOf(isPortrait) }
+    // orientation: until then the content keeps the old one, as on a phone being turned. Swapping
+    // a device that can turn for one that can't (or back) starts over rather than turning it.
+    val isRotatable = device.isRotatable
+    var layoutPortrait by remember(isRotatable) { mutableStateOf(wantsPortrait) }
     // Degrees the device is turned from its layout orientation, clockwise.
-    var turn by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(isPortrait) {
+    var turn by remember(isRotatable) { mutableFloatStateOf(0f) }
+    LaunchedEffect(wantsPortrait) {
         val target = when {
-            isPortrait == layoutPortrait -> 0f
+            wantsPortrait == layoutPortrait -> 0f
             // Landscape is portrait turned counter-clockwise.
-            isPortrait -> 90f
+            wantsPortrait -> 90f
             else -> -90f
         }
         if (turn != target) {
@@ -116,8 +123,8 @@ public fun DeviceFrameView(
                 turn = value
             }
         }
-        if (isPortrait != layoutPortrait) {
-            layoutPortrait = isPortrait
+        if (wantsPortrait != layoutPortrait) {
+            layoutPortrait = wantsPortrait
             turn = 0f
         }
     }
