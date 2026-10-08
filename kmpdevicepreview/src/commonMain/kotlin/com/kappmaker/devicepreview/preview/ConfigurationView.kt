@@ -119,11 +119,19 @@ private const val NotAvailable = "Not available on this device"
 private fun screenshotName(device: Device, image: ImageBitmap, includesFrame: Boolean): String =
     if (includesFrame) "${device.name} with frame.png" else "${device.name} ${image.width}x${image.height}.png"
 
+/**
+ * The configuration panel: the device, and how it is shown.
+ *
+ * @param panelItems Your own items, shown in order below the panel's settings. Each is drawn as it
+ * is given, as wide as the panel's settings, inside the panel's dark Material theme: how it looks
+ * and what it does are up to you.
+ */
 @Composable
 public fun ConfigurationView(
     modifier: Modifier = Modifier,
     simulatedDevice: SimulatedDevice,
-    onChangeConfiguration: (SimulatedDevice) -> Unit
+    onChangeConfiguration: (SimulatedDevice) -> Unit,
+    panelItems: List<@Composable () -> Unit> = emptyList(),
 ) {
     val configuration = simulatedDevice.configuration
     val device = simulatedDevice.device
@@ -303,6 +311,11 @@ public fun ConfigurationView(
                         color = PanelColors.TextTertiary,
                         fontSize = 12.sp,
                     )
+                }
+
+                if (panelItems.isNotEmpty()) {
+                    Spacer(Modifier.height(20.dp))
+                    panelItems.forEach { item -> item() }
                 }
             }
 

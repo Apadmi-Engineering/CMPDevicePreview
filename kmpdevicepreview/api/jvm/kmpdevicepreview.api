@@ -364,11 +364,11 @@ public final class com/kappmaker/devicepreview/preview/ComposableSingletons$Devi
 public final class com/kappmaker/devicepreview/preview/ComposableSingletons$DeviceWithConfigurationViewKt {
 	public static final field INSTANCE Lcom/kappmaker/devicepreview/preview/ComposableSingletons$DeviceWithConfigurationViewKt;
 	public fun <init> ()V
-	public final fun getLambda$1988191492$KAppMaker_DevicePreview_kmpdevicepreview ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-1450414048$KAppMaker_DevicePreview_kmpdevicepreview ()Lkotlin/jvm/functions/Function2;
 }
 
 public final class com/kappmaker/devicepreview/preview/ConfigurationViewKt {
-	public static final fun ConfigurationView (Landroidx/compose/ui/Modifier;Lcom/kappmaker/devicepreview/core/SimulatedDevice;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+	public static final fun ConfigurationView (Landroidx/compose/ui/Modifier;Lcom/kappmaker/devicepreview/core/SimulatedDevice;Lkotlin/jvm/functions/Function1;Ljava/util/List;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kappmaker/devicepreview/preview/DeviceFrameViewKt {
@@ -376,10 +376,10 @@ public final class com/kappmaker/devicepreview/preview/DeviceFrameViewKt {
 }
 
 public final class com/kappmaker/devicepreview/preview/DeviceWithConfigurationViewKt {
-	public static final fun DeviceWithConfigurationView (Landroidx/compose/ui/Modifier;Landroidx/compose/material3/windowsizeclass/WindowSizeClass;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
-	public static final fun DeviceWithConfigurationView (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
-	public static final fun DeviceWithConfigurationViewCompact (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
-	public static final fun DeviceWithConfigurationViewExpanded (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun DeviceWithConfigurationView (Landroidx/compose/ui/Modifier;Landroidx/compose/material3/windowsizeclass/WindowSizeClass;Ljava/util/List;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun DeviceWithConfigurationView (Landroidx/compose/ui/Modifier;Ljava/util/List;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun DeviceWithConfigurationViewCompact (Landroidx/compose/ui/Modifier;Ljava/util/List;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun DeviceWithConfigurationViewExpanded (Landroidx/compose/ui/Modifier;Ljava/util/List;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kappmaker/devicepreview/preview/SimulatedDevicePreviewKt {

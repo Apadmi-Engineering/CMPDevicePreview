@@ -122,6 +122,19 @@ Changing the device keeps the text size, and the nearest display size the new de
 ### Screenshots
 On the web, the **Screenshot** buttons download a PNG of the device: **Screen** is the screen as the device shows it, status bar and keyboard included, at the device's own resolution (1080 × 2424 for a Pixel 9); **With frame** adds the device's body, on a transparent background. A freeform window is captured at the browser's pixel ratio. Other platforms don't show the buttons.
 
+### Your own panel items
+Pass `panelItems` to add your own controls to the configuration panel, such as a button that resets your app's state or signs in a test user. They're shown in order below the panel's settings, as wide as the settings, inside the panel's dark Material theme. How they look and what they do is up to you:
+```kotlin
+DeviceWithConfigurationView(
+    panelItems = listOf(
+        { Button(onClick = { viewModel.reset() }) { Text("Reset app") } },
+        { Text("Build ${BuildConfig.VERSION}") },
+    ),
+) {
+    App()
+}
+```
+
 ### Mouse input
 In a browser, the mouse acts as a finger on a phone, tablet or foldable: dragging the screen scrolls lists, as it would on the device (Compose ignores mouse drags otherwise). A press that starts on the screen is sent to your content as a touch until it's released. The wheel, hover and right-click work as usual, and a desktop window keeps the mouse as a mouse. Other hosts, such as a JVM desktop app, keep the mouse as it is.
 

@@ -42,6 +42,7 @@ import kotlin.math.roundToInt
 @Composable
 public fun DeviceWithConfigurationViewExpanded(
     modifier: Modifier = Modifier,
+    panelItems: List<@Composable () -> Unit> = emptyList(),
     content: @Composable () -> Unit
 ) {
     var simulatedDevice by remember { mutableStateOf(SimulatedDevice(device = DefaultDevice)) }
@@ -66,7 +67,9 @@ public fun DeviceWithConfigurationViewExpanded(
                 simulatedDevice = simulatedDevice,
                 onChangeConfiguration = {
                     simulatedDevice = it
-                })
+                },
+                panelItems = panelItems,
+            )
         }
     }
 }
@@ -75,6 +78,7 @@ public fun DeviceWithConfigurationViewExpanded(
 @Composable
 public fun DeviceWithConfigurationViewCompact(
     modifier: Modifier = Modifier,
+    panelItems: List<@Composable () -> Unit> = emptyList(),
     content: @Composable () -> Unit
 ) {
     var simulatedDevice by remember { mutableStateOf(SimulatedDevice(device = DefaultDevice)) }
@@ -97,7 +101,9 @@ public fun DeviceWithConfigurationViewCompact(
                     simulatedDevice = simulatedDevice,
                     onChangeConfiguration = { newSimulatedDevice ->
                         simulatedDevice = newSimulatedDevice
-                    })
+                    },
+                    panelItems = panelItems,
+                )
             }
         }
 
@@ -139,38 +145,58 @@ private fun rememberDeviceScreenshots(): DeviceScreenshots? = remember { pngDown
 private fun deviceLabel(device: Device): String =
     if (device is FreeformDevice) "${device.name} · ${device.size.width.roundToInt()} × ${device.size.height.roundToInt()}" else device.name
 
+/**
+ * Shows [content] in a simulated device, with the configuration panel beside it when [size] is
+ * expanded, or behind a button below it otherwise.
+ *
+ * @param panelItems Your own items for the configuration panel, below its settings: see
+ * [ConfigurationView].
+ */
 @Composable
 public fun DeviceWithConfigurationView(
     modifier: Modifier = Modifier,
     size: WindowSizeClass,
+    panelItems: List<@Composable () -> Unit> = emptyList(),
     content: @Composable () -> Unit
 ) {
     when (size.widthSizeClass) {
         WindowWidthSizeClass.Expanded -> DeviceWithConfigurationViewExpanded(
             modifier = modifier,
+            panelItems = panelItems,
             content = content
         )
 
         else -> DeviceWithConfigurationViewCompact(
             modifier = modifier,
+            panelItems = panelItems,
             content = content
         )
     }
 }
 
+/**
+ * Shows [content] in a simulated device, with the configuration panel beside it on the web and
+ * desktop, or behind a button below it on Android and iOS.
+ *
+ * @param panelItems Your own items for the configuration panel, below its settings: see
+ * [ConfigurationView].
+ */
 @Composable
 public fun DeviceWithConfigurationView(
     modifier: Modifier = Modifier,
+    panelItems: List<@Composable () -> Unit> = emptyList(),
     content: @Composable () -> Unit
 ) {
     when (getSourceSetName()) {
         "androidMain", "iosMain" -> DeviceWithConfigurationViewCompact(
             modifier = modifier,
+            panelItems = panelItems,
             content = content
         )
 
         else -> DeviceWithConfigurationViewExpanded(
             modifier = modifier,
+            panelItems = panelItems,
             content = content
         )
     }
