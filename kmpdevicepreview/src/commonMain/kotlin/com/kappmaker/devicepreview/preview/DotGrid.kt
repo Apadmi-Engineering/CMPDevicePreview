@@ -14,6 +14,8 @@ import androidx.compose.ui.unit.dp
 internal object DotGridDefaults {
     val Background = Color(0xFFF2F2F4)
     val Dot = Color(0xFFC8C8D0)
+    val DarkBackground = Color(0xFF18181C)
+    val DarkDot = Color(0xFF2E2E36)
     val Spacing = 20.dp
     val DotSize = 2.dp
 }

@@ -29,3 +29,7 @@ public data class DeviceInsets(
             DeviceInsets(left = portrait.top, right = portrait.top, bottom = portrait.bottom)
     }
 }
+
+/** These insets, each divided by [scale]. */
+internal operator fun DeviceInsets.div(scale: Float): DeviceInsets =
+    DeviceInsets(left = left / scale, top = top / scale, right = right / scale, bottom = bottom / scale)

@@ -89,11 +89,11 @@ class SimulatedDeviceTest {
     fun aRaisedKeyboardIsDroppedWhenTheDeviceHasNone() {
         val raised = DeviceConfiguration(isKeyboardVisible = true)
         val phone = SimulatedDevice(DevicePresets.iPhone16Pro, raised)
-        assertEquals(phone, phone.droppingUnavailableKeyboard())
+        assertEquals(phone, phone.adaptedToDevice())
 
         val freeform = phone.copy(device = FreeformDevice(Size(400f, 800f)))
-        assertFalse(freeform.droppingUnavailableKeyboard().configuration.isKeyboardVisible)
+        assertFalse(freeform.adaptedToDevice().configuration.isKeyboardVisible)
         // Everything else about the configuration is kept.
-        assertEquals(freeform.configuration.copy(isKeyboardVisible = false), freeform.droppingUnavailableKeyboard().configuration)
+        assertEquals(freeform.configuration.copy(isKeyboardVisible = false), freeform.adaptedToDevice().configuration)
     }
 }

@@ -20,10 +20,17 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.FormatTextdirectionLToR
+import androidx.compose.material.icons.automirrored.outlined.FormatTextdirectionRToL
+import androidx.compose.material.icons.outlined.BrightnessAuto
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Devices
+import androidx.compose.material.icons.outlined.FormatSize
+import androidx.compose.material.icons.outlined.GridOn
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.Screenshot
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.StayCurrentLandscape
@@ -31,6 +38,7 @@ import androidx.compose.material.icons.outlined.StayCurrentPortrait
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.UnfoldMore
 import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.ZoomIn
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,6 +57,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
@@ -63,16 +72,22 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kappmaker.devicepreview.core.Backdrop
 import com.kappmaker.devicepreview.core.Device
 import com.kappmaker.devicepreview.core.DevicePreset
+import com.kappmaker.devicepreview.core.FontScaleSteps
 import com.kappmaker.devicepreview.core.FreeformDevice
 import com.kappmaker.devicepreview.core.SimulatedDevice
+import com.kappmaker.devicepreview.core.adaptedToDevice
+import com.kappmaker.devicepreview.core.currentContentSize
 import com.kappmaker.devicepreview.core.currentLogicalSize
-import com.kappmaker.devicepreview.core.droppingUnavailableKeyboard
+import com.kappmaker.devicepreview.core.displayScaleSteps
 import com.kappmaker.devicepreview.core.isRotatable
 import com.kappmaker.devicepreview.core.laidOutInPortrait
+import com.kappmaker.devicepreview.core.nearest
 import com.kappmaker.devicepreview.core.portraitScreenSize
 import kotlin.math.roundToInt
 
@@ -86,7 +101,23 @@ private val AppearanceOptions = listOf(
     SegmentOption("Dark", Icons.Outlined.DarkMode),
 )
 
+private val DirectionOptions = listOf(
+    SegmentOption("Left to right", Icons.AutoMirrored.Outlined.FormatTextdirectionLToR),
+    SegmentOption("Right to left", Icons.AutoMirrored.Outlined.FormatTextdirectionRToL),
+)
+
+// In the order of Backdrop's entries.
+private val BackdropOptions = listOf(
+    SegmentOption("Light", Icons.Outlined.LightMode),
+    SegmentOption("Dark", Icons.Outlined.DarkMode),
+    SegmentOption("Auto", Icons.Outlined.BrightnessAuto),
+)
+
 private const val NotAvailable = "Not available on this device"
+
+/** E.g. "Galaxy S25 1080x2340.png", or "Galaxy S25 with frame.png". */
+private fun screenshotName(device: Device, image: ImageBitmap, includesFrame: Boolean): String =
+    if (includesFrame) "${device.name} with frame.png" else "${device.name} ${image.width}x${image.height}.png"
 
 @Composable
 public fun ConfigurationView(
@@ -106,7 +137,7 @@ public fun ConfigurationView(
                 // Freeform starts as the device is now, turned as it is.
                 freeform = device as? FreeformDevice ?: FreeformDevice(simulatedDevice.currentLogicalSize),
                 onPick = {
-                    update { copy(device = it).droppingUnavailableKeyboard() }
+                    update { copy(device = it).adaptedToDevice() }
                     isPickerShown = false
                 },
                 onDismiss = { isPickerShown = false },
@@ -142,7 +173,7 @@ public fun ConfigurationView(
                         selectedIndex = if (device.isRotatable && configuration.isPortrait) 0 else 1,
                         onSelect = { index ->
                             update {
-                                copy(configuration = configuration.copy(isPortrait = index == 0)).droppingUnavailableKeyboard()
+                                copy(configuration = configuration.copy(isPortrait = index == 0)).adaptedToDevice()
                             }
                         },
                         enabled = device.isRotatable,
@@ -163,6 +194,41 @@ public fun ConfigurationView(
                     options = AppearanceOptions,
                     selectedIndex = if (configuration.isDarkMode) 1 else 0,
                     onSelect = { index -> update { copy(configuration = configuration.copy(isDarkMode = index == 1)) } },
+                )
+
+                Spacer(Modifier.height(20.dp))
+                SectionLabel("Text & display")
+                val fontSteps = FontScaleSteps
+                StepSlider(
+                    icon = Icons.Outlined.FormatSize,
+                    title = "Text size",
+                    note = "Real device scaling options may vary",
+                    labels = fontSteps.map { it.label },
+                    selectedIndex = fontSteps.indexOf(fontSteps.nearest(configuration.fontScale)),
+                    onSelect = { index -> update { copy(configuration = configuration.copy(fontScale = fontSteps[index].scale)) } },
+                )
+                val displaySteps = device.displayScaleSteps
+                val contentSize = simulatedDevice.currentContentSize
+                StepSlider(
+                    icon = Icons.Outlined.ZoomIn,
+                    title = "Display size",
+                    note = "App sees ${contentSize.width.roundToInt()} × ${contentSize.height.roundToInt()} dp",
+                    labels = displaySteps.map { it.label },
+                    selectedIndex = displaySteps.indexOf(displaySteps.nearest(configuration.displayScale)),
+                    onSelect = { index ->
+                        update { copy(configuration = configuration.copy(displayScale = displaySteps[index].scale)) }
+                    },
+                )
+
+                Spacer(Modifier.height(20.dp))
+                SectionLabel("Layout direction")
+                SegmentedControl(
+                    options = DirectionOptions,
+                    selectedIndex = if (configuration.layoutDirection == LayoutDirection.Rtl) 1 else 0,
+                    onSelect = { index ->
+                        val direction = if (index == 1) LayoutDirection.Rtl else LayoutDirection.Ltr
+                        update { copy(configuration = configuration.copy(layoutDirection = direction)) }
+                    },
                 )
 
                 Spacer(Modifier.height(20.dp))
@@ -194,6 +260,50 @@ public fun ConfigurationView(
                     enabled = keyboardHeight != null,
                     onCheckedChange = { update { copy(configuration = configuration.copy(isKeyboardVisible = it)) } },
                 )
+
+                Spacer(Modifier.height(20.dp))
+                SectionLabel("Backdrop")
+                SegmentedControl(
+                    options = BackdropOptions,
+                    selectedIndex = configuration.backdrop.ordinal,
+                    onSelect = { index -> update { copy(configuration = configuration.copy(backdrop = Backdrop.entries[index])) } },
+                )
+                Spacer(Modifier.height(8.dp))
+                ToggleRow(
+                    icon = Icons.Outlined.GridOn,
+                    title = "Dot grid",
+                    note = "Dots behind the device",
+                    checked = configuration.isDotGridVisible,
+                    onCheckedChange = { update { copy(configuration = configuration.copy(isDotGridVisible = it)) } },
+                )
+
+                val screenshots = LocalDeviceScreenshots.current
+                val download = pngDownloader
+                if (screenshots != null && download != null) {
+                    Spacer(Modifier.height(20.dp))
+                    SectionLabel("Screenshot")
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for (includeFrame in listOf(false, true)) {
+                            PanelButton(
+                                icon = if (includeFrame) Icons.Outlined.PhoneAndroid else Icons.Outlined.Screenshot,
+                                label = if (includeFrame) "With frame" else "Screen",
+                                enabled = screenshots.canCapture,
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    screenshots.capture(includeFrame)?.let { image ->
+                                        download(image, screenshotName(device, image, includeFrame))
+                                    }
+                                },
+                            )
+                        }
+                    }
+                    Text(
+                        "A PNG at the device's own resolution",
+                        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+                        color = PanelColors.TextTertiary,
+                        fontSize = 12.sp,
+                    )
+                }
             }
 
             HorizontalDivider(color = PanelColors.Border)

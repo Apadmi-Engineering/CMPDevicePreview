@@ -23,6 +23,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,23 +49,25 @@ public fun DeviceWithConfigurationViewExpanded(
         content()
         return
     }
-    Row(modifier = modifier) {
-        val contentModifier = Modifier
-            .weight(1f)
-            .fillMaxHeight()
+    CompositionLocalProvider(LocalDeviceScreenshots provides rememberDeviceScreenshots()) {
+        Row(modifier = modifier) {
+            val contentModifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
 
-        SimulatedDevicePreview(
-            simulatedDevice = simulatedDevice,
-            modifier = contentModifier,
-            onChangeConfiguration = { simulatedDevice = it },
-            content = content
-        )
-        ConfigurationView(
-            modifier = Modifier.fillMaxHeight().width(PanelWidth),
-            simulatedDevice = simulatedDevice,
-            onChangeConfiguration = {
-                simulatedDevice = it
-            })
+            SimulatedDevicePreview(
+                simulatedDevice = simulatedDevice,
+                modifier = contentModifier,
+                onChangeConfiguration = { simulatedDevice = it },
+                content = content
+            )
+            ConfigurationView(
+                modifier = Modifier.fillMaxHeight().width(PanelWidth),
+                simulatedDevice = simulatedDevice,
+                onChangeConfiguration = {
+                    simulatedDevice = it
+                })
+        }
     }
 }
 
@@ -78,55 +81,59 @@ public fun DeviceWithConfigurationViewCompact(
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
 
-    if (showBottomSheet) {
-        ModalBottomSheet(
-            dragHandle = { BottomSheetDefaults.DragHandle(color = PanelColors.SwitchOff) },
-            onDismissRequest = {
-                showBottomSheet = false
-            },
-            sheetState = sheetState,
-            containerColor = PanelColors.Background,
-        ) {
-            // Sheet content
-            ConfigurationView(
-                modifier = Modifier.fillMaxSize(),
-                simulatedDevice = simulatedDevice,
-                onChangeConfiguration = { newSimulatedDevice ->
-                    simulatedDevice = newSimulatedDevice
-                })
-        }
-    }
-
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        if (simulatedDevice.configuration.isPreviewModeEnabled.not()) {
-            content()
-            return
-        }
-        val contentModifier = Modifier.weight(1f)
-        SimulatedDevicePreview(
-            modifier = contentModifier,
-            simulatedDevice = simulatedDevice,
-            onChangeConfiguration = { simulatedDevice = it },
-            content = content
-        )
-
-        Button(
-            modifier = Modifier.fillMaxWidth().padding(16.dp).height(48.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
+    CompositionLocalProvider(LocalDeviceScreenshots provides rememberDeviceScreenshots()) {
+        if (showBottomSheet) {
+            ModalBottomSheet(
+                dragHandle = { BottomSheetDefaults.DragHandle(color = PanelColors.SwitchOff) },
+                onDismissRequest = {
+                    showBottomSheet = false
+                },
+                sheetState = sheetState,
                 containerColor = PanelColors.Background,
-                contentColor = PanelColors.TextPrimary,
-            ),
-            onClick = { showBottomSheet = true })
-        {
-            Icon(Icons.Outlined.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(deviceLabel(simulatedDevice.device), modifier = Modifier.padding(start = 10.dp), fontWeight = FontWeight.Medium)
+            ) {
+                // Sheet content
+                ConfigurationView(
+                    modifier = Modifier.fillMaxSize(),
+                    simulatedDevice = simulatedDevice,
+                    onChangeConfiguration = { newSimulatedDevice ->
+                        simulatedDevice = newSimulatedDevice
+                    })
+            }
         }
 
+        Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+            if (simulatedDevice.configuration.isPreviewModeEnabled.not()) {
+                content()
+                return@Column
+            }
+            val contentModifier = Modifier.weight(1f)
+            SimulatedDevicePreview(
+                modifier = contentModifier,
+                simulatedDevice = simulatedDevice,
+                onChangeConfiguration = { simulatedDevice = it },
+                content = content
+            )
+
+            Button(
+                modifier = Modifier.fillMaxWidth().padding(16.dp).height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PanelColors.Background,
+                    contentColor = PanelColors.TextPrimary,
+                ),
+                onClick = { showBottomSheet = true })
+            {
+                Icon(Icons.Outlined.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(deviceLabel(simulatedDevice.device), modifier = Modifier.padding(start = 10.dp), fontWeight = FontWeight.Medium)
+            }
+
+        }
     }
-
-
 }
+
+/** Where the preview's screenshots are recorded, on a platform that can save them. */
+@Composable
+private fun rememberDeviceScreenshots(): DeviceScreenshots? = remember { pngDownloader?.let { DeviceScreenshots() } }
 
 /** The device's name, and its size when that is what sets it apart: "Freeform · 834 × 1112". */
 private fun deviceLabel(device: Device): String =

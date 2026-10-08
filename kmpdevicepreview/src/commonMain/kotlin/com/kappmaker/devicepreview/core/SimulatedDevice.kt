@@ -34,13 +34,19 @@ public data class SimulatedDevice(
 internal val SimulatedDevice.currentLogicalSize: Size
     get() = currentScreenSize.let { Size(it.width / it.density, it.height / it.density) }
 
+/** The size of the window the content sees, in its dp: smaller when the display size is larger. */
+internal val SimulatedDevice.currentContentSize: Size
+    get() = currentLogicalSize / configuration.displayScale
+
 /**
- * Keeps a raised keyboard raised across a device or orientation change, at the new height, unless
- * the device has no keyboard there.
+ * Fits the configuration to a changed device or orientation. A raised keyboard stays raised, at the
+ * new height, unless the device has no keyboard there. The display size moves to the nearest one
+ * the device offers. The text size is kept: every device offers the same ones.
  */
-internal fun SimulatedDevice.droppingUnavailableKeyboard(): SimulatedDevice =
-    if (configuration.isKeyboardVisible && currentKeyboardHeight == null) {
-        copy(configuration = configuration.copy(isKeyboardVisible = false))
-    } else {
-        this
-    }
+internal fun SimulatedDevice.adaptedToDevice(): SimulatedDevice {
+    val adapted = configuration.copy(
+        isKeyboardVisible = configuration.isKeyboardVisible && currentKeyboardHeight != null,
+        displayScale = device.displayScaleSteps.nearest(configuration.displayScale).scale,
+    )
+    return if (adapted == configuration) this else copy(configuration = adapted)
+}

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,10 +21,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.renderComposeScene
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.unit.sp
 import com.kappmaker.devicepreview.core.Device
 import com.kappmaker.devicepreview.devices.DevicePresets
 import kotlin.test.Test
@@ -46,6 +48,11 @@ class DeviceFrameViewTest {
         var isDark: Boolean? = null,
         var paddedHeight: Int = -1,
         var windowSize: DpSize = DpSize.Unspecified,
+        var density: Float = Float.NaN,
+        var fontScale: Float = Float.NaN,
+        var textSizes: Map<Int, Float> = emptyMap(),
+        var textHeight: Int = -1,
+        var layoutDirection: LayoutDirection? = null,
     )
 
     private fun render(
@@ -55,6 +62,9 @@ class DeviceFrameViewTest {
         isDarkMode: Boolean = false,
         background: Color = Color.White,
         layoutDirection: LayoutDirection = LayoutDirection.Ltr,
+        deviceLayoutDirection: LayoutDirection? = null,
+        fontScale: Float = 1f,
+        displayScale: Float = 1f,
         captured: Captured = Captured(),
     ): PixelMap = renderComposeScene(402, 874) {
         CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
@@ -64,15 +74,23 @@ class DeviceFrameViewTest {
                 isSystemUiVisible = isSystemUiVisible,
                 isKeyboardVisible = isKeyboardVisible,
                 isDarkMode = isDarkMode,
+                fontScale = fontScale,
+                displayScale = displayScale,
+                layoutDirection = deviceLayoutDirection ?: LocalLayoutDirection.current,
             ) {
                 val density = LocalDensity.current
                 captured.safeAreaBottom = WindowInsets.safeDrawing.getBottom(density)
                 captured.keyboardBottom = WindowInsets.ime.getBottom(density)
                 captured.statusBarTop = WindowInsets.statusBars.getTop(density)
                 captured.isDark = isSystemInDarkTheme()
-                captured.windowSize = with(density) { LocalWindowInfo.current.containerSize.toSize().toDpSize() }
+                captured.windowSize = LocalWindowInfo.current.containerDpSize
+                captured.density = density.density
+                captured.fontScale = density.fontScale
+                captured.textSizes = listOf(14, 30).associateWith { with(density) { it.sp.toDp().value } }
+                captured.layoutDirection = LocalLayoutDirection.current
                 Box(Modifier.fillMaxSize().background(background)) {
                     Box(Modifier.fillMaxSize().safeDrawingPadding().onSizeChanged { captured.paddedHeight = it.height })
+                    BasicText("Hg", style = TextStyle(fontSize = 30.sp), modifier = Modifier.onSizeChanged { captured.textHeight = it.height })
                 }
             }
         }
@@ -149,6 +167,53 @@ class DeviceFrameViewTest {
         assertEquals(874 - 62 - 335, light.paddedHeight, "the raised keyboard pads the content too")
         // The window is the device's screen, so window size classes follow the device.
         assertEquals(DpSize(402.dp, 874.dp), captured.windowSize)
+    }
+
+    @Test
+    fun theFontScaleScalesText() {
+        val scaled = Captured().also { render(fontScale = 1.3f, captured = it) }
+        assertEquals(1.3f, scaled.fontScale)
+        assertEquals(14f * 1.3f, scaled.textSizes.getValue(14), 0.01f)
+        assertEquals(30f * 1.3f, scaled.textSizes.getValue(30), 0.01f)
+
+        // Laying out text follows the same sizes.
+        val defaultHeight = Captured().also { render(captured = it) }.textHeight.toFloat()
+        val doubledHeight = Captured().also { render(fontScale = 2f, captured = it) }.textHeight.toFloat()
+        assertEquals(2f, doubledHeight / defaultHeight, 0.1f)
+    }
+
+    @Test
+    fun aLargerDisplaySizeShrinksTheWindowButNotTheBars() {
+        val default = Captured()
+        val defaultPixels = render(isDarkMode = true, background = Color.Black, captured = default)
+        val larger = Captured()
+        val largerPixels = render(isDarkMode = true, background = Color.Black, displayScale = 1.25f, captured = larger)
+
+        assertEquals(DpSize(402.dp / 1.25f, 874.dp / 1.25f), larger.windowSize)
+        assertEquals(1.25f, larger.density)
+        // The status bar is as tall on the screen, so it is fewer of the content's dp.
+        assertEquals(default.statusBarTop, larger.statusBarTop)
+        assertEquals(lightPixels(defaultPixels, 0..401, 0..61), lightPixels(largerPixels, 0..401, 0..61))
+    }
+
+    @Test
+    fun theDeviceHasItsOwnLayoutDirection() {
+        val rtl = Captured()
+        val pixels = render(isDarkMode = true, background = Color.Black, deviceLayoutDirection = LayoutDirection.Rtl, captured = rtl)
+        assertEquals(LayoutDirection.Rtl, rtl.layoutDirection)
+        // The status bar mirrors with it: the battery is where LTR has a gap.
+        assertTrue(lightPixels(pixels, 75..95, 20..45) > 0)
+
+        val ltr = Captured()
+        val hostRtl = render(
+            isDarkMode = true,
+            background = Color.Black,
+            layoutDirection = LayoutDirection.Rtl,
+            deviceLayoutDirection = LayoutDirection.Ltr,
+            captured = ltr,
+        )
+        assertEquals(LayoutDirection.Ltr, ltr.layoutDirection)
+        assertEquals(0, lightPixels(hostRtl, 75..95, 20..45))
     }
 
     private fun lightPixels(pixels: PixelMap, xs: IntRange, ys: IntRange): Int =

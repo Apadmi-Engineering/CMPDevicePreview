@@ -1,5 +1,6 @@
 package com.kappmaker.devicepreview.preview
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -7,10 +8,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.kappmaker.devicepreview.core.Backdrop
 import com.kappmaker.devicepreview.core.DeviceConfiguration
 import com.kappmaker.devicepreview.core.DevicePreset
 import com.kappmaker.devicepreview.core.SimulatedDevice
-import com.kappmaker.devicepreview.core.droppingUnavailableKeyboard
+import com.kappmaker.devicepreview.core.adaptedToDevice
 import com.kappmaker.devicepreview.devices.DevicePresets
 
 /** The device the preview starts with. */
@@ -38,7 +40,7 @@ public fun SimulatedDevicePreview(
     content: @Composable () -> Unit
 ) {
     val configuration = simulatedDevice.configuration
-    Box(modifier = modifier.fillMaxSize().dotGrid(), contentAlignment = Alignment.Center) {
+    Box(modifier = modifier.fillMaxSize().backdrop(configuration), contentAlignment = Alignment.Center) {
         DeviceFrameView(
             device = simulatedDevice.device,
             modifier = Modifier.padding(16.dp).fillMaxSize(DeviceFraction),
@@ -47,10 +49,28 @@ public fun SimulatedDevicePreview(
             isSystemUiVisible = configuration.isSystemUiVisible,
             isKeyboardVisible = configuration.isKeyboardVisible,
             isDarkMode = configuration.isDarkMode,
+            fontScale = configuration.fontScale,
+            displayScale = configuration.displayScale,
+            layoutDirection = configuration.layoutDirection,
             onResize = onChangeConfiguration?.let { change ->
-                { freeform -> change(simulatedDevice.copy(device = freeform).droppingUnavailableKeyboard()) }
+                { freeform -> change(simulatedDevice.copy(device = freeform).adaptedToDevice()) }
             },
             content = content,
         )
+    }
+}
+
+/** The backdrop [configuration] asks for: light or dark, with or without dots. */
+private fun Modifier.backdrop(configuration: DeviceConfiguration): Modifier {
+    val isDark = when (configuration.backdrop) {
+        Backdrop.LIGHT -> false
+        Backdrop.DARK -> true
+        Backdrop.AUTO -> configuration.isDarkMode
+    }
+    val background = if (isDark) DotGridDefaults.DarkBackground else DotGridDefaults.Background
+    return if (configuration.isDotGridVisible) {
+        dotGrid(background = background, dot = if (isDark) DotGridDefaults.DarkDot else DotGridDefaults.Dot)
+    } else {
+        background(background)
     }
 }

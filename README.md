@@ -48,6 +48,9 @@ SimulatedDevicePreview(
             isFrameVisible = true,
             isSystemUiVisible = true, // Status bar and gesture pill
             isKeyboardVisible = false, // Simulated software keyboard
+            fontScale = 1.3f, // Text size
+            displayScale = 1f, // Display size: larger draws everything larger, leaving fewer dp
+            layoutDirection = LayoutDirection.Rtl,
         )
     )
 ) {
@@ -57,7 +60,7 @@ SimulatedDevicePreview(
 
 ```
 
-`DeviceFrameView(device = DevicePresets.galaxyS25) { App() }` draws a device around any content, without the configuration panel. It takes the same `isPortrait`, `isFrameVisible`, `isSystemUiVisible`, `isKeyboardVisible` and `isDarkMode` flags. Desktop windows ignore `isPortrait`: they are resized rather than turned, so they always keep their natural, landscape shape (and the panel's Orientation switch is disabled for them).
+`DeviceFrameView(device = DevicePresets.galaxyS25) { App() }` draws a device around any content, without the configuration panel. It takes the same `isPortrait`, `isFrameVisible`, `isSystemUiVisible`, `isKeyboardVisible`, `isDarkMode`, `fontScale`, `displayScale` and `layoutDirection` settings. Desktop windows ignore `isPortrait`: they are resized rather than turned, so they always keep their natural, landscape shape (and the panel's Orientation switch is disabled for them).
 
 You can create a custom device by implementing the `Device` interface (or creating a `DevicePreset`) and overriding its size properties, then pass it into `SimulatedDevice`. Give it a `DeviceFrame` to draw a body around it.
 
@@ -83,6 +86,8 @@ SimulatedDevicePreview(
 Inside the simulated device, Compose's own APIs describe it, so your app doesn't need to know it's being previewed:
 - `WindowInsets.safeDrawing`, `statusBars`, `navigationBars`, `displayCutout` and `ime`, the padding modifiers built on them (`safeDrawingPadding()`, `imePadding()`, …) and Material's defaults (Scaffold, TopAppBar) report the simulated device's notch, Dynamic Island, status bar, home indicator and keyboard.
 - `isSystemInDarkTheme()` follows the **Appearance** switch.
+- `LocalDensity.current.fontScale` follows **Text size**, so `sp` text grows with it.
+- `LocalLayoutDirection` follows **Layout direction**.
 - `LocalWindowInfo` reports the device's screen as the window, so window size classes (`currentWindowAdaptiveInfoV2()` and the breakpoints built on it) follow the simulated device rather than the browser window. The sample app switches between a bottom bar, a navigation rail and a navigation drawer this way.
 
 ```kotlin
@@ -100,6 +105,22 @@ Devices draw their status bar and gesture pill (or home indicator) over your con
 The **Keyboard** switch raises the device's software keyboard, at the height the real keyboard covers on that device (each iPhone and iPad measured; every Android device shares one representative height). Focusing a text field can't raise it: Compose text fields talk to the platform's keyboard directly, so the preview never hears about it.
 
 While it's up, a translucent band covers the bottom of the screen, and `WindowInsets.ime` (and so `safeDrawing` and `imePadding()`) reports its height, so content that avoids the keyboard on a real phone avoids it here too.
+
+### Text and display size
+**Text size** sets the font scale, from 50% to 300% in steps of 5%, on every device: well beyond what most devices' settings offer, so you can see where a layout breaks. Real devices' options vary by manufacturer and OS version. Text grows by exactly the font scale at every size: outside Android, Compose scales text linearly, so the preview can't follow Android 14's non-linear scaling, where large text grows by less.
+
+**Display size** draws everything on the screen larger, as Android's Display size setting does, so your app's window has fewer dp: a Pixel 9 at Largest is 320 dp wide. Every device gets the same steps, worked out as Android works them out: one smaller size (85%) and up to three larger ones, the largest leaving the screen's shorter side 320 dp, and at most 1.5 times the default. The frame, status bar and keyboard keep their size on the screen; the insets your app sees shrink in dp to match.
+
+Changing the device keeps the text size, and the nearest display size the new device offers.
+
+### Layout direction
+**Layout direction** lays your app out right to left, as for Arabic or Hebrew, without changing the host's direction. The status bar mirrors with it, as on a phone set to a right-to-left language.
+
+### Backdrop
+**Backdrop** sets the colour behind the device: light, dark, or **Auto**, which follows the device's **Appearance**. The **Dot grid** switch turns the dots on or off.
+
+### Screenshots
+On the web, the **Screenshot** buttons download a PNG of the device: **Screen** is the screen as the device shows it, status bar and keyboard included, at the device's own resolution (1080 × 2424 for a Pixel 9); **With frame** adds the device's body, on a transparent background. A freeform window is captured at the browser's pixel ratio. Other platforms don't show the buttons.
 
 ### Mouse input
 In a browser, the mouse acts as a finger on a phone, tablet or foldable: dragging the screen scrolls lists, as it would on the device (Compose ignores mouse drags otherwise). A press that starts on the screen is sent to your content as a touch until it's released. The wheel, hover and right-click work as usual, and a desktop window keeps the mouse as a mouse. Other hosts, such as a JVM desktop app, keep the mouse as it is.

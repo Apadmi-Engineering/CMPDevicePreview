@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,18 +31,22 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import com.kappmaker.devicepreview.core.Device
 import com.kappmaker.devicepreview.core.FreeformDevice
+import com.kappmaker.devicepreview.core.div
 import com.kappmaker.devicepreview.core.isRotatable
 import com.kappmaker.devicepreview.core.isTouchscreen
 import com.kappmaker.devicepreview.core.keyboardHeightIn
@@ -94,6 +99,14 @@ import kotlin.math.sin
  * orientation.
  * @param isDarkMode Whether the simulated system is in dark mode: what `isSystemInDarkTheme()`
  * returns inside the device, and the colour of the status bar's icons.
+ * @param fontScale How much larger text is than at the default text size: what
+ * `LocalDensity.current.fontScale` reports inside the device. Text grows by exactly this, at every
+ * size: Compose scales it linearly outside Android, where Android 14 and later grow large text by
+ * less.
+ * @param displayScale How much larger the content is drawn, as Android's Display size setting
+ * does: its window, and its insets, are this much smaller in dp. The frame, status bar and keyboard
+ * band don't change.
+ * @param layoutDirection The layout direction inside the device. The status bar follows it.
  * @param onResize When set, the device can be resized by dragging its corners (and, for a
  * [FreeformDevice], its edges). While a handle is dragged an outline shows the size the device
  * will take and the content isn't laid out again; on release this is called with the new
@@ -111,6 +124,9 @@ public fun DeviceFrameView(
     isSystemUiVisible: Boolean = true,
     isKeyboardVisible: Boolean = false,
     isDarkMode: Boolean = false,
+    fontScale: Float = 1f,
+    displayScale: Float = 1f,
+    layoutDirection: LayoutDirection = LocalLayoutDirection.current,
     onResize: ((FreeformDevice) -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
@@ -180,6 +196,7 @@ public fun DeviceFrameView(
     val systemUiPainter = remember(device.systemUi) {
         device.systemUi?.takeUnless { it.isEmpty }?.let(::SystemUiPainter)
     }.takeIf { isSystemUiVisible }
+    val deviceLayoutDirection = layoutDirection
     // Drawn over the content and inside the screen clip, so the screen outline cuts it too. The
     // bars use the device's own safe area: the gesture pill stays on top of the keyboard band.
     val overlayModifier = if (systemUiPainter != null || keyboardInset > 0f) {
@@ -190,7 +207,8 @@ public fun DeviceFrameView(
                 canvas.save()
                 canvas.scale(size.width / screenSize.width, size.height / screenSize.height)
                 paintSimulatedKeyboard(canvas, screenSize, keyboardInset)
-                systemUiPainter?.paint(canvas, screenSize, safeArea, iconColor, layoutDirection)
+                // The device's direction, not the host's: a phone in RTL mirrors its status bar.
+                systemUiPainter?.paint(canvas, screenSize, safeArea, iconColor, deviceLayoutDirection)
                 canvas.restore()
             }
         }
@@ -228,11 +246,36 @@ public fun DeviceFrameView(
             scaleX = turnScale
             scaleY = turnScale
         }
-        val simulatedDensity = remember(scale) { Density(density = scale, fontScale = 1f) }
+        // A larger display size draws the content larger on the same screen, so it has fewer dp.
+        val simulatedDensity = remember(scale, displayScale, fontScale) {
+            Density(density = scale * displayScale, fontScale = fontScale)
+        }
         // The window the content sees is the device's screen, so window size classes follow it.
         val hostWindowInfo = LocalWindowInfo.current
-        val simulatedWindowInfo = remember(hostWindowInfo, screenSize, scale) {
-            SimulatedWindowInfo(hostWindowInfo, screenSize, scale)
+        val simulatedWindowInfo = remember(hostWindowInfo, screenSize, scale, displayScale) {
+            SimulatedWindowInfo(hostWindowInfo, screenSize, scale, displayScale)
+        }
+
+        // Recorded for screenshots, which are at the device's own resolution. A freeform window has
+        // none, so it gets the host's.
+        val screenshots = LocalDeviceScreenshots.current
+        val screenLayer = screenshots?.let { rememberGraphicsLayer() }
+        val deviceLayer = screenshots?.let { rememberGraphicsLayer() }
+        if (screenshots != null && screenLayer != null && deviceLayer != null) {
+            val pixelRatio = if (device is FreeformDevice) density.density else device.screenSize.density
+            fun pixels(size: Size) = IntSize((size.width * pixelRatio).roundToInt(), (size.height * pixelRatio).roundToInt())
+            val screenPixels = pixels(screenSize)
+            val devicePixels = pixels(bounds.size)
+            DisposableEffect(screenshots, screenLayer, deviceLayer, screenPixels, devicePixels, isTurning) {
+                // Mid-turn the layers hold a device on its way between orientations.
+                if (!isTurning) {
+                    screenshots.attach(
+                        screen = DeviceScreenshots.Recording(screenLayer, screenPixels),
+                        device = DeviceScreenshots.Recording(deviceLayer, devicePixels),
+                    )
+                }
+                onDispose { screenshots.detach() }
+            }
         }
         val bodyModifier = if (bodyPainter != null) {
             Modifier.drawBehind {
@@ -249,14 +292,18 @@ public fun DeviceFrameView(
         }
 
         Layout(
-            modifier = turnModifier.then(bodyModifier),
+            // Inside the turn, so a screenshot of the device is upright in its orientation.
+            modifier = turnModifier.then(deviceLayer?.let { Modifier.recordInto(it) } ?: Modifier).then(bodyModifier),
             content = {
-                Box(screenModifier.then(overlayModifier).then(inputModifier)) {
+                val screenCapture = screenLayer?.let { Modifier.recordInto(it) } ?: Modifier
+                Box(screenCapture.then(screenModifier).then(overlayModifier).then(inputModifier)) {
                     CompositionLocalProvider(
                         LocalDensity provides simulatedDensity,
                         LocalWindowInfo provides simulatedWindowInfo,
+                        LocalLayoutDirection provides layoutDirection,
                     ) {
-                        SimulatedPlatform(safeArea, keyboardInset, isDarkMode, content)
+                        // The insets keep their size on the screen, so they are fewer of the content's dp.
+                        SimulatedPlatform(safeArea / displayScale, keyboardInset / displayScale, isDarkMode, content)
                     }
                 }
             },
@@ -315,16 +362,20 @@ private val FreeformCornerRadius = 4.dp
 private val FreeformShadow = 8.dp
 private val FreeformBorder = Color(0xFF9A9AA6)
 
-/** The host's window, resized to a device screen of [screenSize] logical pixels at [scale]. */
+/**
+ * The host's window, resized to a device screen of [screenSize] logical pixels at [scale], which
+ * the content sees as [displayScale] times fewer dp.
+ */
 private class SimulatedWindowInfo(
     private val host: WindowInfo,
     screenSize: Size,
     scale: Float,
+    displayScale: Float,
 ) : WindowInfo {
     override val isWindowFocused: Boolean get() = host.isWindowFocused
     override val containerSize: IntSize =
         IntSize((screenSize.width * scale).roundToInt(), (screenSize.height * scale).roundToInt())
-    override val containerDpSize: DpSize = DpSize(screenSize.width.dp, screenSize.height.dp)
+    override val containerDpSize: DpSize = DpSize((screenSize.width / displayScale).dp, (screenSize.height / displayScale).dp)
 }
 
 /** How long the device takes to turn between portrait and landscape. */

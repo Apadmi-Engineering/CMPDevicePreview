@@ -4,11 +4,13 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,6 +25,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
@@ -34,11 +38,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 /** The colours of the configuration panel and the device picker. */
 internal object PanelColors {
@@ -197,38 +204,118 @@ internal fun ToggleRow(
             .alpha(if (enabled) 1f else 0.45f),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier.size(32.dp).background(PanelColors.Surface, RoundedCornerShape(8.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icon, contentDescription = null, tint = PanelColors.TextSecondary, modifier = Modifier.size(18.dp))
+        SettingLabel(icon, title, note, badge)
+        PanelSwitch(checked = checked)
+    }
+}
+
+/**
+ * A setting with a few values in order, such as a text size: an icon, a title, an optional note,
+ * the selected value's label as a badge, and a slider that stops at each of [labels].
+ */
+@Composable
+internal fun StepSlider(
+    icon: ImageVector,
+    title: String,
+    labels: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    note: String? = null,
+) {
+    Column(modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(top = 10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SettingLabel(icon, title, note, badge = labels.getOrNull(selectedIndex))
         }
-        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(title, color = PanelColors.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                if (badge != null) {
-                    Text(
-                        badge,
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .background(PanelColors.AccentSoft, RoundedCornerShape(6.dp))
-                            .padding(horizontal = 6.dp, vertical = 1.dp),
-                        color = PanelColors.AccentBright,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            }
-            if (note != null) {
+        Slider(
+            value = selectedIndex.toFloat(),
+            onValueChange = { value -> value.roundToInt().let { if (it != selectedIndex) onSelect(it) } },
+            modifier = Modifier.fillMaxWidth().pointerHoverIcon(PointerIcon.Hand),
+            enabled = labels.size > 1,
+            valueRange = 0f..(labels.size - 1).coerceAtLeast(1).toFloat(),
+            steps = (labels.size - 2).coerceAtLeast(0),
+            // Ticks only while there are few enough to tell apart.
+            colors = SliderDefaults.colors(
+                thumbColor = PanelColors.Accent,
+                activeTrackColor = PanelColors.Accent,
+                activeTickColor = if (labels.size <= MaxTicks) PanelColors.AccentBright else Color.Transparent,
+                inactiveTrackColor = PanelColors.SwitchOff,
+                inactiveTickColor = if (labels.size <= MaxTicks) PanelColors.TextTertiary else Color.Transparent,
+            ),
+        )
+    }
+}
+
+private const val MaxTicks = 12
+
+/** A setting's icon, title, note and badge, filling the row but for what follows them. */
+@Composable
+private fun RowScope.SettingLabel(icon: ImageVector, title: String, note: String?, badge: String?) {
+    Box(
+        Modifier.size(32.dp).background(PanelColors.Surface, RoundedCornerShape(8.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = PanelColors.TextSecondary, modifier = Modifier.size(18.dp))
+    }
+    Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(title, color = PanelColors.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            if (badge != null) {
                 Text(
-                    note,
-                    color = PanelColors.TextTertiary,
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    badge,
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .background(PanelColors.AccentSoft, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 6.dp, vertical = 1.dp),
+                    color = PanelColors.AccentBright,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
         }
-        PanelSwitch(checked = checked)
+        if (note != null) {
+            Text(
+                note,
+                color = PanelColors.TextTertiary,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/** An action in the panel: an icon and a label on a raised surface. */
+@Composable
+internal fun PanelButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val shape = RoundedCornerShape(10.dp)
+    Row(
+        modifier = modifier
+            .height(40.dp)
+            .clip(shape)
+            .background(PanelColors.Surface)
+            .border(1.dp, PanelColors.Border, shape)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .pointerHoverIcon(PointerIcon.Hand)
+            .alpha(if (enabled) 1f else 0.45f)
+            .padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = PanelColors.TextSecondary, modifier = Modifier.size(16.dp))
+        Text(
+            label,
+            modifier = Modifier.padding(start = 6.dp),
+            color = PanelColors.TextPrimary,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+        )
     }
 }
