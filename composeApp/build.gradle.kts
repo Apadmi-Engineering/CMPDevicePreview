@@ -12,7 +12,7 @@ plugins {
 
 kotlin {
     android {
-        namespace = "com.apadmi.devicepreview.sample"
+        namespace = "com.apadmi.cmpdevicepreview.sample"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 

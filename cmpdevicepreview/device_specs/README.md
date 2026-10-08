@@ -46,7 +46,7 @@ rotated a quarter turn in landscape.
 - `body` — an SVG document drawn behind the screen, whose view box covers
   `size`. A string, or an array of lines joined with newlines.
 
-The body renderer (`com.apadmi.devicepreview.svg`) supports the same subset
+The body renderer (`com.apadmi.cmpdevicepreview.svg`) supports the same subset
 as Flutter's: `<svg>`, `<g>`, `<defs>`, `<clipPath>`, filled `<path>`,
 `<rect>` (with `rx`/`ry`), `<circle>`, `<ellipse>` and `<polygon>`, `fill`,
 `fill-opacity`, `fill-rule`, `opacity` (also inside `style="…"`), `transform`

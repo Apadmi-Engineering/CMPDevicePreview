@@ -4,7 +4,7 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
-import com.apadmi.devicepreview.preview.DeviceWithConfigurationView
+import com.apadmi.cmpdevicepreview.preview.DeviceWithConfigurationView
 import kotlinx.browser.document
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3WindowSizeClassApi::class)

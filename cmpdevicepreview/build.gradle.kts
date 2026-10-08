@@ -24,7 +24,7 @@ kotlin {
     iosSimulatorArm64()
 
     android {
-        namespace = "com.apadmi.devicepreview"
+        namespace = "com.apadmi.cmpdevicepreview"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
     }
