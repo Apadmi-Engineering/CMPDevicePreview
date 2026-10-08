@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import com.kappmaker.devicepreview.core.DeviceConfiguration
 import com.kappmaker.devicepreview.core.DevicePreset
 import com.kappmaker.devicepreview.core.SimulatedDevice
+import com.kappmaker.devicepreview.core.droppingUnavailableKeyboard
 import com.kappmaker.devicepreview.devices.DevicePresets
 
 /** The device the preview starts with. */
@@ -18,6 +19,14 @@ internal val DefaultDevice: DevicePreset get() = DevicePresets.galaxyS25
 /** How much of the space, in each direction, the device may fill: the rest is margin. */
 private const val DeviceFraction = 0.9f
 
+/**
+ * Shows [simulatedDevice] with [content] inside it, on a dotted backdrop.
+ *
+ * @param onChangeConfiguration When set, dragging a corner of the device resizes it into a
+ * [com.kappmaker.devicepreview.core.FreeformDevice], and this is called with the changed
+ * [SimulatedDevice] on release. Pass it back as [simulatedDevice] to apply it. When null, the
+ * device has no resize handles.
+ */
 @Composable
 public fun SimulatedDevicePreview(
     simulatedDevice: SimulatedDevice = SimulatedDevice(
@@ -25,6 +34,7 @@ public fun SimulatedDevicePreview(
         configuration = DeviceConfiguration(isPortrait = true, isDarkMode = false)
     ),
     modifier: Modifier = Modifier,
+    onChangeConfiguration: ((SimulatedDevice) -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     val configuration = simulatedDevice.configuration
@@ -37,6 +47,9 @@ public fun SimulatedDevicePreview(
             isSystemUiVisible = configuration.isSystemUiVisible,
             isKeyboardVisible = configuration.isKeyboardVisible,
             isDarkMode = configuration.isDarkMode,
+            onResize = onChangeConfiguration?.let { change ->
+                { freeform -> change(simulatedDevice.copy(device = freeform).droppingUnavailableKeyboard()) }
+            },
             content = content,
         )
     }

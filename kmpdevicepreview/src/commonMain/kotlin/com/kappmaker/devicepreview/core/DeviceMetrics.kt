@@ -8,10 +8,11 @@ internal val Device.portraitScreenSize: Size
 
 /**
  * Whether the device can be turned between portrait and landscape. A desktop window can't: it is
- * resized rather than rotated, so it stays in its natural, wide shape.
+ * resized rather than rotated, so it stays in its natural, wide shape. Neither can a freeform
+ * window, which is resized to any shape.
  */
 internal val Device.isRotatable: Boolean
-    get() = (this as? DevicePreset)?.kind != DeviceKind.DESKTOP
+    get() = this !is FreeformDevice && (this as? DevicePreset)?.kind != DeviceKind.DESKTOP
 
 /**
  * Whether the device is laid out in portrait, the orientation its sizes and frame are described

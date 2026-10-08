@@ -61,6 +61,24 @@ SimulatedDevicePreview(
 
 You can create a custom device by implementing the `Device` interface (or creating a `DevicePreset`) and overriding its size properties, then pass it into `SimulatedDevice`. Give it a `DeviceFrame` to draw a body around it.
 
+### Freeform
+**Freeform** is a plain window of any size, for testing responsive layouts at sizes no device has, such as the width where a bottom bar becomes a navigation rail. It is the first row in the device picker, and `FreeformDevice(Size(834f, 1112f))` (in dp) gives you one in code. It has a border and a soft shadow (the **Device frame** switch turns them off), and no insets, status bar, keyboard or touch input; like a desktop window, it can't be turned.
+
+You don't have to pick it first: drag any corner of any device and it becomes a freeform window.
+- **Corners** (and, for a freeform window, **edges**) are handles. A device shows them when the mouse is over it; a freeform window always shows its corners. Phones and tablets have no hover, so there the picker is the way in.
+- While you drag, a dashed outline with the new size follows the cursor and your app isn't laid out again. On release, your app is laid out once at that size. The window stays as big on the screen as the outline was, instead of being scaled to fit the space again. It is whole dp, between 120 dp and what fits.
+- The device stays centred, so it grows on both sides at once and the dragged corner stays under the cursor.
+- For exact sizes, or sizes larger than the space on screen, type them into the **Size** fields (120 to 4096 dp) in the panel. Typing a size, or choosing another device, fits the window to the space again.
+
+Without the configuration panel, resizing is opt-in. Pass `onChangeConfiguration` to `SimulatedDevicePreview` (or `onResize` to `DeviceFrameView`) and keep the device it gives back, or the handles aren't shown:
+```kotlin
+var simulatedDevice by remember { mutableStateOf(SimulatedDevice(DevicePresets.pixel9)) }
+SimulatedDevicePreview(
+    simulatedDevice = simulatedDevice,
+    onChangeConfiguration = { simulatedDevice = it },
+) { App() }
+```
+
 ### Your app's code
 Inside the simulated device, Compose's own APIs describe it, so your app doesn't need to know it's being previewed:
 - `WindowInsets.safeDrawing`, `statusBars`, `navigationBars`, `displayCutout` and `ime`, the padding modifiers built on them (`safeDrawingPadding()`, `imePadding()`, …) and Material's defaults (Scaffold, TopAppBar) report the simulated device's notch, Dynamic Island, status bar, home indicator and keyboard.

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DarkMode
@@ -24,10 +28,12 @@ import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.StayCurrentLandscape
 import androidx.compose.material.icons.outlined.StayCurrentPortrait
+import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.UnfoldMore
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,19 +44,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kappmaker.devicepreview.core.Device
 import com.kappmaker.devicepreview.core.DevicePreset
+import com.kappmaker.devicepreview.core.FreeformDevice
 import com.kappmaker.devicepreview.core.SimulatedDevice
+import com.kappmaker.devicepreview.core.currentLogicalSize
+import com.kappmaker.devicepreview.core.droppingUnavailableKeyboard
 import com.kappmaker.devicepreview.core.isRotatable
 import com.kappmaker.devicepreview.core.laidOutInPortrait
 import com.kappmaker.devicepreview.core.portraitScreenSize
@@ -83,6 +103,8 @@ public fun ConfigurationView(
         if (isPickerShown) {
             DevicePickerDialog(
                 selected = device,
+                // Freeform starts as the device is now, turned as it is.
+                freeform = device as? FreeformDevice ?: FreeformDevice(simulatedDevice.currentLogicalSize),
                 onPick = {
                     update { copy(device = it).droppingUnavailableKeyboard() }
                     isPickerShown = false
@@ -108,25 +130,31 @@ public fun ConfigurationView(
                 DeviceCard(device, isPortrait = device.laidOutInPortrait(configuration.isPortrait)) { isPickerShown = true }
 
                 Spacer(Modifier.height(24.dp))
-                SectionLabel("Orientation")
-                // A desktop window can't turn: it is locked to its natural, wide shape, which is landscape.
-                SegmentedControl(
-                    options = OrientationOptions,
-                    selectedIndex = if (device.isRotatable && configuration.isPortrait) 0 else 1,
-                    onSelect = { index ->
-                        update {
-                            copy(configuration = configuration.copy(isPortrait = index == 0)).droppingUnavailableKeyboard()
-                        }
-                    },
-                    enabled = device.isRotatable,
-                )
-                if (!device.isRotatable) {
-                    Text(
-                        "Desktop windows are landscape only",
-                        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
-                        color = PanelColors.TextTertiary,
-                        fontSize = 12.sp,
+                if (device is FreeformDevice) {
+                    // A freeform window has no orientation: it is any shape, which is its size.
+                    SectionLabel("Size")
+                    SizeFields(device.size) { size -> update { copy(device = FreeformDevice(size)) } }
+                } else {
+                    SectionLabel("Orientation")
+                    // A desktop window can't turn: it is locked to its natural, wide shape, which is landscape.
+                    SegmentedControl(
+                        options = OrientationOptions,
+                        selectedIndex = if (device.isRotatable && configuration.isPortrait) 0 else 1,
+                        onSelect = { index ->
+                            update {
+                                copy(configuration = configuration.copy(isPortrait = index == 0)).droppingUnavailableKeyboard()
+                            }
+                        },
+                        enabled = device.isRotatable,
                     )
+                    if (!device.isRotatable) {
+                        Text(
+                            "Desktop windows are landscape only",
+                            modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+                            color = PanelColors.TextTertiary,
+                            fontSize = 12.sp,
+                        )
+                    }
                 }
 
                 Spacer(Modifier.height(20.dp))
@@ -142,7 +170,7 @@ public fun ConfigurationView(
                 ToggleRow(
                     icon = Icons.Outlined.Smartphone,
                     title = "Device frame",
-                    note = "Bezel and screen corners",
+                    note = if (device is FreeformDevice) "Window border" else "Bezel and screen corners",
                     checked = configuration.isFrameVisible,
                     onCheckedChange = { update { copy(configuration = configuration.copy(isFrameVisible = it)) } },
                 )
@@ -229,14 +257,20 @@ private fun DeviceCard(device: Device, isPortrait: Boolean, onClick: () -> Unit)
         }
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             val preset = device as? DevicePreset
-            val origin = listOfNotNull(preset?.brand, preset?.year?.toString())
-                .ifEmpty { listOf(device.type.displayName) }
-                .joinToString(" · ")
+            val origin = if (device is FreeformDevice) {
+                "Drag a corner to resize"
+            } else {
+                listOfNotNull(preset?.brand, preset?.year?.toString())
+                    .ifEmpty { listOf(device.type.displayName) }
+                    .joinToString(" · ")
+            }
             val size = device.portraitScreenSize
+            // A freeform window is measured in dp alone: it has no pixel ratio of its own.
+            val dimensions = "${size.width.roundToInt()} × ${size.height.roundToInt()}"
             Text(device.name, color = PanelColors.TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             Text(origin, color = PanelColors.TextSecondary, fontSize = 12.sp)
             Text(
-                "${size.width.roundToInt()} × ${size.height.roundToInt()} · ${formatPixelRatio(device.screenSize.density)}",
+                if (device is FreeformDevice) dimensions else "$dimensions · ${formatPixelRatio(device.screenSize.density)}",
                 color = PanelColors.TextTertiary,
                 fontSize = 12.sp,
             )
@@ -256,13 +290,87 @@ internal fun formatPixelRatio(ratio: Float): String {
     }
 }
 
-/**
- * Keeps a raised keyboard raised across a device or orientation change, at the new height, unless
- * the device has no keyboard there.
- */
-private fun SimulatedDevice.droppingUnavailableKeyboard(): SimulatedDevice =
-    if (configuration.isKeyboardVisible && currentKeyboardHeight == null) {
-        copy(configuration = configuration.copy(isKeyboardVisible = false))
-    } else {
-        this
+/** The width and height of a freeform window, to type in, with a button that swaps them. */
+@Composable
+private fun SizeFields(size: Size, onChange: (Size) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        SizeField("Width", size.width, Modifier.weight(1f)) { onChange(Size(it, size.height)) }
+        Text(
+            "×",
+            modifier = Modifier.padding(horizontal = 8.dp),
+            color = PanelColors.TextTertiary,
+            fontSize = 14.sp,
+        )
+        SizeField("Height", size.height, Modifier.weight(1f)) { onChange(Size(size.width, it)) }
+        IconButton(
+            onClick = { onChange(Size(size.height, size.width)) },
+            modifier = Modifier.padding(start = 4.dp).size(36.dp).pointerHoverIcon(PointerIcon.Hand),
+        ) {
+            Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap width and height", tint = PanelColors.TextSecondary)
+        }
     }
+    Text(
+        "$MinFreeformSizeDp–$MaxFreeformSizeDp dp, to the whole dp",
+        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+        color = PanelColors.TextTertiary,
+        fontSize = 12.sp,
+    )
+}
+
+private val MinFreeformSizeDp = MinFreeformSize.roundToInt()
+private val MaxFreeformSizeDp = MaxFreeformSize.roundToInt()
+
+/**
+ * A side of a freeform window, in dp. What is typed is applied on Enter or when the field loses
+ * focus, kept between [MinFreeformSize] and [MaxFreeformSize]; what isn't a number is dropped.
+ */
+@Composable
+private fun SizeField(label: String, value: Float, modifier: Modifier = Modifier, onCommit: (Float) -> Unit) {
+    val shown = value.roundToInt().toString()
+    // Starts over whenever the size changes from elsewhere, such as by dragging a corner.
+    var text by remember(shown) { mutableStateOf(shown) }
+    var isFocused by remember { mutableStateOf(false) }
+    fun commit() {
+        val typed = text.toIntOrNull()
+        if (typed == null) {
+            text = shown
+            return
+        }
+        val size = typed.coerceIn(MinFreeformSizeDp, MaxFreeformSizeDp)
+        text = size.toString()
+        if (size != value.roundToInt()) onCommit(size.toFloat())
+    }
+    val shape = RoundedCornerShape(10.dp)
+    BasicTextField(
+        value = text,
+        onValueChange = { text = it.filter(Char::isDigit).take(MaxFreeformSizeDp.toString().length) },
+        modifier = modifier
+            .onFocusChanged {
+                if (isFocused && !it.isFocused) commit()
+                isFocused = it.isFocused
+            }
+            .onPreviewKeyEvent { event ->
+                val isEnter = event.key == Key.Enter || event.key == Key.NumPadEnter
+                if (isEnter && event.type == KeyEventType.KeyDown) commit()
+                isEnter
+            },
+        singleLine = true,
+        textStyle = TextStyle(color = PanelColors.TextPrimary, fontSize = 14.sp),
+        cursorBrush = SolidColor(PanelColors.Accent),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { commit() }),
+        decorationBox = { field ->
+            Column(
+                Modifier
+                    .height(48.dp)
+                    .background(PanelColors.Surface, shape)
+                    .border(1.dp, if (isFocused) PanelColors.Accent else PanelColors.Border, shape)
+                    .padding(horizontal = 12.dp),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(label.uppercase(), color = PanelColors.TextTertiary, fontSize = 9.sp, letterSpacing = 0.8.sp)
+                field()
+            }
+        },
+    )
+}

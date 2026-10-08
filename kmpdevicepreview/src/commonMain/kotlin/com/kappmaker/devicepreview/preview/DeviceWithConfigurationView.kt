@@ -31,8 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kappmaker.devicepreview.core.Device
+import com.kappmaker.devicepreview.core.FreeformDevice
 import com.kappmaker.devicepreview.core.SimulatedDevice
 import com.kappmaker.devicepreview.getSourceSetName
+import kotlin.math.roundToInt
 
 
 @Composable
@@ -53,6 +56,7 @@ public fun DeviceWithConfigurationViewExpanded(
         SimulatedDevicePreview(
             simulatedDevice = simulatedDevice,
             modifier = contentModifier,
+            onChangeConfiguration = { simulatedDevice = it },
             content = content
         )
         ConfigurationView(
@@ -102,6 +106,7 @@ public fun DeviceWithConfigurationViewCompact(
         SimulatedDevicePreview(
             modifier = contentModifier,
             simulatedDevice = simulatedDevice,
+            onChangeConfiguration = { simulatedDevice = it },
             content = content
         )
 
@@ -115,13 +120,17 @@ public fun DeviceWithConfigurationViewCompact(
             onClick = { showBottomSheet = true })
         {
             Icon(Icons.Outlined.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(simulatedDevice.device.name, modifier = Modifier.padding(start = 10.dp), fontWeight = FontWeight.Medium)
+            Text(deviceLabel(simulatedDevice.device), modifier = Modifier.padding(start = 10.dp), fontWeight = FontWeight.Medium)
         }
 
     }
 
 
 }
+
+/** The device's name, and its size when that is what sets it apart: "Freeform · 834 × 1112". */
+private fun deviceLabel(device: Device): String =
+    if (device is FreeformDevice) "${device.name} · ${device.size.width.roundToInt()} × ${device.size.height.roundToInt()}" else device.name
 
 @Composable
 public fun DeviceWithConfigurationView(

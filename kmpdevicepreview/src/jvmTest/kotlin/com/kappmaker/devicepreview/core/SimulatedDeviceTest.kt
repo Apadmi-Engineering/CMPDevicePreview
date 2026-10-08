@@ -1,5 +1,6 @@
 package com.kappmaker.devicepreview.core
 
+import androidx.compose.ui.geometry.Size
 import com.kappmaker.devicepreview.devices.DevicePresets
 import com.kappmaker.devicepreview.devices.android.Pixel6
 import com.kappmaker.devicepreview.devices.other.GenericDevice
@@ -58,5 +59,41 @@ class SimulatedDeviceTest {
         // Without a kind, the platform decides.
         assertTrue(Pixel6().isTouchscreen)
         assertFalse(GenericDevice().isTouchscreen)
+    }
+
+    @Test
+    fun aFreeformWindowHasItsOwnSizeAndCannotBeTurned() {
+        val freeform = FreeformDevice(Size(834f, 1112f))
+        assertEquals("Freeform", freeform.name)
+        assertEquals(DeviceType.OTHER, freeform.type)
+        assertFalse(freeform.isRotatable)
+        assertFalse(freeform.isTouchscreen)
+        assertEquals(Size(834f, 1112f), freeform.portraitScreenSize)
+
+        // Asking for landscape changes nothing: the window is the shape it was resized to.
+        val upright = SimulatedDevice(freeform).currentScreenSize
+        val asked = SimulatedDevice(freeform, DeviceConfiguration(isPortrait = false)).currentScreenSize
+        assertEquals(upright, asked)
+        assertEquals(834f, asked.width)
+        assertEquals(1112f, asked.height)
+
+        // It is a plain window: no insets, no status bar, no keyboard.
+        val simulated = SimulatedDevice(freeform, DeviceConfiguration(isKeyboardVisible = true))
+        assertEquals(DeviceInsets.Zero, simulated.currentSafeArea)
+        assertNull(simulated.currentKeyboardHeight)
+        assertNull(freeform.systemUi)
+        assertNull(freeform.frame)
+    }
+
+    @Test
+    fun aRaisedKeyboardIsDroppedWhenTheDeviceHasNone() {
+        val raised = DeviceConfiguration(isKeyboardVisible = true)
+        val phone = SimulatedDevice(DevicePresets.iPhone16Pro, raised)
+        assertEquals(phone, phone.droppingUnavailableKeyboard())
+
+        val freeform = phone.copy(device = FreeformDevice(Size(400f, 800f)))
+        assertFalse(freeform.droppingUnavailableKeyboard().configuration.isKeyboardVisible)
+        // Everything else about the configuration is kept.
+        assertEquals(freeform.configuration.copy(isKeyboardVisible = false), freeform.droppingUnavailableKeyboard().configuration)
     }
 }

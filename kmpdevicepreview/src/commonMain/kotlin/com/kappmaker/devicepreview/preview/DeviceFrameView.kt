@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -22,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -37,7 +39,9 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.offset
 import com.kappmaker.devicepreview.core.Device
+import com.kappmaker.devicepreview.core.FreeformDevice
 import com.kappmaker.devicepreview.core.isRotatable
 import com.kappmaker.devicepreview.core.isTouchscreen
 import com.kappmaker.devicepreview.core.keyboardHeightIn
@@ -90,6 +94,13 @@ import kotlin.math.sin
  * orientation.
  * @param isDarkMode Whether the simulated system is in dark mode: what `isSystemInDarkTheme()`
  * returns inside the device, and the colour of the status bar's icons.
+ * @param onResize When set, the device can be resized by dragging its corners (and, for a
+ * [FreeformDevice], its edges). While a handle is dragged an outline shows the size the device
+ * will take and the content isn't laid out again; on release this is called with the new
+ * [FreeformDevice], and the device keeps the scale it had when the drag began instead of fitting
+ * the space again, so it stays as big on the screen as it was drawn. Nothing is resized unless the
+ * caller passes the new device back. When null, there are no handles. The view leaves room for
+ * the handles around the device.
  */
 @Composable
 public fun DeviceFrameView(
@@ -100,6 +111,7 @@ public fun DeviceFrameView(
     isSystemUiVisible: Boolean = true,
     isKeyboardVisible: Boolean = false,
     isDarkMode: Boolean = false,
+    onResize: ((FreeformDevice) -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     // A device that can't rotate, like a desktop window, stays in its natural orientation.
@@ -111,6 +123,8 @@ public fun DeviceFrameView(
     var layoutPortrait by remember(isRotatable) { mutableStateOf(wantsPortrait) }
     // Degrees the device is turned from its layout orientation, clockwise.
     var turn by remember(isRotatable) { mutableFloatStateOf(0f) }
+    // Read as a flag, so the view isn't composed again on every frame of a turn.
+    val isTurning by remember(isRotatable) { derivedStateOf { turn != 0f } }
     LaunchedEffect(wantsPortrait) {
         val target = when {
             wantsPortrait == layoutPortrait -> 0f
@@ -145,6 +159,17 @@ public fun DeviceFrameView(
     }
     val screenModifier = when {
         screenShape != null -> Modifier.clip(screenShape)
+        // A freeform window is a plain bordered rectangle, with the border switched by the frame.
+        device is FreeformDevice -> if (isFrameVisible) {
+            RoundedCornerShape(FreeformCornerRadius).let { shape ->
+                Modifier
+                    .shadow(FreeformShadow, shape, clip = false)
+                    .border(shape = shape, border = BorderStroke(1.dp, FreeformBorder))
+                    .clip(shape)
+            }
+        } else {
+            Modifier.clipToBounds()
+        }
         // Devices without any artwork keep a simple outline.
         frame == null -> RoundedCornerShape(8.dp).let { shape ->
             Modifier.border(shape = shape, border = BorderStroke(2.dp, Color.Black)).clip(shape)
@@ -174,17 +199,31 @@ public fun DeviceFrameView(
     }
     val inputModifier = if (device.isTouchscreen) Modifier.mouseAsTouch() else Modifier
 
+    // The scale a resized device keeps instead of fitting the space again, until the device changes.
+    var pinned by remember { mutableStateOf<PinnedScale?>(null) }
+    LaunchedEffect(device) {
+        if (pinned?.device != device) pinned = null
+    }
+    // The size the device would take if the handle being dragged were let go, and what it started at.
+    var resizing by remember(device) { mutableStateOf<ResizeDrag?>(null) }
+
     BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
-        val fallback = LocalDensity.current.density
+        val density = LocalDensity.current
+        val fallback = density.density
         val portraitBounds = if (layoutPortrait) bounds.size else Size(bounds.height, bounds.width)
         val layoutDegrees = if (layoutPortrait) 0f else -90f
+        // The handles reach half their size beyond the device and have to stay inside this view to
+        // be touched, so the device is fitted to a space that much smaller all round.
+        val handleRoom = if (onResize != null) with(density) { ResizeHandleSize.roundToPx() } else 0
+        val fitConstraints = constraints.offset(-handleRoom, -handleRoom)
+        val fitAtRest = turnedFitScale(fitConstraints, portraitBounds, layoutDegrees, fallback)
         // Pixels per logical pixel of the simulated device.
-        val scale = turnedFitScale(constraints, portraitBounds, layoutDegrees, fallback)
+        val scale = pinned?.takeIf { it.device == device }?.let { min(it.scale, fitAtRest) } ?: fitAtRest
         // Mid-turn the device shrinks a little to stay inside the space. Only the layer is scaled,
         // so the content isn't laid out again on every frame of the turn.
         val turnModifier = Modifier.graphicsLayer {
             val degrees = turn
-            val turnScale = turnedFitScale(constraints, portraitBounds, layoutDegrees + degrees, fallback) / scale
+            val turnScale = turnedFitScale(fitConstraints, portraitBounds, layoutDegrees + degrees, fallback) / fitAtRest
             rotationZ = degrees
             scaleX = turnScale
             scaleY = turnScale
@@ -232,8 +271,49 @@ public fun DeviceFrameView(
                 screen.place((-bounds.left * scale).roundToInt(), (-bounds.top * scale).roundToInt())
             }
         }
+
+        if (onResize != null && !isTurning && layoutPortrait == wantsPortrait) {
+            // The largest the device can get at the scale a drag started with, in dp.
+            fun roomAt(scale: Float) = Size(
+                if (fitConstraints.hasBoundedWidth) fitConstraints.maxWidth / scale else Float.POSITIVE_INFINITY,
+                if (fitConstraints.hasBoundedHeight) fitConstraints.maxHeight / scale else Float.POSITIVE_INFINITY,
+            )
+            val resize = resizing
+            resize?.let { drag ->
+                ResizeOutline(resizedScreenSize(drag.start, drag.handle, drag.offset, drag.scale, roomAt(drag.scale)), drag.scale)
+            }
+            ResizeHandles(
+                visibleSize = IntSize((bounds.width * scale).roundToInt(), (bounds.height * scale).roundToInt()),
+                showCorners = device is FreeformDevice,
+                showEdges = device is FreeformDevice,
+                active = resize?.handle,
+                onStart = { handle -> resizing = ResizeDrag(handle, screenSize, scale) },
+                onDrag = { offset -> resizing = resizing?.copy(offset = offset) },
+                onEnd = {
+                    resizing?.let { drag ->
+                        resizing = null
+                        val size = resizedScreenSize(drag.start, drag.handle, drag.offset, drag.scale, roomAt(drag.scale))
+                        val resized = FreeformDevice(size)
+                        val isChanged = size.width.roundToInt() != drag.start.width.roundToInt() ||
+                            size.height.roundToInt() != drag.start.height.roundToInt()
+                        if (isChanged && resized != device) {
+                            pinned = PinnedScale(resized, drag.scale)
+                            onResize(resized)
+                        }
+                    }
+                },
+                onCancel = { resizing = null },
+            )
+        }
     }
 }
+
+/** A [scale] a resized [device] keeps while it is the one shown. */
+private class PinnedScale(val device: Device, val scale: Float)
+
+private val FreeformCornerRadius = 4.dp
+private val FreeformShadow = 8.dp
+private val FreeformBorder = Color(0xFF9A9AA6)
 
 /** The host's window, resized to a device screen of [screenSize] logical pixels at [scale]. */
 private class SimulatedWindowInfo(

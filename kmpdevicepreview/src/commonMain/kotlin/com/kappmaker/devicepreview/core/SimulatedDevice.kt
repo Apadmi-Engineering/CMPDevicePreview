@@ -1,5 +1,7 @@
 package com.kappmaker.devicepreview.core
 
+import androidx.compose.ui.geometry.Size
+
 public data class SimulatedDevice(
     val device: Device,
     val configuration: DeviceConfiguration = DeviceConfiguration()
@@ -27,3 +29,18 @@ public data class SimulatedDevice(
     val currentKeyboardHeight: Float?
         get() = device.keyboardHeightIn(isPortrait)
 }
+
+/** The size of the device's screen in its current orientation, in logical pixels. */
+internal val SimulatedDevice.currentLogicalSize: Size
+    get() = currentScreenSize.let { Size(it.width / it.density, it.height / it.density) }
+
+/**
+ * Keeps a raised keyboard raised across a device or orientation change, at the new height, unless
+ * the device has no keyboard there.
+ */
+internal fun SimulatedDevice.droppingUnavailableKeyboard(): SimulatedDevice =
+    if (configuration.isKeyboardVisible && currentKeyboardHeight == null) {
+        copy(configuration = configuration.copy(isKeyboardVisible = false))
+    } else {
+        this
+    }

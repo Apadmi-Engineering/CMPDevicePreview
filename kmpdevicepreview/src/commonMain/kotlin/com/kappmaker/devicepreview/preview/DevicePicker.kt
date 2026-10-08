@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.PhoneIphone
 import androidx.compose.material.icons.filled.TabletAndroid
 import androidx.compose.material.icons.filled.TabletMac
+import androidx.compose.material.icons.outlined.AspectRatio
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Check
@@ -77,6 +78,7 @@ import com.kappmaker.devicepreview.core.Device
 import com.kappmaker.devicepreview.core.DeviceKind
 import com.kappmaker.devicepreview.core.DevicePreset
 import com.kappmaker.devicepreview.core.DeviceType
+import com.kappmaker.devicepreview.core.FreeformDevice
 import com.kappmaker.devicepreview.core.portraitScreenSize
 import com.kappmaker.devicepreview.devices.allDevices
 import com.kappmaker.devicepreview.frame.DeviceFramePainter
@@ -93,11 +95,19 @@ private val KindFilters: List<Pair<String, DeviceKind?>> = listOf(
     "Desktop" to DeviceKind.DESKTOP,
 )
 
-/** A searchable list of every device, grouped by platform, with [selected] checked. */
+/** The words a search has to find in the pinned Freeform row. */
+private const val FreeformKeywords = "freeform custom resize window"
+
+/**
+ * A searchable list of every device, grouped by platform, with [selected] checked. Freeform, a
+ * window of any size, comes first: picking it gives [freeform], which is [selected] when that is
+ * already one.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun DevicePickerDialog(
     selected: Device,
+    freeform: FreeformDevice,
     onPick: (Device) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -107,6 +117,8 @@ internal fun DevicePickerDialog(
             var kind by remember { mutableStateOf<DeviceKind?>(null) }
             val results = remember(query, kind) { allDevices.filter { it.matches(query, kind) } }
             val groups = results.groupBy { it.type }.toList().sortedBy { (type, _) -> type.order }
+            // Freeform isn't a kind of device, so only the unfiltered list has it.
+            val showFreeform = kind == null && query.matchesAll(FreeformKeywords)
             // Opens with the current device in view: each group is a header followed by its rows.
             val listState = rememberLazyListState(initialFirstVisibleItemIndex = remember { indexInList(selected) })
 
@@ -137,7 +149,7 @@ internal fun DevicePickerDialog(
                 SearchField(
                     query = query,
                     onQueryChange = { query = it },
-                    onSubmit = { results.firstOrNull()?.let(onPick) },
+                    onSubmit = { (results.firstOrNull() ?: freeform.takeIf { showFreeform })?.let(onPick) },
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
                 Row(
@@ -153,7 +165,7 @@ internal fun DevicePickerDialog(
                 }
                 HorizontalDivider(color = PanelColors.Border)
 
-                if (results.isEmpty()) {
+                if (results.isEmpty() && !showFreeform) {
                     Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                         Text("No devices match \"$query\"", color = PanelColors.TextTertiary, fontSize = 14.sp)
                     }
@@ -163,6 +175,15 @@ internal fun DevicePickerDialog(
                         modifier = Modifier.fillMaxWidth().weight(1f),
                         contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 8.dp),
                     ) {
+                        if (showFreeform) {
+                            item(key = "freeform") {
+                                DeviceRow(
+                                    device = freeform,
+                                    details = "Any size · drag a corner to resize",
+                                    isSelected = selected is FreeformDevice,
+                                ) { onPick(freeform) }
+                            }
+                        }
                         for ((type, devices) in groups) {
                             stickyHeader(key = type.name) {
                                 Text(
@@ -178,7 +199,7 @@ internal fun DevicePickerDialog(
                                 )
                             }
                             items(devices, key = { it.id }) { device ->
-                                DeviceRow(device, isSelected = device == selected) { onPick(device) }
+                                DeviceRow(device, deviceDetails(device), isSelected = device == selected) { onPick(device) }
                             }
                         }
                     }
@@ -188,9 +209,10 @@ internal fun DevicePickerDialog(
     }
 }
 
-/** Where [device] sits in the unfiltered list, counting each platform's header. */
+/** Where [device] sits in the unfiltered list, counting the Freeform row and each platform's header. */
 private fun indexInList(device: Device): Int {
-    var index = 0
+    if (device is FreeformDevice) return 0
+    var index = 1 // The Freeform row.
     for ((_, devices) in allDevices.groupBy { it.type }.toList().sortedBy { (type, _) -> type.order }) {
         index++ // The header.
         val at = devices.indexOf(device)
@@ -202,8 +224,13 @@ private fun indexInList(device: Device): Int {
 
 private fun DevicePreset.matches(query: String, kind: DeviceKind?): Boolean {
     if (kind != null && this.kind != kind) return false
-    val haystack = listOfNotNull(name, brand, type.displayName).joinToString(" ").lowercase()
-    return query.lowercase().split(' ').filter { it.isNotBlank() }.all { it in haystack }
+    return query.matchesAll(listOfNotNull(name, brand, type.displayName).joinToString(" "))
+}
+
+/** Whether every word of the query, if any, appears in [haystack]. */
+private fun String.matchesAll(haystack: String): Boolean {
+    val text = haystack.lowercase()
+    return lowercase().split(' ').filter { it.isNotBlank() }.all { it in text }
 }
 
 @Composable
@@ -270,7 +297,7 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun DeviceRow(device: DevicePreset, isSelected: Boolean, onClick: () -> Unit) {
+private fun DeviceRow(device: Device, details: String, isSelected: Boolean, onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -284,7 +311,7 @@ private fun DeviceRow(device: DevicePreset, isSelected: Boolean, onClick: () -> 
         DeviceThumbnail(device, Modifier.size(40.dp), isHighlighted = isSelected)
         Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
             Text(device.name, color = PanelColors.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Text(deviceDetails(device), color = PanelColors.TextTertiary, fontSize = 12.sp)
+            Text(details, color = PanelColors.TextTertiary, fontSize = 12.sp)
         }
         if (isSelected) {
             Icon(Icons.Rounded.Check, contentDescription = "Selected", tint = PanelColors.AccentBright, modifier = Modifier.size(18.dp))
@@ -342,6 +369,7 @@ internal fun DeviceThumbnail(device: Device, modifier: Modifier = Modifier, isHi
 }
 
 internal fun deviceIcon(device: Device): ImageVector {
+    if (device is FreeformDevice) return Icons.Outlined.AspectRatio
     val isApple = device.type == DeviceType.IOS
     return when ((device as? DevicePreset)?.kind) {
         DeviceKind.TABLET -> if (isApple) Icons.Filled.TabletMac else Icons.Filled.TabletAndroid

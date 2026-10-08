@@ -169,6 +169,27 @@ public final class com/kappmaker/devicepreview/core/DeviceType : java/lang/Enum 
 	public static fun values ()[Lcom/kappmaker/devicepreview/core/DeviceType;
 }
 
+public final class com/kappmaker/devicepreview/core/FreeformDevice : com/kappmaker/devicepreview/core/Device {
+	public static final field $stable I
+	public synthetic fun <init> (JLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-NH-jbRc ()J
+	public final fun copy-uvyYCjk (J)Lcom/kappmaker/devicepreview/core/FreeformDevice;
+	public static synthetic fun copy-uvyYCjk$default (Lcom/kappmaker/devicepreview/core/FreeformDevice;JILjava/lang/Object;)Lcom/kappmaker/devicepreview/core/FreeformDevice;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getFrame ()Lcom/kappmaker/devicepreview/core/DeviceFrame;
+	public fun getLandscapeKeyboardHeight ()Ljava/lang/Float;
+	public fun getLandscapeSafeArea ()Lcom/kappmaker/devicepreview/core/DeviceInsets;
+	public fun getName ()Ljava/lang/String;
+	public fun getPortraitKeyboardHeight ()Ljava/lang/Float;
+	public fun getPortraitSafeArea ()Lcom/kappmaker/devicepreview/core/DeviceInsets;
+	public fun getScreenSize ()Lcom/kappmaker/devicepreview/core/ScreenSize;
+	public final fun getSize-NH-jbRc ()J
+	public fun getSystemUi ()Lcom/kappmaker/devicepreview/core/DeviceSystemUi;
+	public fun getType ()Lcom/kappmaker/devicepreview/core/DeviceType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class com/kappmaker/devicepreview/core/ScreenSize {
 	public static final field $stable I
 	public fun <init> (FFF)V
@@ -309,10 +330,16 @@ public final class com/kappmaker/devicepreview/devices/other/GenericDevice : com
 	public fun getType ()Lcom/kappmaker/devicepreview/core/DeviceType;
 }
 
+public final class com/kappmaker/devicepreview/preview/ComposableSingletons$ConfigurationViewKt {
+	public static final field INSTANCE Lcom/kappmaker/devicepreview/preview/ComposableSingletons$ConfigurationViewKt;
+	public fun <init> ()V
+	public final fun getLambda$-1816731958$KAppMaker_DevicePreview_kmpdevicepreview ()Lkotlin/jvm/functions/Function2;
+}
+
 public final class com/kappmaker/devicepreview/preview/ComposableSingletons$DevicePickerKt {
 	public static final field INSTANCE Lcom/kappmaker/devicepreview/preview/ComposableSingletons$DevicePickerKt;
 	public fun <init> ()V
-	public final fun getLambda$1415232787$KAppMaker_DevicePreview_kmpdevicepreview ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$1299105883$KAppMaker_DevicePreview_kmpdevicepreview ()Lkotlin/jvm/functions/Function2;
 }
 
 public final class com/kappmaker/devicepreview/preview/ComposableSingletons$DeviceWithConfigurationViewKt {
@@ -326,7 +353,7 @@ public final class com/kappmaker/devicepreview/preview/ConfigurationViewKt {
 }
 
 public final class com/kappmaker/devicepreview/preview/DeviceFrameViewKt {
-	public static final fun DeviceFrameView (Lcom/kappmaker/devicepreview/core/Device;Landroidx/compose/ui/Modifier;ZZZZZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun DeviceFrameView (Lcom/kappmaker/devicepreview/core/Device;Landroidx/compose/ui/Modifier;ZZZZZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kappmaker/devicepreview/preview/DeviceWithConfigurationViewKt {
@@ -337,6 +364,6 @@ public final class com/kappmaker/devicepreview/preview/DeviceWithConfigurationVi
 }
 
 public final class com/kappmaker/devicepreview/preview/SimulatedDevicePreviewKt {
-	public static final fun SimulatedDevicePreview (Lcom/kappmaker/devicepreview/core/SimulatedDevice;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun SimulatedDevicePreview (Lcom/kappmaker/devicepreview/core/SimulatedDevice;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
