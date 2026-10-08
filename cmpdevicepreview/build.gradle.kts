@@ -1,4 +1,3 @@
-//import com.vanniktech.maven.publish.SonatypeHost
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -80,6 +79,10 @@ tasks.matching { it.name == "prepareKotlinIdeaImport" }.configureEach {
     dependsOn(generateDevicePresets)
 }
 
+// Publishing is signed only when the signing key is supplied (CI sets
+// ORG_GRADLE_PROJECT_signingInMemoryKeyId and friends), so local builds and
+// publishToMavenLocal need no key.
+fun isSigningEnabled() = System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyId") != null
 
 mavenPublishing {
 
@@ -123,6 +126,9 @@ mavenPublishing {
         }
     }
 
-//    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
-//    signAllPublications()
+    publishToMavenCentral()
+
+    if (isSigningEnabled()) {
+        signAllPublications()
+    }
 }
