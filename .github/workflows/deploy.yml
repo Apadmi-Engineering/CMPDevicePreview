@@ -1,7 +1,7 @@
 name: Deploy
 
-# Publishes a release when a version tag is pushed: the library to Maven Central, the docs to
-# GitHub Pages, and a GitHub release. Pull request checks live in build.yml.
+# Publishes a release when a version tag is pushed: the library to Maven Central, then a GitHub
+# release. Pull request checks live in build.yml.
 #
 # Repository secrets used by the publish job (read by the Vanniktech Maven Publish plugin):
 #   MAVEN_CENTRAL_USERNAME, MAVEN_CENTRAL_PASSWORD  Central Portal user token
@@ -58,43 +58,6 @@ jobs:
 
       - name: Publish to Maven Central
         run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
-
-  docs:
-    name: Publish docs
-    runs-on: macos-latest
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Setup JDK 17
-        uses: actions/setup-java@v6
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Setup gradle
-        uses: gradle/actions/setup-gradle@v6
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v6
-
-      - name: Generate docs with dokka
-        run: ./gradlew :cmpdevicepreview:dokkaGeneratePublicationHtml
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: ${{ github.workspace }}/cmpdevicepreview/build/dokka/html
-
-      - name: Release to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
 
   release:
     name: Create GitHub release
