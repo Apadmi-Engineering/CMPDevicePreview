@@ -22,6 +22,9 @@ kotlin {
         }
     }
 
+    // The desktop app that runs this is in :desktopApp.
+    jvm()
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -60,8 +63,12 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtime.compose)
             implementation(libs.jetbrains.material3.adaptive)
         }
-        // Only the web build shows the app inside the device preview; the app's own code doesn't
-        // know about it. The Android app is in :androidApp.
+        // Each platform's entry point shows the app inside the device preview; the app's own code
+        // doesn't know about it. The entry points of the Android and desktop apps are in
+        // :androidApp and :desktopApp.
+        iosMain.dependencies {
+            implementation(project(":cmpdevicepreview"))
+        }
         wasmJsMain.dependencies {
             implementation(project(":cmpdevicepreview"))
         }

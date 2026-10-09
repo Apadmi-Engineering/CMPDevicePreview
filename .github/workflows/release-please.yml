@@ -1,12 +1,5 @@
 name: Release-Please
 
-# Keeps a release pull request open on main, built from the Conventional Commits since the last
-# release. Merging it creates the tag and the GitHub release, and the tag starts deploy.yml.
-#
-# Repository secret used:
-#   PAT_BS  a personal access token with Contents and Pull requests read and write on this
-#           repository. It has to be a token of our own rather than the default GITHUB_TOKEN,
-#           because tags and pull requests made with GITHUB_TOKEN don't start other workflows.
 on:
   push:
     branches:
@@ -20,6 +13,13 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
+      - name: Generate token
+        id: generate-token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        with:
+          app-id: ${{ secrets.RELEASE_PLEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
+
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
-          token: ${{ secrets.PAT_BS }}
+          token: ${{ steps.generate-token.outputs.token }}

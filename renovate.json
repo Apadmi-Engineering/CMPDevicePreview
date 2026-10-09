@@ -1,12 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended",
-    ":semanticCommitTypeAll(chore)",
-    ":semanticCommitScope(deps)"
+  "enabledManagers": [
+    "gradle",
+    "gradle-wrapper",
+    "github-actions"
   ],
   "semanticCommits": "enabled",
-  "labels": ["dependencies"],
   "packageRules": [
     {
       "description": "The JDK in the setup-java steps is a toolchain choice made together with AGP and Kotlin, not a routine bump, so Renovate leaves it alone.",

@@ -12,7 +12,7 @@ Latest version: [![Maven Central](https://img.shields.io/maven-central/v/com.apa
 implementation("com.apadmi:cmpdevicepreview:<version>")
 ```
 
-Wrap your root App composable, or any view, in `DeviceWithConfigurationView`. Your app needs nothing else from the library, so you can wrap it in a web-only entry point and leave the rest of your code untouched:
+Wrap your root App composable, or any view, in `DeviceWithConfigurationView`. Your app needs nothing else from the library, so you can wrap it in the entry point of just one platform, such as the web one, and leave the rest of your code untouched:
 ```kotlin
 // wasmJsMain
 fun main() {
@@ -24,11 +24,7 @@ fun main() {
 }
 ```
 
-Inside the device, Compose's own APIs report the simulated device, so your app doesn't need to know it is being previewed: window insets, `isSystemInDarkTheme()`, font scale, layout direction and window size classes all follow it. On Android only the window size does; insets and theme stay the real phone's.
-
-The panel sits beside the device when there is room, and behind a button below it otherwise. Its settings, and your app's state, are kept when the window is resized. Turning preview mode off shows just your app until the page is reloaded.
-
-Two features are web-only: the mouse acts as a finger on touchscreen devices, so dragging scrolls, and the panel can save screenshots as PNGs.
+Inside the device, Compose's own APIs report the simulated device, so your app doesn't need to know it is being previewed: window insets, `isSystemInDarkTheme()`, font scale, layout direction and window size classes all follow it.
 
 ## Advanced Configuration
 
@@ -69,10 +65,6 @@ DeviceWithConfigurationView(
     App()
 }
 ```
-
-## Sample
-
-`composeApp` is a responsive sample app. Its web build shows it inside the preview: `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`. On Android (`./gradlew :androidApp:installDebug`) and iOS (`iosApp`) it runs on its own, without the preview.
 
 ## Credits
 
