@@ -20,9 +20,6 @@ kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
         }
-
-        // needed since you use compose.components.resources
-        androidResources.enable = true
     }
 
     listOf(
@@ -54,31 +51,21 @@ kotlin {
     }
 
     sourceSets {
-        androidMain.dependencies {
-            implementation(compose.preview)
-            implementation(libs.androidx.activity.compose)
-        }
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.materialIconsExtended)
             implementation(compose.ui)
-            implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime.compose)
             implementation(libs.jetbrains.material3.adaptive)
         }
         // Only the web build shows the app inside the device preview; the app's own code doesn't
-        // know about it.
+        // know about it. The Android app is in :androidApp.
         wasmJsMain.dependencies {
             implementation(project(":cmpdevicepreview"))
         }
     }
-}
-
-dependencies {
-    // no more build-type variants, so no debugImplementation
-    androidRuntimeClasspath(compose.uiTooling)
 }

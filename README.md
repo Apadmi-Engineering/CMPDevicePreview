@@ -72,7 +72,7 @@ DeviceWithConfigurationView(
 
 ## Sample
 
-`composeApp` is a responsive sample app. Its web build shows it inside the preview: `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`. On iOS it runs on its own, without the preview.
+`composeApp` is a responsive sample app. Its web build shows it inside the preview: `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`. On Android (`./gradlew :androidApp:installDebug`) and iOS (`iosApp`) it runs on its own, without the preview.
 
 ## Credits
 
