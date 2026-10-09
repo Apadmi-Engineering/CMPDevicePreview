@@ -23,6 +23,8 @@ android {
 
 dependencies {
     implementation(project(":composeApp"))
+    implementation(project(":cmpdevicepreview"))
     implementation(libs.androidx.activity.compose)
+    implementation(libs.compose.foundation)
     debugImplementation(libs.compose.ui.tooling)
 }

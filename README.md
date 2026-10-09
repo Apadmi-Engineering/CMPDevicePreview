@@ -12,7 +12,7 @@ Latest version: [![Maven Central](https://img.shields.io/maven-central/v/com.apa
 implementation("com.apadmi:cmpdevicepreview:<version>")
 ```
 
-Wrap your root App composable, or any view, in `DeviceWithConfigurationView`. Your app needs nothing else from the library, so you can wrap it in a web-only entry point and leave the rest of your code untouched:
+Wrap your root App composable, or any view, in `DeviceWithConfigurationView`. Your app needs nothing else from the library, so you can wrap it in the entry point of just one platform, such as the web one, and leave the rest of your code untouched:
 ```kotlin
 // wasmJsMain
 fun main() {
@@ -65,10 +65,6 @@ DeviceWithConfigurationView(
     App()
 }
 ```
-
-## Sample
-
-`composeApp` is a responsive sample app. Its web build shows it inside the preview: `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`. On Android (`./gradlew :androidApp:installDebug`) and iOS (`iosApp`) it runs on its own, without the preview.
 
 ## Credits
 
