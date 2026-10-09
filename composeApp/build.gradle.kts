@@ -74,7 +74,6 @@ kotlin {
         // know about it.
         wasmJsMain.dependencies {
             implementation(project(":cmpdevicepreview"))
-            implementation(libs.jetbrains.material3.windowssizeclass)
         }
     }
 }

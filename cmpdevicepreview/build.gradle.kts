@@ -63,12 +63,12 @@ kotlin {
             implementation(compose.materialIconsExtended)
             implementation(compose.ui)
             implementation(compose.components.resources)
-            implementation(libs.jetbrains.material3.windowssizeclass)
         }
         jvmTest.dependencies {
             implementation(kotlin("test"))
             // Skiko's native runtime, which Compose's Path needs outside a window.
             implementation(compose.desktop.currentOs)
+            implementation(libs.compose.ui.test)
         }
     }
 }

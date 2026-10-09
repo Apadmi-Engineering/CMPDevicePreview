@@ -1,5 +1,3 @@
 package com.apadmi.cmpdevicepreview
 
-internal actual fun getSourceSetName(): String {
-    return "iosMain"
-}
+internal actual val isMobilePlatform: Boolean = true

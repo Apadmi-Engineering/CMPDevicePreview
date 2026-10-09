@@ -81,7 +81,7 @@ import com.apadmi.cmpdevicepreview.core.DeviceType
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.devices.allDevices
 import com.apadmi.cmpdevicepreview.frame.DeviceFramePainter
-import com.apadmi.cmpdevicepreview.getSourceSetName
+import com.apadmi.cmpdevicepreview.isMobilePlatform
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -242,9 +242,8 @@ private fun SearchField(
     val focusRequester = remember { FocusRequester() }
     // On a desktop or in a browser, typing filters straight away; on a phone that would raise the
     // keyboard over the list.
-    val focusOnOpen = getSourceSetName() !in setOf("androidMain", "iosMain")
     LaunchedEffect(Unit) {
-        if (focusOnOpen) focusRequester.requestFocus()
+        if (!isMobilePlatform) focusRequester.requestFocus()
     }
     val shape = RoundedCornerShape(10.dp)
     BasicTextField(

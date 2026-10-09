@@ -136,7 +136,8 @@ public fun ConfigurationView(
 ) {
     val configuration = simulatedDevice.configuration
     val device = simulatedDevice.device
-    fun update(change: SimulatedDevice.() -> SimulatedDevice) = onChangeConfiguration(simulatedDevice.change())
+    // Every change is fitted to the device, whichever setting it comes from.
+    fun update(change: SimulatedDevice.() -> SimulatedDevice) = onChangeConfiguration(simulatedDevice.change().adaptedToDevice())
 
     PanelTheme {
         var isPickerShown by remember { mutableStateOf(false) }
@@ -146,7 +147,7 @@ public fun ConfigurationView(
                 // Freeform starts as the device is now, turned as it is.
                 freeform = device as? FreeformDevice ?: FreeformDevice(simulatedDevice.currentSize),
                 onPick = {
-                    update { copy(device = it).adaptedToDevice() }
+                    update { copy(device = it) }
                     isPickerShown = false
                 },
                 onDismiss = { isPickerShown = false },
@@ -184,7 +185,7 @@ public fun ConfigurationView(
                         selectedIndex = if (device.isRotatable && configuration.isPortrait) 0 else 1,
                         onSelect = { index ->
                             update {
-                                copy(configuration = configuration.copy(isPortrait = index == 0)).adaptedToDevice()
+                                copy(configuration = configuration.copy(isPortrait = index == 0))
                             }
                         },
                         enabled = device.isRotatable,
@@ -326,7 +327,7 @@ public fun ConfigurationView(
             ToggleRow(
                 icon = Icons.Outlined.Visibility,
                 title = "Preview mode",
-                note = "Off runs the app full screen",
+                note = "Off shows just the app, until it is reloaded",
                 checked = configuration.isPreviewModeEnabled,
                 onCheckedChange = { update { copy(configuration = configuration.copy(isPreviewModeEnabled = it)) } },
                 modifier = Modifier.padding(8.dp),

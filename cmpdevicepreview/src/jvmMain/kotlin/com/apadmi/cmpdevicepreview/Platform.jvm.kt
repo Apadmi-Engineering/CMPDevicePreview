@@ -1,5 +1,3 @@
 package com.apadmi.cmpdevicepreview
 
-internal actual fun getSourceSetName(): String {
-    return "jvmMain"
-}
+internal actual val isMobilePlatform: Boolean = false
