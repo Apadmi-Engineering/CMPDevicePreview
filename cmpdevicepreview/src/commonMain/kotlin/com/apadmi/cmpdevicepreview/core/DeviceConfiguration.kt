@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.LayoutDirection
  * @property displayScale How much larger everything on the screen is drawn, as Android's Display
  * size setting does: the content's window is the screen's size divided by this, in dp.
  * @property layoutDirection The layout direction inside the device, which mirrors its status bar
- * too.
+ * too, or null for the host's.
  * @property backdrop The colour behind the device.
  * @property isDotGridVisible Whether the backdrop has a grid of dots.
  */
@@ -28,7 +28,7 @@ public data class DeviceConfiguration(
     val isKeyboardVisible: Boolean = false,
     val fontScale: Float = 1f,
     val displayScale: Float = 1f,
-    val layoutDirection: LayoutDirection = LayoutDirection.Ltr,
+    val layoutDirection: LayoutDirection? = null,
     val backdrop: Backdrop = Backdrop.LIGHT,
     val isDotGridVisible: Boolean = true,
 )

@@ -31,10 +31,7 @@ private const val DeviceFraction = 0.9f
  */
 @Composable
 public fun SimulatedDevicePreview(
-    simulatedDevice: SimulatedDevice = SimulatedDevice(
-        device = DefaultDevice,
-        configuration = DeviceConfiguration(isPortrait = true, isDarkMode = false)
-    ),
+    simulatedDevice: SimulatedDevice = SimulatedDevice(DefaultDevice),
     modifier: Modifier = Modifier,
     onChangeConfiguration: ((SimulatedDevice) -> Unit)? = null,
     content: @Composable () -> Unit
@@ -44,14 +41,7 @@ public fun SimulatedDevicePreview(
         DeviceFrameView(
             device = simulatedDevice.device,
             modifier = Modifier.padding(16.dp).fillMaxSize(DeviceFraction),
-            isPortrait = configuration.isPortrait,
-            isFrameVisible = configuration.isFrameVisible,
-            isSystemUiVisible = configuration.isSystemUiVisible,
-            isKeyboardVisible = configuration.isKeyboardVisible,
-            isDarkMode = configuration.isDarkMode,
-            fontScale = configuration.fontScale,
-            displayScale = configuration.displayScale,
-            layoutDirection = configuration.layoutDirection,
+            configuration = configuration,
             onResize = onChangeConfiguration?.let { change ->
                 { freeform -> change(simulatedDevice.copy(device = freeform).adaptedToDevice()) }
             },

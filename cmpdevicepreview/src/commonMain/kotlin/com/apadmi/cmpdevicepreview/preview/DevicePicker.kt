@@ -79,7 +79,6 @@ import com.apadmi.cmpdevicepreview.core.DeviceKind
 import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.DeviceType
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
-import com.apadmi.cmpdevicepreview.core.portraitScreenSize
 import com.apadmi.cmpdevicepreview.devices.allDevices
 import com.apadmi.cmpdevicepreview.frame.DeviceFramePainter
 import com.apadmi.cmpdevicepreview.getSourceSetName
@@ -338,7 +337,7 @@ internal fun DeviceThumbnail(device: Device, modifier: Modifier = Modifier, isHi
         }
         return
     }
-    val screen = device.portraitScreenSize
+    val screen = device.portraitSize
     val bounds = remember(frame, screen) { frame.bodyBounds(screen, isPortrait = true) }
     val screenOutline = remember(painter, screen) {
         painter.screenClip(screen, isPortrait = true) ?: Path().apply { addRect(Rect(Offset.Zero, screen)) }
@@ -371,10 +370,10 @@ internal fun DeviceThumbnail(device: Device, modifier: Modifier = Modifier, isHi
 internal fun deviceIcon(device: Device): ImageVector {
     if (device is FreeformDevice) return Icons.Outlined.AspectRatio
     val isApple = device.type == DeviceType.IOS
-    return when ((device as? DevicePreset)?.kind) {
+    return when (device.kind) {
         DeviceKind.TABLET -> if (isApple) Icons.Filled.TabletMac else Icons.Filled.TabletAndroid
         DeviceKind.DESKTOP -> Icons.Filled.Computer
-        else -> when (device.type) {
+        DeviceKind.PHONE, DeviceKind.FOLDABLE -> when (device.type) {
             DeviceType.ANDROID -> Icons.Filled.PhoneAndroid
             DeviceType.IOS -> Icons.Filled.PhoneIphone
             DeviceType.OTHER -> Icons.Filled.DeviceHub
@@ -384,10 +383,11 @@ internal fun deviceIcon(device: Device): ImageVector {
 
 /** E.g. "Apple · 2024 · 402 × 874": brand, release year and logical portrait size. */
 internal fun deviceDetails(device: Device): String {
-    val size = device.portraitScreenSize
+    val size = device.portraitSize
+    val preset = device as? DevicePreset
     return listOfNotNull(
-        (device as? DevicePreset)?.brand,
-        (device as? DevicePreset)?.year?.toString(),
+        preset?.brand,
+        preset?.year?.toString(),
         "${size.width.roundToInt()} × ${size.height.roundToInt()}",
     ).joinToString(" · ")
 }

@@ -19,8 +19,8 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import com.apadmi.cmpdevicepreview.core.Device
+import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
-import com.apadmi.cmpdevicepreview.core.portraitScreenSize
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
 import kotlin.math.roundToInt
 import kotlin.test.Test
@@ -43,7 +43,7 @@ class DeviceResizeSceneTest {
                 DeviceFrameView(
                     device = this@Harness.device,
                     modifier = Modifier.fillMaxSize(),
-                    isFrameVisible = isFrameVisible,
+                    configuration = DeviceConfiguration(isFrameVisible = isFrameVisible),
                     onResize = { resized += it; this@Harness.device = it },
                 ) {
                     Box(Modifier.fillMaxSize().background(Color.Red).onSizeChanged { contentSize = it })
@@ -159,7 +159,7 @@ class DeviceResizeSceneTest {
         val harness = Harness(pixel, width = 1000, height = 700)
         try {
             harness.frame()
-            val screen = pixel.portraitScreenSize
+            val screen = pixel.portraitSize
             val bounds = pixel.frame!!.bodyBounds(screen, isPortrait = true).size
             val scale = harness.contentSize.width / screen.width
             val corner = harness.at(topLeft, Size(bounds.width * scale, bounds.height * scale))

@@ -21,7 +21,7 @@ internal val FontScaleSteps: List<ScaleStep> = (50..300 step 5).map { percent ->
  */
 internal val Device.displayScaleSteps: List<ScaleStep>
     get() {
-        val shorterSide = portraitScreenSize.let { min(it.width, it.height) }
+        val shorterSide = portraitSize.let { min(it.width, it.height) }
         val maxScale = min(MaxDisplayScale, shorterSide / MinShorterSide)
         val larger = ((maxScale - 1f) / MinDisplayScaleInterval).toInt().coerceIn(0, LargerDisplayLabels.size)
         return buildList {

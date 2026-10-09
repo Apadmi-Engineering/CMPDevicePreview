@@ -19,7 +19,7 @@ class ScaleStepsTest {
         // 411 dp wide: three, the largest leaving 320 dp.
         val pixel = DevicePresets.pixel9.displayScaleSteps
         assertEquals(listOf("Small", "Default", "Large", "Larger", "Largest"), pixel.map { it.label })
-        assertEquals(320f, DevicePresets.pixel9.portraitScreenSize.width / pixel.last().scale, 0.01f)
+        assertEquals(320f, DevicePresets.pixel9.portraitSize.width / pixel.last().scale, 0.01f)
 
         // Never more than half as large again, however wide the screen.
         assertEquals(1.5f, DevicePresets.largeDesktopWindow.displayScaleSteps.last().scale, 0.001f)

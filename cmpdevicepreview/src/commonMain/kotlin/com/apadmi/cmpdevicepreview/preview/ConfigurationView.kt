@@ -68,6 +68,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -84,12 +85,11 @@ import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 import com.apadmi.cmpdevicepreview.core.adaptedToDevice
 import com.apadmi.cmpdevicepreview.core.currentContentSize
-import com.apadmi.cmpdevicepreview.core.currentLogicalSize
 import com.apadmi.cmpdevicepreview.core.displayScaleSteps
 import com.apadmi.cmpdevicepreview.core.isRotatable
 import com.apadmi.cmpdevicepreview.core.laidOutInPortrait
 import com.apadmi.cmpdevicepreview.core.nearest
-import com.apadmi.cmpdevicepreview.core.portraitScreenSize
+import com.apadmi.cmpdevicepreview.core.hasFrameArtwork
 import kotlin.math.roundToInt
 
 private val OrientationOptions = listOf(
@@ -144,7 +144,7 @@ public fun ConfigurationView(
             DevicePickerDialog(
                 selected = device,
                 // Freeform starts as the device is now, turned as it is.
-                freeform = device as? FreeformDevice ?: FreeformDevice(simulatedDevice.currentLogicalSize),
+                freeform = device as? FreeformDevice ?: FreeformDevice(simulatedDevice.currentSize),
                 onPick = {
                     update { copy(device = it).adaptedToDevice() }
                     isPickerShown = false
@@ -235,7 +235,7 @@ public fun ConfigurationView(
                 SectionLabel("Layout direction")
                 SegmentedControl(
                     options = DirectionOptions,
-                    selectedIndex = if (configuration.layoutDirection == LayoutDirection.Rtl) 1 else 0,
+                    selectedIndex = if ((configuration.layoutDirection ?: LocalLayoutDirection.current) == LayoutDirection.Rtl) 1 else 0,
                     onSelect = { index ->
                         val direction = if (index == 1) LayoutDirection.Rtl else LayoutDirection.Ltr
                         update { copy(configuration = configuration.copy(layoutDirection = direction)) }
@@ -246,8 +246,8 @@ public fun ConfigurationView(
                 SectionLabel("Display")
                 ToggleRow(
                     icon = Icons.Outlined.Smartphone,
-                    title = if (device is FreeformDevice) "Border" else "Bezel",
-                    note = if (device is FreeformDevice) "Window border and shadow" else "Body and screen corners",
+                    title = if (device.hasFrameArtwork) "Bezel" else "Border",
+                    note = if (device.hasFrameArtwork) "Body and screen corners" else "Window border and shadow",
                     checked = configuration.isFrameVisible,
                     onCheckedChange = { update { copy(configuration = configuration.copy(isFrameVisible = it)) } },
                 )
@@ -390,13 +390,12 @@ private fun DeviceCard(device: Device, isPortrait: Boolean, onClick: () -> Unit)
                     .ifEmpty { listOf(device.type.displayName) }
                     .joinToString(" · ")
             }
-            val size = device.portraitScreenSize
-            // A freeform window is measured in dp alone: it has no pixel ratio of its own.
+            val size = device.portraitSize
             val dimensions = "${size.width.roundToInt()} × ${size.height.roundToInt()}"
             Text(device.name, color = PanelColors.TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             Text(origin, color = PanelColors.TextSecondary, fontSize = 12.sp)
             Text(
-                if (device is FreeformDevice) dimensions else "$dimensions · ${formatPixelRatio(device.screenSize.density)}",
+                device.devicePixelRatio?.let { "$dimensions · ${formatPixelRatio(it)}" } ?: dimensions,
                 color = PanelColors.TextTertiary,
                 fontSize = 12.sp,
             )

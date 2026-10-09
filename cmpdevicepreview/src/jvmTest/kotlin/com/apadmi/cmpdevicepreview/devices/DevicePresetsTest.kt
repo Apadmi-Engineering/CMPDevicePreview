@@ -36,9 +36,7 @@ class DevicePresetsTest {
         assertEquals(DeviceKind.PHONE, iPhone.kind)
         assertEquals(2024, iPhone.year)
         assertEquals(Size(402f, 874f), iPhone.portraitSize)
-        assertEquals(1206f, iPhone.screenSize.width)
-        assertEquals(2622f, iPhone.screenSize.height)
-        assertEquals(3f, iPhone.screenSize.density)
+        assertEquals(3f, iPhone.devicePixelRatio)
         assertEquals(DeviceInsets(top = 62f, bottom = 34f), iPhone.portraitSafeArea)
         assertEquals(DeviceInsets(left = 62f, right = 62f, bottom = 20f), iPhone.landscapeSafeArea)
 

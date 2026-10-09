@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.toComposeImageBitmap
@@ -27,6 +28,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.apadmi.cmpdevicepreview.core.Device
+import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
+import com.apadmi.cmpdevicepreview.core.DeviceType
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -70,13 +73,15 @@ class DeviceFrameViewTest {
         CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
             DeviceFrameView(
                 device = device,
-                isFrameVisible = false,
-                isSystemUiVisible = isSystemUiVisible,
-                isKeyboardVisible = isKeyboardVisible,
-                isDarkMode = isDarkMode,
-                fontScale = fontScale,
-                displayScale = displayScale,
-                layoutDirection = deviceLayoutDirection ?: LocalLayoutDirection.current,
+                configuration = DeviceConfiguration(
+                    isFrameVisible = false,
+                    isSystemUiVisible = isSystemUiVisible,
+                    isKeyboardVisible = isKeyboardVisible,
+                    isDarkMode = isDarkMode,
+                    fontScale = fontScale,
+                    displayScale = displayScale,
+                    layoutDirection = deviceLayoutDirection,
+                ),
             ) {
                 val density = LocalDensity.current
                 captured.safeAreaBottom = WindowInsets.safeDrawing.getBottom(density)
@@ -214,6 +219,26 @@ class DeviceFrameViewTest {
         )
         assertEquals(LayoutDirection.Ltr, ltr.layoutDirection)
         assertEquals(0, lightPixels(hostRtl, 75..95, 20..45))
+    }
+
+    @Test
+    fun aDeviceWithoutArtworkIsDrawnAsABorderedWindow() {
+        val window = object : Device {
+            override val name = "Window"
+            override val type = DeviceType.OTHER
+            override val portraitSize = Size(200f, 100f)
+            override val devicePixelRatio: Float? = null
+        }
+        // Fitted at a scale of 1.2: 240 x 120, from y = 10.
+        val pixels = renderComposeScene(240, 140) {
+            Box(Modifier.fillMaxSize().background(Color.White)) {
+                DeviceFrameView(window, Modifier.fillMaxSize()) {
+                    Box(Modifier.fillMaxSize().background(Color.White))
+                }
+            }
+        }.toComposeImageBitmap().toPixelMap()
+        assertTrue(pixels[120, 10].red in 0.5f..0.7f, "a grey border, not a black one: ${pixels[120, 10]}")
+        assertEquals(Color.White, pixels[120, 70], "the content")
     }
 
     private fun lightPixels(pixels: PixelMap, xs: IntRange, ys: IntRange): Int =

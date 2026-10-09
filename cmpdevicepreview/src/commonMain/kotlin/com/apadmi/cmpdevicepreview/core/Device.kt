@@ -1,38 +1,41 @@
 package com.apadmi.cmpdevicepreview.core
 
+import androidx.compose.ui.geometry.Size
 
+/** A device to show content in. Sizes, insets and keyboard heights are in logical pixels (dp). */
 public interface Device {
-    public val name: String             // Device name (e.g., "Pixel 6")
-    public val screenSize: ScreenSize   // Screen dimensions
+    public val name: String
     public val type: DeviceType
 
-    /** The device's screen outline and body artwork, or null for a plain rectangular screen. */
+    /** The screen size in portrait. */
+    public val portraitSize: Size
+
+    /** Physical pixels per logical pixel, or null when screenshots should use the host's. */
+    public val devicePixelRatio: Float?
+
+    /** Desktop devices can't be turned and don't take touch input; every other kind can and does. */
+    public val kind: DeviceKind
+        get() = DeviceKind.PHONE
+
+    /** The screen outline and body artwork, or null for a plain rectangular window. */
     public val frame: DeviceFrame?
         get() = null
 
-    /** The safe area in portrait, in logical pixels. */
     public val portraitSafeArea: DeviceInsets
         get() = DeviceInsets.Zero
 
-    /** The safe area in landscape, in logical pixels. */
     public val landscapeSafeArea: DeviceInsets
         get() = DeviceInsets.rotateToLandscape(portraitSafeArea)
 
-    /** The device's status bar and gesture pill artwork, or null to leave the screen bare. */
+    /** The status bar and gesture pill artwork, or null to leave the screen bare. */
     public val systemUi: DeviceSystemUi?
         get() = null
 
-    /**
-     * The height the device's software keyboard covers in portrait, in logical pixels, or null when
-     * the device has no software keyboard.
-     */
+    /** The height the software keyboard covers in portrait, or null when there is none. */
     public val portraitKeyboardHeight: Float?
         get() = null
 
-    /**
-     * The height the device's software keyboard covers in landscape, in logical pixels, or null
-     * when the device has no software keyboard in landscape.
-     */
+    /** The height the software keyboard covers in landscape, or null when there is none. */
     public val landscapeKeyboardHeight: Float?
         get() = null
 }

@@ -17,6 +17,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntSize
 import com.apadmi.cmpdevicepreview.core.Device
+import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
 import kotlin.math.abs
 import kotlin.test.Test
@@ -50,7 +51,7 @@ class DeviceTurnTest {
         var contentSize = IntSize.Zero
         val scene = ImageComposeScene(width = 1000, height = 600) {
             Box(Modifier.fillMaxSize().background(Color.White)) {
-                DeviceFrameView(DevicePresets.pixel9, Modifier.fillMaxSize(), isPortrait = isPortrait) {
+                DeviceFrameView(DevicePresets.pixel9, Modifier.fillMaxSize(), DeviceConfiguration(isPortrait = isPortrait)) {
                     Box(Modifier.fillMaxSize().background(Color.Red).onSizeChanged { contentSize = it })
                 }
             }
@@ -86,7 +87,7 @@ class DeviceTurnTest {
         var contentSize = IntSize.Zero
         val scene = ImageComposeScene(width = 1000, height = 600) {
             Box(Modifier.fillMaxSize().background(Color.White)) {
-                DeviceFrameView(device, Modifier.fillMaxSize(), isPortrait = isPortrait) {
+                DeviceFrameView(device, Modifier.fillMaxSize(), DeviceConfiguration(isPortrait = isPortrait)) {
                     Box(Modifier.fillMaxSize().background(Color.Red).onSizeChanged { contentSize = it })
                 }
             }
