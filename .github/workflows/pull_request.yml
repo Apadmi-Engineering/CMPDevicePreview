@@ -1,13 +1,8 @@
-name: Build
+name: Pull Request
 
-# Checks for pull requests and for main. Publishing lives in deploy.yml.
 on:
-  push:
-    branches: [ "main" ]
-    paths-ignore:
-      - '**/README.md'
+  workflow_dispatch:
   pull_request:
-    branches: [ "main" ]
 
 concurrency:
   group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'

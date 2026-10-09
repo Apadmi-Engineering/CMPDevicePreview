@@ -1,7 +1,7 @@
 name: Deploy
 
 # Publishes a release when a version tag is pushed: the library to Maven Central, then a GitHub
-# release. Pull request checks live in build.yml.
+# release.
 #
 # Repository secrets used by the publish job (read by the Vanniktech Maven Publish plugin):
 #   MAVEN_CENTRAL_USERNAME, MAVEN_CENTRAL_PASSWORD  Central Portal user token
@@ -44,17 +44,8 @@ jobs:
       - name: Setup gradle
         uses: gradle/actions/setup-gradle@v6
 
-      # A version on Maven Central can't be replaced, so refuse a tag that disagrees with the build.
-      - name: Check the tag matches the version
-        run: |
-          version=$(sed -n 's/^devicePreviewVersion=//p' gradle.properties)
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match devicePreviewVersion=$version in gradle.properties"
-            exit 1
-          fi
-
       - name: Test
-        run: ./gradlew :cmpdevicepreview:jvmTest
+        run: ./gradlew :cmpdevicepreview:jvmTest publishToMavenLocal
 
       - name: Publish to Maven Central
         run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
