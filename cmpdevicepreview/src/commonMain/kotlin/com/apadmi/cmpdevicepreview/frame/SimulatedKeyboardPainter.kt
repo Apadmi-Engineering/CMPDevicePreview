@@ -40,14 +40,9 @@ internal fun keyboardMarkSize(band: Rect): Float? =
     minOf(band.height * 0.30f, band.width * 0.20f, 56f).takeIf { it >= 16f }
 
 /**
- * Paints the band a simulated software keyboard occupies at the bottom of the screen.
- *
- * Not a drawing of a keyboard layout: what matters is the space, which the content has already
- * laid out around. A translucent, hatched band with a small keyboard mark says what that space is
- * while keeping what it covers legible.
- *
- * The canvas origin must be the screen's top-left corner, in logical pixels. Nothing is painted
- * when [height] is not positive.
+ * Paints the band a software keyboard of [height] covers at the bottom of the screen: translucent
+ * and hatched, with a keyboard mark, so the content under it stays legible. The canvas origin must
+ * be the screen's top-left corner, in dp.
  */
 internal fun paintSimulatedKeyboard(canvas: Canvas, screenSize: Size, height: Float) {
     val band = keyboardBand(screenSize, height) ?: return

@@ -44,7 +44,7 @@ internal class SvgShape(
  * * Geometry: `transform` (`matrix`, `translate`, `scale`, `rotate`, `skewX`, `skewY`) and
  *   `clip-path="url(#id)"`.
  *
- * Everything else — strokes, gradients, filters, text, images, masks — is ignored by design.
+ * Everything else, such as strokes, gradients, filters, text, images and masks, is ignored.
  * Group `opacity` is multiplied into descendant fills rather than composited through a layer,
  * which is exact for non-overlapping flat artwork.
  *
@@ -87,9 +87,8 @@ internal class SvgDrawing(val viewBox: Rect, val shapes: List<SvgShape>) {
     /**
      * Paints the drawing stretched onto [destination].
      *
-     * The view box is mapped onto the destination without preserving the aspect ratio — device
-     * bodies declare a view box that already matches their target, and an exact mapping keeps the
-     * screen cut-out aligned with the simulated screen.
+     * The aspect ratio isn't preserved. Device bodies declare a view box that already matches their
+     * target, and an exact mapping keeps the screen cut-out aligned with the simulated screen.
      */
     fun paintInto(canvas: Canvas, destination: Rect, currentColor: Color? = null) {
         if (shapes.isEmpty() || viewBox.isEmpty || destination.isEmpty) return

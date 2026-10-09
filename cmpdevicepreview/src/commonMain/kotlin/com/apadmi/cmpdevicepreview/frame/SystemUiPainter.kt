@@ -13,13 +13,8 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Parses a [DeviceSystemUi] once and paints it over the content.
- *
- * Each bar fills the safe area on its side of the screen; artwork is drawn at its natural (view
- * box) size, anchored to the leading edge, the center, or the trailing edge. Nothing is stretched,
- * so one description covers every screen width and both orientations.
- *
- * Malformed artwork is failure-isolated like device bodies: reported once, then skipped.
+ * Parses a [DeviceSystemUi] once, then lays out and paints its bars as [DeviceSystemUi] describes.
+ * Malformed artwork is reported once and skipped.
  */
 internal class SystemUiPainter(val systemUi: DeviceSystemUi) {
 

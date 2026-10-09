@@ -98,9 +98,8 @@ private val KindFilters: List<Pair<String, DeviceKind?>> = listOf(
 private const val FreeformKeywords = "freeform custom resize window"
 
 /**
- * A searchable list of every device, grouped by platform, with [selected] checked. Freeform, a
- * window of any size, comes first: picking it gives [freeform], which is [selected] when that is
- * already one.
+ * A searchable list of the built-in devices, grouped by platform, with [selected] checked. The
+ * Freeform row comes first, and picking it gives [freeform].
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

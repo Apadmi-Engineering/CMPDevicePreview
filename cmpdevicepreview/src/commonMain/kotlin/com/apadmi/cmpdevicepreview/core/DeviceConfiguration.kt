@@ -5,17 +5,25 @@ import androidx.compose.ui.unit.LayoutDirection
 /**
  * How a simulated device is shown.
  *
- * @property isSystemUiVisible Whether the status bar and gesture pill are drawn. Hiding them
- * changes nothing the content can observe: the safe area stays the same.
- * @property isKeyboardVisible Whether the device's software keyboard is raised, which draws its
- * band and adds it to the insets, whatever [isSystemUiVisible] is. Has no effect on a device
- * without a keyboard height for the current orientation.
- * @property fontScale How much larger text is than at the default text size: what
- * `LocalDensity.current.fontScale` reports inside the device.
- * @property displayScale How much larger everything on the screen is drawn, as Android's Display
- * size setting does: the content's window is the screen's size divided by this, in dp.
- * @property layoutDirection The layout direction inside the device, which mirrors its status bar
- * too, or null for the host's.
+ * @property isPortrait Whether the device is upright. Devices that can't turn, such as desktop
+ * windows, ignore it.
+ * @property isDarkMode What `isSystemInDarkTheme()` returns inside the device. It also sets the
+ * colour of the status bar's icons.
+ * @property isPreviewModeEnabled Whether `DeviceWithConfigurationView` shows the device and its
+ * panel. When false it shows just the content.
+ * @property isFrameVisible Whether the device's body is drawn. The content is clipped to the
+ * screen outline either way.
+ * @property isSystemUiVisible Whether the status bar and gesture pill are drawn. The safe area is
+ * the same either way.
+ * @property isKeyboardVisible Whether the software keyboard is raised, which draws its band and
+ * adds it to the insets. Devices without a keyboard in the current orientation ignore it.
+ * @property fontScale What `LocalDensity.current.fontScale` reports inside the device. Text grows
+ * in proportion to it at every size.
+ * @property displayScale How much larger the content is drawn, like Android's Display size
+ * setting. The window and insets the content sees are this much smaller in dp; the frame, status
+ * bar and keyboard band don't change.
+ * @property layoutDirection The layout direction inside the device, which also mirrors its status
+ * bar, or null for the host's.
  * @property backdrop The colour behind the device.
  * @property isDotGridVisible Whether the backdrop has a grid of dots.
  */

@@ -3,21 +3,14 @@ package com.apadmi.cmpdevicepreview.core
 import androidx.compose.runtime.Immutable
 
 /**
- * Artwork for the platform's own on-screen furniture — the status bar at the top, the gesture pill
- * or navigation bar at the bottom — drawn **on top of** the content, inside the simulated screen.
+ * Static artwork for the status bar and the navigation bar or gesture pill, drawn over the content.
  *
- * Everything here is decoration: the clock is a static drawing that never ticks, the battery never
- * drains. It exists so a preview looks like the device it simulates.
+ * Each bar fills the device's safe area on its side in the current orientation, and isn't drawn
+ * where that safe area is zero, such as an iPhone's status bar in landscape. Shapes filled with
+ * `currentColor`, or not filled at all, are tinted to contrast with the theme.
  *
- * The bars are not positioned by this description: each one fills the device's safe area on its
- * side, which is already resolved per orientation. A bar whose safe area is zero — an iPhone status
- * bar in landscape, the gesture pill on a home-button device — is not drawn at all.
- *
- * Shapes that declare `fill="currentColor"` (or no fill) are tinted to contrast with the simulated
- * theme: white icons in dark mode, near-black ones in light mode.
- *
- * @property statusBar The status bar, drawn in the top safe area.
- * @property navigationBar The navigation bar or gesture pill, drawn in the bottom safe area.
+ * @property statusBar Drawn in the top safe area.
+ * @property navigationBar Drawn in the bottom safe area.
  */
 @Immutable
 public data class DeviceSystemUi(
@@ -31,27 +24,16 @@ public data class DeviceSystemUi(
 }
 
 /**
- * One system bar: up to three pieces of artwork laid out inside the safe area on its side of the
- * screen.
+ * Up to three pieces of SVG artwork in one bar. Each is drawn at the size of its view box, never
+ * stretched, so the same bar fits any screen width. Leading and trailing swap in a right-to-left
+ * layout direction.
  *
- * Each piece is an SVG document drawn at its natural size — the size of its view box — never
- * stretched, so the same description works at any screen width:
- *
- * ```
- *  ┌──────────────────────────────────────────────────┐
- *  │ ⟨inset⟩ leading      center      trailing ⟨inset⟩ │  ← the safe area
- *  ├──────────────────────────────────────────────────┤
- *  │                     content                      │
- * ```
- *
- * Leading and trailing swap under a right-to-left layout direction.
- *
- * @property leading Artwork anchored to the leading edge — the clock, typically.
- * @property center Artwork centered horizontally — the gesture pill, typically.
- * @property trailing Artwork anchored to the trailing edge — the status icons, typically.
+ * @property leading Artwork at the leading edge, such as the clock.
+ * @property center Artwork in the middle, such as the gesture pill.
+ * @property trailing Artwork at the trailing edge, such as the status icons.
  * @property inset The distance from the screen edge to [leading] and [trailing].
  * @property bottomInset When set, the distance from the bar's outer edge to the bottom of the
- * artwork (how a home indicator sits); otherwise the artwork is centered vertically.
+ * artwork, as a home indicator sits. Otherwise the artwork is centred vertically.
  */
 @Immutable
 public data class SystemUiBar(

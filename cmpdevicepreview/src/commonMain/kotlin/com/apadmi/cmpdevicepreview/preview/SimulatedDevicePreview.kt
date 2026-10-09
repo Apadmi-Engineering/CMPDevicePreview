@@ -22,12 +22,10 @@ internal val DefaultDevice: DevicePreset get() = DevicePresets.galaxyS25
 private const val DeviceFraction = 0.9f
 
 /**
- * Shows [simulatedDevice] with [content] inside it, on a dotted backdrop.
+ * Shows [simulatedDevice] with [content] inside it, on the backdrop its configuration asks for.
  *
- * @param onChangeConfiguration When set, dragging a corner of the device resizes it into a
- * [com.apadmi.cmpdevicepreview.core.FreeformDevice], and this is called with the changed
- * [SimulatedDevice] on release. Pass it back as [simulatedDevice] to apply it. When null, the
- * device has no resize handles.
+ * @param onChangeConfiguration When set, the device can be resized by dragging its corners, and
+ * this gets the resized device to pass back as [simulatedDevice].
  */
 @Composable
 public fun SimulatedDevicePreview(

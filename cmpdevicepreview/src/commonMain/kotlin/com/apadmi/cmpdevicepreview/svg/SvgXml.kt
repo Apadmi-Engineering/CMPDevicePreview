@@ -3,7 +3,7 @@ package com.apadmi.cmpdevicepreview.svg
 /**
  * A parsed XML element: a name, its attributes, and its element children.
  *
- * Text content, comments, processing instructions and doctypes are dropped — the SVG subset this
+ * Text content, comments, processing instructions and doctypes are dropped, as the SVG subset this
  * library renders is entirely attribute-driven.
  *
  * @property name The local element name, with any namespace prefix stripped (`svg:path` → `path`).
@@ -25,7 +25,7 @@ internal class XmlElement(
  *
  * A deliberately small, dependency-free reader: elements, attributes, self-closing tags, entity
  * references in attribute values, and the usual prologue noise (`<?xml …?>`, comments,
- * `<!DOCTYPE …>`, CDATA). Namespaces are not resolved — prefixes are stripped from element names.
+ * `<!DOCTYPE …>`, CDATA). Namespaces are not resolved; prefixes are stripped from element names.
  *
  * @throws IllegalArgumentException on malformed input.
  */

@@ -126,11 +126,10 @@ internal fun screenshotName(device: Device, image: ImageBitmap, includesFrame: B
 }
 
 /**
- * The configuration panel: the device, and how it is shown.
+ * The configuration panel, which picks the device and sets how it is shown.
  *
- * @param panelItems Your own items, shown in order below the panel's settings. Each is drawn as it
- * is given, as wide as the panel's settings, inside the panel's dark Material theme: how it looks
- * and what it does are up to you.
+ * @param panelItems Your own items, shown in order below the panel's settings, as wide as them and
+ * inside the panel's dark Material theme.
  */
 @Composable
 public fun ConfigurationView(
@@ -179,12 +178,11 @@ public fun ConfigurationView(
 
                 Spacer(Modifier.height(24.dp))
                 if (device is FreeformDevice) {
-                    // A freeform window has no orientation: it is any shape, which is its size.
                     SectionLabel("Size")
                     SizeFields(device.size) { size -> update { copy(device = FreeformDevice(size)) } }
                 } else {
                     SectionLabel("Orientation")
-                    // A desktop window can't turn: it is locked to its natural, wide shape, which is landscape.
+                    // A desktop window can't turn, so it shows as landscape.
                     SegmentedControl(
                         options = OrientationOptions,
                         selectedIndex = if (device.isRotatable && configuration.isPortrait) 0 else 1,
@@ -215,14 +213,13 @@ public fun ConfigurationView(
 
                 Spacer(Modifier.height(20.dp))
                 SectionLabel("Text & display")
-                val fontSteps = FontScaleSteps
                 StepSlider(
                     icon = Icons.Outlined.FormatSize,
                     title = "Text size",
                     note = "Real device scaling options may vary",
-                    labels = fontSteps.map { it.label },
-                    selectedIndex = fontSteps.indexOf(fontSteps.nearest(configuration.fontScale)),
-                    onSelect = { index -> update { copy(configuration = configuration.copy(fontScale = fontSteps[index].scale)) } },
+                    labels = FontScaleSteps.map { it.label },
+                    selectedIndex = FontScaleSteps.indexOf(FontScaleSteps.nearest(configuration.fontScale)),
+                    onSelect = { index -> update { copy(configuration = configuration.copy(fontScale = FontScaleSteps[index].scale)) } },
                 )
                 val displaySteps = device.displayScaleSteps
                 val contentSize = simulatedDevice.currentContentSize
@@ -315,7 +312,7 @@ public fun ConfigurationView(
                         }
                     }
                     Text(
-                        "A PNG at the frame's full resolution",
+                        "PNGs at the device's own resolution",
                         modifier = Modifier.padding(start = 4.dp, top = 8.dp),
                         color = PanelColors.TextTertiary,
                         fontSize = 12.sp,
@@ -410,10 +407,7 @@ private fun DeviceCard(device: Device, isPortrait: Boolean, onClick: () -> Unit)
     }
 }
 
-/**
- * That a frame is only a frame: it shows a device's size and shape, but the app runs where it is,
- * not on the device.
- */
+/** A note that a frame shows a device's size and shape, but doesn't simulate the device. */
 @Composable
 private fun FrameDisclaimer() {
     Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 10.dp)) {
@@ -465,7 +459,7 @@ private fun SizeFields(size: Size, onChange: (Size) -> Unit) {
         }
     }
     Text(
-        "$MinFreeformSizeDp–$MaxFreeformSizeDp dp, to the whole dp",
+        "$MinFreeformSizeDp–$MaxFreeformSizeDp dp",
         modifier = Modifier.padding(start = 4.dp, top = 8.dp),
         color = PanelColors.TextTertiary,
         fontSize = 12.sp,
