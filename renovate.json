@@ -1,0 +1,32 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommitTypeAll(chore)",
+    ":semanticCommitScope(deps)"
+  ],
+  "semanticCommits": "enabled",
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "description": "The JDK in the setup-java steps is a toolchain choice made together with AGP and Kotlin, not a routine bump, so Renovate leaves it alone.",
+      "matchDatasources": ["java-version"],
+      "enabled": false
+    },
+    {
+      "description": "One PR a month for every non-breaking update (minor, patch, pin, digest) across libraries, plugins, the Gradle wrapper and GitHub Actions. Major updates are never in it, so a breaking change always gets its own PR.",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "non-breaking updates"
+    },
+    {
+      "description": "All Compose dependencies together: Compose Multiplatform, Material 3, adaptive, icons and the androidx *-compose artifacts. Material 3 is versioned apart from Compose Multiplatform but pinned to the one it ships with, so they move in one PR and CI checks the pair.",
+      "matchPackageNames": ["/compose/"],
+      "groupName": "Compose"
+    },
+    {
+      "description": "All other Kotlin dependencies together: the compiler, its Gradle plugins and kotlinx. Keep this after the Compose rule, because the Compose compiler plugin shares the kotlin version key and belongs here.",
+      "matchPackageNames": ["/^org\\.jetbrains\\.kotlin/"],
+      "groupName": "Kotlin"
+    }
+  ]
+}

@@ -1,14 +1,6 @@
 name: Deploy
 
-# Publishes a release when a version tag is pushed: the library to Maven Central, then a GitHub
-# release. Pull request checks live in build.yml.
-#
-# Repository secrets used by the publish job (read by the Vanniktech Maven Publish plugin):
-#   MAVEN_CENTRAL_USERNAME, MAVEN_CENTRAL_PASSWORD  Central Portal user token
-#   SIGNING_KEY                                     ASCII-armored private PGP key
-#   SIGNING_KEY_ID                                  the key's id (its last 8 characters)
-#   SIGNING_KEY_PASSWORD                            the key's passphrase
-# cmpdevicepreview/build.gradle.kts signs the publications when SIGNING_KEY_ID is set.
+# Publishes the library to Maven Central when release-please pushes a version tag.
 on:
   push:
     tags:
@@ -24,7 +16,6 @@ permissions:
 jobs:
   publish:
     name: Publish to Maven Central
-    # The iOS artifacts can only be built on macOS.
     runs-on: macos-latest
     env:
       ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
@@ -44,29 +35,8 @@ jobs:
       - name: Setup gradle
         uses: gradle/actions/setup-gradle@v6
 
-      # A version on Maven Central can't be replaced, so refuse a tag that disagrees with the build.
-      - name: Check the tag matches the version
-        run: |
-          version=$(sed -n 's/^devicePreviewVersion=//p' gradle.properties)
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match devicePreviewVersion=$version in gradle.properties"
-            exit 1
-          fi
-
       - name: Test
-        run: ./gradlew :cmpdevicepreview:jvmTest
+        run: ./gradlew :cmpdevicepreview:jvmTest publishToMavenLocal
 
       - name: Publish to Maven Central
         run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
-
-  release:
-    name: Create GitHub release
-    needs: publish
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Create new release from tag
-        uses: softprops/action-gh-release@v3
-        with:
-          generate_release_notes: true
