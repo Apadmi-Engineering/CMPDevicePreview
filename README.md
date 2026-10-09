@@ -24,11 +24,7 @@ fun main() {
 }
 ```
 
-Inside the device, Compose's own APIs report the simulated device, so your app doesn't need to know it is being previewed: window insets, `isSystemInDarkTheme()`, font scale, layout direction and window size classes all follow it. On Android only the window size does; insets and theme stay the real phone's.
-
-The panel sits beside the device when there is room, and behind a button below it otherwise. Its settings, and your app's state, are kept when the window is resized. Turning preview mode off shows just your app until the page is reloaded.
-
-Two features are web-only: the mouse acts as a finger on touchscreen devices, so dragging scrolls, and the panel can save screenshots as PNGs.
+Inside the device, Compose's own APIs report the simulated device, so your app doesn't need to know it is being previewed: window insets, `isSystemInDarkTheme()`, font scale, layout direction and window size classes all follow it.
 
 ## Advanced Configuration
 
