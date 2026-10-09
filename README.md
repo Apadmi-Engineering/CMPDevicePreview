@@ -1,19 +1,18 @@
 # CmpDevicePreview - Compose Multiplatform Device Preview Library
 
-CmpDevicePreview is a Compose Multiplatform library for previewing and simulating your app. It lets you test your app or any part of it on different screen sizes, devices, and settings like dark mode or portrait/landscape orientation. This library works on Android, iOS, Web (WASM/Kotlin), JS and  Desktop (JVM). You can even use it to create web-based demos to showcase your app online.
+CmpDevicePreview is a Compose Multiplatform library for previewing your app on different devices. It draws your app inside a device frame and lets you change the device, orientation, dark mode, text size, display size, layout direction and keyboard from a side panel, so you can see how it adapts without a real device or an emulator. It works on Android, iOS, desktop (JVM), JS and Wasm, and you can use it to put a web demo of your app online.
 
-> **Device frames by Flutter Device Preview.** The device catalog, including every frame (bezel, screen outline, notch, punch-hole and Dynamic Island), status bar, gesture pill and keyboard height, comes from [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview) by Aloïs Deniel, whose device specs are used here unchanged. CmpDevicePreview is also a fork of [KMPDevicePreview](https://github.com/KAppMaker/KMPDevicePreview) by KAppMaker. See [Credits](#credits).
-
+The device catalog, frames included, comes from [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview). See [Credits](#credits).
 
 ## Getting Started
-To use **CmpDevicePreview**, add the library to your build.gradle file:
+Add the library to your build.gradle file:
 Latest version: [![Maven Central](https://img.shields.io/maven-central/v/com.apadmi/cmpdevicepreview?color=blue)](https://search.maven.org/search?q=g:com.apadmi).
 
 ```gradle
 implementation("com.apadmi:cmpdevicepreview:<version>")
-
 ```
-Wrap your root App composable or any view with `DeviceWithConfigurationView` to display a preview. Your app needs nothing else from the library, so you can wrap it in a web-only entry point and leave the rest of your code untouched:
+
+Wrap your root App composable, or any view, in `DeviceWithConfigurationView`. Your app needs nothing else from the library, so you can wrap it in a web-only entry point and leave the rest of your code untouched:
 ```kotlin
 // wasmJsMain
 fun main() {
@@ -25,133 +24,44 @@ fun main() {
 }
 ```
 
+Inside the device, Compose's own APIs report the simulated device, so your app doesn't need to know it is being previewed: window insets, `isSystemInDarkTheme()`, font scale, layout direction and window size classes all follow it. On Android only the window size does; insets and theme stay the real phone's.
 
 ## Advanced Configuration
 
-### Devices and frames
-The built-in catalog, `DevicePresets`, is [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview)'s own: the same 33 devices, built from the same device specs, which Aloïs Deniel created. It holds current iPhones and iPads, Google Pixels, Samsung Galaxy phones, tablets and foldables, and two desktop windows. Each one comes with its screen size, pixel ratio, safe areas, frame artwork (bezel, rounded screen corners, notch, punch-hole or Dynamic Island), status bar and gesture pill, and keyboard height. The catalog is generated from the JSON specs in [`cmpdevicepreview/device_specs`](cmpdevicepreview/device_specs), copied unchanged from Flutter Device Preview.
-
-To preview only SimulatedDevice without any configuration view:
+To preview a device without the configuration panel:
 ```kotlin
-
 SimulatedDevicePreview(
     simulatedDevice = SimulatedDevice(
-        device = DevicePresets.iPhone16Pro, // Use a predefined device or create your own
-        configuration = DeviceConfiguration(
-            isDarkMode = true,
-            isPortrait = true,
-            isFrameVisible = true,
-            isSystemUiVisible = true, // Status bar and gesture pill
-            isKeyboardVisible = false, // Simulated software keyboard
-            fontScale = 1.3f, // Text size
-            displayScale = 1f, // Display size: larger draws everything larger, leaving fewer dp
-            layoutDirection = LayoutDirection.Rtl,
-        )
+        device = DevicePresets.iPhone16Pro, // A built-in device, or your own
+        configuration = DeviceConfiguration(isDarkMode = true, isPortrait = true)
     )
 ) {
-    // Your composable content
     App()
 }
-
 ```
 
-`DeviceFrameView(device = DevicePresets.galaxyS25) { App() }` draws a device around any content, without the configuration panel. It takes the same `isPortrait`, `isFrameVisible`, `isSystemUiVisible`, `isKeyboardVisible`, `isDarkMode`, `fontScale`, `displayScale` and `layoutDirection` settings. Desktop windows ignore `isPortrait`: they are resized rather than turned, so they always keep their natural, landscape shape (and the panel's Orientation switch is disabled for them).
+`DeviceFrameView(device = DevicePresets.galaxyS25) { App() }` draws a device around any content, with no panel and no state.
 
-You can create a custom device by implementing the `Device` interface (or creating a `DevicePreset`) and overriding its size properties, then pass it into `SimulatedDevice`. Give it a `DeviceFrame` to draw a body around it.
+To add your own device, implement the `Device` interface (or create a `DevicePreset`) and pass it in.
 
-### Freeform
-**Freeform** is a plain window of any size, for testing responsive layouts at sizes no device has, such as the width where a bottom bar becomes a navigation rail. It is the first row in the device picker, and `FreeformDevice(Size(834f, 1112f))` (in dp) gives you one in code. It has a border and a soft shadow (the **Border** switch turns them off), and no insets, status bar, keyboard or touch input; like a desktop window, it can't be turned.
-
-You don't have to pick it first: drag any corner of any device and it becomes a freeform window.
-- **Corners** (and, for a freeform window, **edges**) are handles. A device shows them when the mouse is over it; a freeform window always shows its corners. Phones and tablets have no hover, so there the picker is the way in.
-- While you drag, a dashed outline with the new size follows the cursor and your app isn't laid out again. On release, your app is laid out once at that size. The window stays as big on the screen as the outline was, instead of being scaled to fit the space again. It is whole dp, between 120 dp and what fits.
-- The device stays centred, so it grows on both sides at once and the dragged corner stays under the cursor.
-- For exact sizes, or sizes larger than the space on screen, type them into the **Size** fields (120 to 4096 dp) in the panel. Typing a size, or choosing another device, fits the window to the space again.
-
-Without the configuration panel, resizing is opt-in. Pass `onChangeConfiguration` to `SimulatedDevicePreview` (or `onResize` to `DeviceFrameView`) and keep the device it gives back, or the handles aren't shown:
-```kotlin
-var simulatedDevice by remember { mutableStateOf(SimulatedDevice(DevicePresets.pixel9)) }
-SimulatedDevicePreview(
-    simulatedDevice = simulatedDevice,
-    onChangeConfiguration = { simulatedDevice = it },
-) { App() }
-```
-
-### Your app's code
-Inside the simulated device, Compose's own APIs describe it, so your app doesn't need to know it's being previewed:
-- `WindowInsets.safeDrawing`, `statusBars`, `navigationBars`, `displayCutout` and `ime`, the padding modifiers built on them (`safeDrawingPadding()`, `imePadding()`, …) and Material's defaults (Scaffold, TopAppBar) report the simulated device's notch, Dynamic Island, status bar, home indicator and keyboard.
-- `isSystemInDarkTheme()` follows the **Appearance** switch.
-- `LocalDensity.current.fontScale` follows **Text size**, so `sp` text grows with it.
-- `LocalLayoutDirection` follows **Layout direction**.
-- `LocalWindowInfo` reports the device's screen as the window, so window size classes (`currentWindowAdaptiveInfoV2()` and the breakpoints built on it) follow the simulated device rather than the browser window. The sample app switches between a bottom bar, a navigation rail and a navigation drawer this way.
-
-```kotlin
-MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
-    Scaffold(contentWindowInsets = WindowInsets.safeDrawing) { padding -> ... }
-}
-```
-
-The insets and theme work on the web, desktop and iOS, through Compose Multiplatform hooks that are internal to Compose (one is deprecated), so a future Compose release may need a library update. Android has no such hooks: there, your app sees the real phone's insets and theme. The window size works everywhere.
-
-### Status bar
-Devices draw their status bar and gesture pill (or home indicator) over your content, in the safe area. They're static decoration: the clock never ticks, and the icons are white in dark mode and near-black in light mode. Turn them off with the **System UI** switch or `isSystemUiVisible = false`; the safe area stays the same either way, and the keyboard has its own switch.
-
-### Keyboard
-The **Keyboard** switch raises the device's software keyboard, at the height the real keyboard covers on that device (each iPhone and iPad measured; every Android device shares one representative height). Focusing a text field can't raise it: Compose text fields talk to the platform's keyboard directly, so the preview never hears about it.
-
-While it's up, a translucent band covers the bottom of the screen, and `WindowInsets.ime` (and so `safeDrawing` and `imePadding()`) reports its height, so content that avoids the keyboard on a real phone avoids it here too.
-
-### Text and display size
-**Text size** sets the font scale, from 50% to 300% in steps of 5%, on every device: well beyond what most devices' settings offer, so you can see where a layout breaks. Real devices' options vary by manufacturer and OS version. Text grows by exactly the font scale at every size: outside Android, Compose scales text linearly, so the preview can't follow Android 14's non-linear scaling, where large text grows by less.
-
-**Display size** draws everything on the screen larger, as Android's Display size setting does, so your app's window has fewer dp: a Pixel 9 at Largest is 320 dp wide. Every device gets the same steps, worked out as Android works them out: one smaller size (85%) and up to three larger ones, the largest leaving the screen's shorter side 320 dp, and at most 1.5 times the default. The frame, status bar and keyboard keep their size on the screen; the insets your app sees shrink in dp to match.
-
-Changing the device keeps the text size, and the nearest display size the new device offers.
-
-### Layout direction
-**Layout direction** lays your app out right to left, as for Arabic or Hebrew, without changing the host's direction. The status bar mirrors with it, as on a phone set to a right-to-left language.
-
-### Backdrop
-**Backdrop** sets the colour behind the device: light, dark, or **Auto**, which follows the device's **Appearance**. The **Dot grid** switch turns the dots on or off.
-
-### Screenshots
-On the web, the **Screenshot** buttons download a PNG of the device: **Screen** is the screen as the device shows it, status bar and keyboard included, at the device's own resolution (1080 × 2424 for a Pixel 9); **With frame** adds the device's body, on a transparent background. A freeform window is captured at the browser's pixel ratio. Other platforms don't show the buttons.
-
-### Your own panel items
-Pass `panelItems` to add your own controls to the configuration panel, such as a button that resets your app's state or signs in a test user. They're shown in order below the panel's settings, as wide as the settings, inside the panel's dark Material theme. How they look and what they do is up to you:
+To add your own controls to the configuration panel, such as a button that resets your app's state or signs in a test user, pass `panelItems`. They are shown in order below the panel's settings:
 ```kotlin
 DeviceWithConfigurationView(
     panelItems = listOf(
         { Button(onClick = { viewModel.reset() }) { Text("Reset app") } },
-        { Text("Build ${BuildConfig.VERSION}") },
+        { Button(onClick = { viewModel.signInTestUser() }) { Text("Sign in test user") } },
     ),
 ) {
     App()
 }
 ```
 
-### Mouse input
-In a browser, the mouse acts as a finger on a phone, tablet or foldable: dragging the screen scrolls lists, as it would on the device (Compose ignores mouse drags otherwise). A press that starts on the screen is sent to your content as a touch until it's released. The wheel, hover and right-click work as usual, and a desktop window keeps the mouse as a mouse. Other hosts, such as a JVM desktop app, keep the mouse as it is.
-
 ## Credits
 
-### Flutter Device Preview
+**[Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview)** by Aloïs Deniel (MIT). The device frames, and the catalog of 33 devices behind them, are his work: the specs in [`cmpdevicepreview/device_specs`](cmpdevicepreview/device_specs) are copied unchanged and carry each device's screen size, safe areas, frame artwork, status bar artwork and keyboard heights. The SVG renderer that draws that artwork is ported from it, and so is the idea of previewing a running app on another device.
 
-The device frames, and the whole device catalog behind them, are the work of **Aloïs Deniel**, from [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview) (MIT). CmpDevicePreview brings that library's approach to Compose Multiplatform, and would not look like a device without it:
-
-- **Device specs.** The 33 JSON files in [`cmpdevicepreview/device_specs`](cmpdevicepreview/device_specs) are copied unchanged from Flutter Device Preview's `device_specs/`. They carry each device's screen size, pixel ratio and safe areas, its **frame artwork** (the body, the screen outline, and the notch, punch-hole or Dynamic Island), the status bar and gesture pill artwork, and the keyboard heights.
-- **Rendering.** The SVG subset that draws that artwork (`SvgDrawing`) and the status bar and gesture pill layout (`SystemUiPainter`, with its tests) are ported from Flutter Device Preview, which the specs are authored against.
-- **Idea.** Previewing a running app on another device, with its screen size, safe areas, keyboard, text scale and brightness, is Flutter Device Preview's idea, and this library follows it.
-
-### KMPDevicePreview
-
-CmpDevicePreview is a fork of [KMPDevicePreview](https://github.com/KAppMaker/KMPDevicePreview) by **KAppMaker** (Mirzamehdi Karimov, MIT), the original Compose Multiplatform device preview library, which Android Weekly covered in [issue #650](https://androidweekly.net/issues/issue-650).
+**[KMPDevicePreview](https://github.com/KAppMaker/KMPDevicePreview)** by KAppMaker (Mirzamehdi Karimov, MIT), which CmpDevicePreview is forked from. It was featured in [Android Weekly #650](https://androidweekly.net/issues/issue-650).
 
 ## License
 
-CmpDevicePreview is released under the [MIT License](LICENSE). It keeps the copyright notices of the projects it is built on:
-
-- Copyright (c) 2026 Apadmi Ltd
-- Copyright (c) 2024 KAppMaker (KMPDevicePreview)
-- Copyright (c) 2019 Aloïs Deniel (Flutter Device Preview)
-
+[MIT](LICENSE). It keeps the copyright notices of Apadmi Ltd, KAppMaker and Aloïs Deniel.
