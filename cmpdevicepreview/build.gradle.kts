@@ -26,7 +26,7 @@ kotlin {
         minSdk = libs.versions.android.minSdk.get().toInt()
     }
 
-    js(IR) {
+    js {
         nodejs()
         browser()
         binaries.library()
@@ -56,12 +56,11 @@ kotlin {
             kotlin.srcDir(generateDevicePresets)
         }
         commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
-            implementation(compose.materialIconsExtended)
-            implementation(compose.ui)
-            implementation(compose.components.resources)
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.material3)
+            implementation(libs.compose.material.icons.extended)
+            implementation(libs.compose.ui)
         }
         jvmTest.dependencies {
             implementation(kotlin("test"))
@@ -84,7 +83,7 @@ fun isSigningEnabled() = !System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyId
 
 mavenPublishing {
 
-    coordinates("com.apadmi", "cmpdevicepreview", project.properties["devicePreviewVersion"] as String)
+    coordinates("com.apadmi", "cmpdevicepreview", providers.gradleProperty("devicePreviewVersion").get())
     pom {
         name = "CmpDevicePreview"
         description = "Kotlin & Compose Multiplatform library to simulate any device from any platform, supporting Android, iOS, JVM, JS, and WebAssembly."
