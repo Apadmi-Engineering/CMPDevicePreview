@@ -1,0 +1,7 @@
+platform: 'github'
+onboarding: true
+onboardingConfig:
+  extends:
+    - config:recommended
+repositories:
+  - Apadmi-Engineering/CMPDevicePreview

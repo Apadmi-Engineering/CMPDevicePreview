@@ -81,9 +81,15 @@ tasks.matching { it.name == "prepareKotlinIdeaImport" }.configureEach {
 // publishToMavenLocal need no key.
 fun isSigningEnabled() = !System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyId").isNullOrBlank()
 
+// The version lives in version.txt, which release-please rewrites in each release PR.
+val libraryVersion = providers
+    .fileContents(rootProject.layout.projectDirectory.file("version.txt"))
+    .asText
+    .map { it.trim() }
+
 mavenPublishing {
 
-    coordinates("com.apadmi", "cmpdevicepreview", providers.gradleProperty("devicePreviewVersion").get())
+    coordinates("com.apadmi", "cmpdevicepreview", libraryVersion.get())
     pom {
         name = "CmpDevicePreview"
         description = "Kotlin & Compose Multiplatform library to simulate any device from any platform, supporting Android, iOS, JVM, JS, and WebAssembly."
