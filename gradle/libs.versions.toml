@@ -11,6 +11,7 @@ compose-material3 = "1.9.0"
 # The icon artifacts stopped at 1.7.3, the last version published.
 compose-material-icons = "1.7.3"
 kotlin = "2.4.20"
+kotlinx-coroutines = "1.11.0"
 jetbrainsKotlinJvm = "2.4.20"
 jetbrainsMaterial3Adaptive = "1.3.0"
 
@@ -29,6 +30,8 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 jetbrains-material3-adaptive = { group = "org.jetbrains.compose.material3.adaptive", name = "adaptive", version.ref = "jetbrainsMaterial3Adaptive" }
+# A desktop window needs Compose's Main dispatcher, which compose.desktop.currentOs doesn't bring.
+kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
