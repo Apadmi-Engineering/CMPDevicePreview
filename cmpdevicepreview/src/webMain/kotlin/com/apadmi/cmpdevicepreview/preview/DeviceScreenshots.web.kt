@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package com.apadmi.cmpdevicepreview.preview
 
 import androidx.compose.ui.graphics.ImageBitmap

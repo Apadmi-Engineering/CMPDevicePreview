@@ -73,7 +73,7 @@ internal class SystemUiPainter(val systemUi: DeviceSystemUi) {
             Anchor.End -> region.right - bar.inset - size.width
         }
         val top = bar.bottomInset?.let { region.bottom - it - size.height } ?: (region.center.y - size.height / 2)
-        // Never let artwork spill outside its own bar.
+        // Keep artwork inside its bar; artwork taller than the bar starts at the bar's top.
         val clampedTop = max(region.top, min(top, region.bottom - size.height))
         return PlacedArtwork(drawing, Rect(left, clampedTop, left + size.width, clampedTop + size.height))
     }

@@ -83,6 +83,17 @@ class SvgDrawingTest {
     }
 
     @Test
+    fun currentColorIgnoresTheInheritedFill() {
+        val drawing = SvgDrawing.parse(
+            """<svg viewBox="0 0 10 10"><g fill="#ff000080"><rect width="1" height="1" fill="currentColor"/></g></svg>"""
+        )
+        val shape = drawing.shapes.single()
+        assertTrue(shape.followsCurrentColor)
+        // Black and opaque, so a tint isn't made translucent by the group's half-transparent red.
+        assertEquals(Color.Black, shape.color)
+    }
+
+    @Test
     fun resolvesClipPaths() {
         val drawing = SvgDrawing.parse(
             """

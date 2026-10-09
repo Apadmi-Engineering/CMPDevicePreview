@@ -81,7 +81,7 @@ tasks.matching { it.name == "prepareKotlinIdeaImport" }.configureEach {
 // Publishing is signed only when the signing key is supplied (CI sets
 // ORG_GRADLE_PROJECT_signingInMemoryKeyId and friends), so local builds and
 // publishToMavenLocal need no key.
-fun isSigningEnabled() = System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyId") != null
+fun isSigningEnabled() = !System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyId").isNullOrBlank()
 
 mavenPublishing {
 

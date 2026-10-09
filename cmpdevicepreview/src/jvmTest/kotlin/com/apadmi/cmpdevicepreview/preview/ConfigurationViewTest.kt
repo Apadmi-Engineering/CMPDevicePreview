@@ -8,13 +8,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.renderComposeScene
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextReplacement
-import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
@@ -71,6 +72,13 @@ class ConfigurationViewTest {
         assertEquals(FreeformDevice(Size(300f, 800f)), resized.device)
         // A window 300 dp across offers no display size larger than the default.
         assertEquals(1f, resized.configuration.displayScale)
+    }
+
+    @Test
+    fun screenshotNamesAreSafeFileNames() {
+        val image = ImageBitmap(2064, 2752)
+        assertEquals("iPad Pro 13 (M5) 2064x2752.png", screenshotName(DevicePresets.iPadPro13M5, image, includesFrame = false))
+        assertEquals("iPad Pro 13 (M5) with frame.png", screenshotName(DevicePresets.iPadPro13M5, image, includesFrame = true))
     }
 
     @Test

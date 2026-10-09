@@ -116,9 +116,14 @@ private val BackdropOptions = listOf(
 
 private const val NotAvailable = "Not available for this frame"
 
-/** E.g. "Galaxy S25 1080x2340.png", or "Galaxy S25 with frame.png". */
-private fun screenshotName(device: Device, image: ImageBitmap, includesFrame: Boolean): String =
-    if (includesFrame) "${device.name} with frame.png" else "${device.name} ${image.width}x${image.height}.png"
+/**
+ * E.g. "Galaxy S25 1080x2340.png", or "Galaxy S25 with frame.png". Characters that aren't allowed
+ * in file names, such as the inch mark in `iPad Pro 13" (M5)`, are left out.
+ */
+internal fun screenshotName(device: Device, image: ImageBitmap, includesFrame: Boolean): String {
+    val name = device.name.filterNot { it in "\\/:*?\"<>|" }
+    return if (includesFrame) "$name with frame.png" else "$name ${image.width}x${image.height}.png"
+}
 
 /**
  * The configuration panel: the device, and how it is shown.

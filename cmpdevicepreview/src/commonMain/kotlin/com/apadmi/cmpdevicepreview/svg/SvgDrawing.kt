@@ -194,10 +194,9 @@ private class Flattener(
         var inheritsColor = parent.inheritsColor
         when (rawFill) {
             "currentColor" -> {
-                // CSS semantics: `currentColor` resolves to the paint-time tint, not to the
-                // inherited fill, even under a group with an explicit (or `none`) fill; black is
-                // the default when no tint is supplied.
-                color = parent.color ?: Color.Black
+                // The paint-time tint, not the inherited fill, as CSS `color` is independent of
+                // `fill`. Without a tint it is black, the initial value of `color`.
+                color = Color.Black
                 inheritsColor = true
             }
             null -> color = parent.color
