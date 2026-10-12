@@ -2,7 +2,7 @@
 
 CmpDevicePreview is a Compose Multiplatform library for previewing your app on different devices. It draws your app inside a device frame and lets you change the device, orientation, dark mode, text size, display size, layout direction and keyboard from a panel, so you can see how it adapts without a real device or an emulator. It works on Android, iOS, desktop (JVM), JS and Wasm, and you can use it to put a web demo of your app online.
 
-The device catalog, frames included, comes from [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview). See [Credits](#credits).
+The device catalogue, frames included, comes from [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview). See [Credits](#credits).
 
 ## Getting Started
 Add the library to your build.gradle file:
@@ -68,7 +68,7 @@ DeviceWithConfigurationView(
 
 ## Credits
 
-**[Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview)** by Aloïs Deniel (MIT). The device frames, and the catalog of 33 devices behind them, are his work: the specs in [`cmpdevicepreview/device_specs`](cmpdevicepreview/device_specs) are copied unchanged and carry each device's screen size, safe areas, frame artwork, status bar artwork and keyboard heights. The SVG renderer that draws that artwork is ported from it, and so is the idea of previewing a running app on another device.
+**[Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview)** by Aloïs Deniel (MIT). The device frames, and the catalogue devices behind them, are his work: the specs in [`cmpdevicepreview/device_specs`](cmpdevicepreview/device_specs) are copied unchanged and carry each device's screen size, safe areas, frame artwork, status bar artwork and keyboard heights. The SVG renderer that draws that artwork is ported from it.
 
 **[KMPDevicePreview](https://github.com/KAppMaker/KMPDevicePreview)** by KAppMaker (Mirzamehdi Karimov, MIT), which CmpDevicePreview is forked from. It was featured in [Android Weekly #650](https://androidweekly.net/issues/issue-650).
 
