@@ -25,7 +25,7 @@ The library builds with `explicitApi()`, so every public declaration needs an ex
 
 | Platform | Entry point | Run it with |
 | --- | --- | --- |
-| Web | `composeApp` (`wasmJsMain`) | `./gradlew :composeApp:wasmJsBrowserDevelopmentRun` |
+| Web | `composeApp` (`wasmJsMain`) | `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`, or the [live demo](https://apadmi-engineering.github.io/CMPDevicePreview/) |
 | Desktop (JVM) | `desktopApp` | `./gradlew :desktopApp:run` |
 | Android | `androidApp` | `./gradlew :androidApp:installDebug` |
 | iOS | `composeApp` (`iosMain`), hosted by `iosApp` | open `iosApp/iosApp.xcodeproj` in Xcode and run it |
@@ -84,10 +84,12 @@ When a pull request is squash-merged, its title becomes the commit message on `m
 For maintainers. The version is in `version.txt`. Don't edit it by hand: release-please owns it and the changelog.
 
 1. release-please keeps a pull request open on `main` titled `chore(main): release <version>`, listing what has changed since the last release.
-2. Merging that pull request tags the release and creates the GitHub release. The tag starts [`deploy.yml`](.github/workflows/deploy.yml), which runs the tests and publishes to Maven Central. The repository secrets it needs are listed at the top of that file, and the one release-please needs is listed at the top of [`release-please.yml`](.github/workflows/release-please.yml).
+2. Merging that pull request tags the release and creates the GitHub release. The tag starts [`deploy.yml`](.github/workflows/deploy.yml), which runs the tests and publishes to Maven Central. Once that succeeds, it calls [`demo.yml`](.github/workflows/demo.yml), which builds the web sample and deploys it to GitHub Pages, the live demo the README links to. The repository secrets the publish needs are listed at the top of `deploy.yml`, and the one release-please needs is listed at the top of [`release-please.yml`](.github/workflows/release-please.yml).
 3. Until 1.0, a breaking change bumps the minor version (`0.0.1` to `0.1.0`) and a `feat` or `fix` bumps the patch (`0.1.0` to `0.1.1`). Releases are marked as pre-releases on GitHub. To force a particular version, such as `1.0.0`, add a `Release-As: <version>` footer to a commit message.
 
-If a publish fails after the release was created, re-run the failed **Deploy** run from the Actions tab.
+If a publish fails after the release was created, re-run the failed **Deploy** run from the Actions tab. If only the demo failed, re-running the failed jobs repeats just that. To redeploy the demo without a release, run the **Demo** workflow from the Actions tab.
+
+The demo needs two one-time repository settings, which need admin rights: **Settings > Pages > Source** set to **GitHub Actions**, and a `v*` tag rule under **Settings > Environments > github-pages > Deployment branches and tags**. Without the tag rule, the deployment that a release tag starts is rejected, because the environment only accepts the default branch until it is told otherwise.
 
 ## Dependency updates
 

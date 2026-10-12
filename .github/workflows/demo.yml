@@ -1,0 +1,54 @@
+name: Demo
+
+# Publishes the web sample to GitHub Pages, so the README can link to a live demo of the preview.
+# deploy.yml runs it once a release has been published to Maven Central. It can also be run by hand
+# from the Actions tab, to redeploy the demo or to try this workflow without making a release.
+#
+# One-time repository setup: Settings > Pages > Source is "GitHub Actions", and the github-pages
+# environment allows deployments from the release tags (a `v*` tag rule), not just from main.
+on:
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  demo:
+    name: Publish the demo to GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v6
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build the web sample
+        run: ./gradlew :composeApp:wasmJsBrowserDistribution
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: composeApp/build/dist/wasmJs/productionExecutable
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

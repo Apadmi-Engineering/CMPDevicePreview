@@ -2,6 +2,8 @@
 
 CmpDevicePreview is a Compose Multiplatform library for previewing your app on different devices. It draws your app inside a device frame and lets you change the device, orientation, dark mode, text size, display size, layout direction and keyboard from a panel, so you can see how it adapts without a real device or an emulator. It works on Android, iOS, desktop (JVM), JS and Wasm, and you can use it to put a web demo of your app online.
 
+**[Try the live demo](https://apadmi-engineering.github.io/CMPDevicePreview/)**: the sample app running in the preview, in your browser.
+
 The device catalogue, frames included, comes from [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview). See [Credits](#credits).
 
 [Demo-CMPDevicePreview.webm](https://github.com/user-attachments/assets/002719e9-7886-4bf6-b982-a2e65f1c7589)
@@ -27,6 +29,26 @@ fun main() {
 ```
 
 Inside the device, Compose's own APIs report the simulated device, so your app doesn't need to know it is being previewed: window insets, `isSystemInDarkTheme()`, font scale, layout direction and window size classes all follow it.
+
+## Developing with Hot Reload
+
+The desktop (JVM) target is the quickest way to work on your UI. Wrap your desktop entry point in `DeviceWithConfigurationView` and run it with [Compose Hot Reload](https://github.com/JetBrains/compose-hot-reload), and every edit shows up in the running device frame without a restart. You can switch device, orientation, dark mode or text size from the panel while you edit, so you can check how a change looks across them as you make it.
+
+```kotlin
+// desktopMain
+fun main() = application {
+    Window(
+        onCloseRequest = ::exitApplication,
+        title = "My app",
+        // Wide enough to show the configuration panel beside the device.
+        state = rememberWindowState(size = DpSize(1280.dp, 900.dp)),
+    ) {
+        DeviceWithConfigurationView {
+            App()
+        }
+    }
+}
+```
 
 ## Advanced Configuration
 
