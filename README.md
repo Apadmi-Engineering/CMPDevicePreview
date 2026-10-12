@@ -4,6 +4,8 @@ CmpDevicePreview is a Compose Multiplatform library for previewing your app on d
 
 The device catalogue, frames included, comes from [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview). See [Credits](#credits).
 
+[Demo-CMPDevicePreview.webm](https://github.com/user-attachments/assets/002719e9-7886-4bf6-b982-a2e65f1c7589)
+
 ## Getting Started
 Add the library to your build.gradle file:
 Latest version: [![Maven Central](https://img.shields.io/maven-central/v/com.apadmi/cmpdevicepreview?color=blue)](https://search.maven.org/search?q=g:com.apadmi).
