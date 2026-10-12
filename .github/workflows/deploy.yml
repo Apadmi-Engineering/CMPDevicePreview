@@ -1,6 +1,7 @@
 name: Deploy
 
-# Publishes the library to Maven Central when release-please pushes a version tag.
+# Publishes the library to Maven Central when release-please pushes a version tag, then the web
+# sample to GitHub Pages (see demo.yml).
 on:
   push:
     tags:
@@ -40,3 +41,13 @@ jobs:
 
       - name: Publish to Maven Central
         run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
+
+  # Only after the publish succeeds, so the demo never gets ahead of the release on Maven Central.
+  demo:
+    name: Demo
+    needs: publish
+    uses: ./.github/workflows/demo.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
