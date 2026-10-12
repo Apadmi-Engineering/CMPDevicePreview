@@ -93,4 +93,4 @@ The demo needs two one-time repository settings, which need admin rights: **Sett
 
 ## Dependency updates
 
-Renovate runs on the first of each month and opens its pull requests in at most three groups: Compose, Kotlin, and all other non-breaking updates. A major update gets its own pull request. Run the **Renovate** workflow from the Actions tab to get updates sooner, or to have it act on a rebase request.
+Renovate runs on the first of each month and opens its pull requests in at most three groups: Compose, Kotlin, and all other non-breaking updates. A major update gets its own pull request. GitHub Actions in the workflows are pinned to a commit SHA, with the version in a trailing comment (`uses: actions/checkout@<sha> # v7.0.1`); Renovate updates both, and pins any new action you add by tag. Run the **Renovate** workflow from the Actions tab to get updates sooner, or to have it act on a rebase request.
