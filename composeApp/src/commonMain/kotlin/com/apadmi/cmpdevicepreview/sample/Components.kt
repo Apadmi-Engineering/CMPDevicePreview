@@ -187,7 +187,7 @@ fun SaveButton(
             if (isSaved) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
             contentDescription = if (isSaved) "Remove from saved" else "Save",
             tint = if (isSaved) {
-                Color(0xFF_FF5_A79)
+                Color(0xFFFF5A79)
             } else if (onArt) {
                 Color.White
             } else {

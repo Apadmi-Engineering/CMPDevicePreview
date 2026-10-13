@@ -309,7 +309,7 @@
   enabled: true
 # Checks that value on integer or float constant is not too big
 - name: LONG_NUMERICAL_VALUES_SEPARATED
-  enabled: true
+  enabled: false # The colours are plain hex, and the autofix regroups them oddly, as in 0xFF_2C2_C2C
   configuration:
     # Maximum number of digits which are not split
     maxNumberLength: '5'

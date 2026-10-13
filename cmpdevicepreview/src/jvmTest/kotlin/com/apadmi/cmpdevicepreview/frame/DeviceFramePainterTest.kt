@@ -41,7 +41,7 @@ class DeviceFramePainterTest {
         // Outside the rounded body.
         assertEquals(Color.Transparent, pixels[0, 0])
         // The #2c2c2c band of the bezel, on the left edge.
-        assertEquals(Color(0xFF_2C2_C2C), pixels[5, 454])
+        assertEquals(Color(0xFF2C2C2C), pixels[5, 454])
         // Behind the screen.
         assertEquals(Color.Black, pixels[218, 454])
     }
@@ -52,7 +52,7 @@ class DeviceFramePainterTest {
         assertEquals(908, image.width)
         assertEquals(436, image.height)
         // Body point (x, y) lands on (y, 436 − x): the left edge becomes the bottom one.
-        assertEquals(Color(0xFF_2C2_C2C), image.toPixelMap()[454, 431])
+        assertEquals(Color(0xFF2C2C2C), image.toPixelMap()[454, 431])
     }
 
     @Test

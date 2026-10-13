@@ -12,10 +12,10 @@ import androidx.compose.ui.unit.dp
 
 /** The backdrop behind the simulated device. */
 internal object DotGridDefaults {
-    val Background = Color(0xFF_F2F_2F4)
-    val Dot = Color(0xFF_C8C_8D0)
-    val DarkBackground = Color(0xFF_181_81C)
-    val DarkDot = Color(0xFF_2E2_E36)
+    val Background = Color(0xFFF2F2F4)
+    val Dot = Color(0xFFC8C8D0)
+    val DarkBackground = Color(0xFF18181C)
+    val DarkDot = Color(0xFF2E2E36)
     val Spacing = 20.dp
     val DotSize = 2.dp
 }
