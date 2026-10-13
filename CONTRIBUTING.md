@@ -17,9 +17,38 @@
 
 Everything under `sample/` is the sample app, and none of it is published.
 
-In the library, platform code sits beside `commonMain`: `skikoMain` (JVM, iOS, macOS, JS and Wasm), `appleMain` (iOS and macOS) and `webMain` (JS and Wasm). `SimulatedPlatform` in `skikoMain` is the only file that uses Compose's internal hooks for window insets and the system theme, so a Compose update that changes them only breaks that file. Keep it that way.
+In the library, platform code sits beside `commonMain`: `skikoMain` (JVM, iOS, macOS, JS and Wasm), `appleMain` (iOS and macOS) and `webMain` (JS and Wasm). Two files in `skikoMain` use Compose's internals, listed in [Compose internals](#compose-internals). Keep it that way.
 
 The library uses `explicitApi()`.
+
+## Compose internals
+
+Some of what the preview simulates has no public API in Compose Multiplatform, so the library uses Compose's internals for it. They are all in `SimulatedPlatform.skiko.kt` and `SimulatedScreenLayers.skiko.kt`, so a Compose update that changes them only breaks those two files. Put any new use in one of them, and add it here. Android uses none of them: it has no hooks for any of this.
+
+| API | Marked | Used in | For |
+| --- | --- | --- | --- |
+| `LocalComposeSceneContext` | `internal`, reached with `@Suppress("INVISIBLE_REFERENCE")` | `SimulatedScreenLayers` | Handing `Dialog` and `Popup` layers that keep them to the device's screen |
+| `ComposeSceneContext`, `ComposeSceneLayer`, `PlatformContext` | `@InternalComposeUiApi` | `SimulatedScreenLayers` | Wrapping the layers Compose makes for them |
+| `LocalPlatformWindowInsets`, `PlatformWindowInsets`, `PlatformInsets`, `PlatformWindowInsetsProviderNode` | `@InternalComposeUiApi` | Both | The device's window insets, which `WindowInsets.safeDrawing`, `imePadding()` and the rest report |
+| `LocalSystemTheme`, `SystemTheme` | `@InternalComposeUiApi` and deprecated, with `@Suppress("DEPRECATION")` | `SimulatedPlatform` | `isSystemInDarkTheme()` |
+
+`LocalComposeSceneContext` is the riskiest. It is `internal`, not just marked as internal API, and the compiler warns that suppressing `INVISIBLE_REFERENCE` is unsupported and may stop working in a future Kotlin, which would show up as the library failing to build after a Kotlin update. An app can also use a newer Compose than the library was built with, so if the reference is missing when the app runs, the library catches the error and leaves dialogs and popups as Compose draws them, over the whole window. The comment above `findLocalSceneContext` explains how.
+
+The layers also depend on how Compose 1.12's `Dialog` and `Popup` use them, which no API promises:
+
+- A dialog sets its scrim colour before its content, and a popup never sets one. That is how a dialog's layer is told apart from a popup's.
+- On iOS, a layer ignores the density it is given and provides the window's own density, window size and insets, so the library provides the device's again inside it.
+
+A change to either breaks no build. A change to the first shows up as `SimulatedScreenLayersTest` failing, but the tests run on the JVM, so a change to the second only shows on iOS: open a dialog in the sample on iOS after a Compose update.
+
+Experimental APIs, opted into with `@OptIn`, aren't listed here: they are public, if not yet stable.
+
+When Compose or Kotlin is updated, check these before merging:
+
+1. CI builds every target, which catches a removed or renamed API.
+2. `./gradlew :cmpdevicepreview:jvmTest` runs `SimulatedScreenLayersTest` for dialogs and popups, and `DeviceFrameViewTest` for insets and the theme.
+3. On iOS, open the dialog, sheet and menu on the sample's Profile tab, and check they stay on the device at its scale.
+4. Check whether Compose now has a public API for any of these, and move to it if so.
 
 ## The sample app
 
@@ -38,9 +67,10 @@ The desktop sample is also the quickest way to work on the sample app, or on the
 
 ### What differs by platform
 
-- **Android**: the sample keeps the preview inside the real system bars, to avoid showing them twice. The library can't simulate window insets or dark mode there (see [Platform differences](README.md#platform-differences)).
+- **Android**: the sample keeps the preview inside the real system bars, to avoid showing them twice. The library can't simulate window insets, dark mode or dialogs there (see [Platform differences](README.md#platform-differences)).
 - **iOS**: the sample's preview sits inside the real safe area.
 - **macOS** is Kotlin/Native, and Compose still marks it experimental, so `gradle.properties` sets `org.jetbrains.compose.experimental.macos.enabled`. Compose's native cursors are limited, so the resize handles show the arrow there.
+- **Dialogs, bottom sheets and menus**: the sample's Profile tab has one of each, to check they stay on the device's screen.
 - **Screenshots** of the device are saved from the web build only.
 - **Mouse as touch** is web only, so on desktop lists scroll with the wheel, not by dragging.
 
@@ -110,4 +140,4 @@ The demo needs two one-time repository settings, which need admin rights: **Sett
 
 ## Dependency updates
 
-Renovate runs on the first of each month and opens at most three pull requests: Compose, Kotlin and all other non-breaking updates. A major update gets its own. GitHub Actions are pinned to a commit SHA, and Renovate keeps those up to date and pins any new action you add by tag. Run the **Renovate** workflow from the Actions tab to get updates sooner, or to have it act on a rebase request.
+Renovate runs on the first of each month and opens at most three pull requests: Compose, Kotlin and all other non-breaking updates. A major update gets its own. A Compose or Kotlin update needs the checks in [Compose internals](#compose-internals). GitHub Actions are pinned to a commit SHA, and Renovate keeps those up to date and pins any new action you add by tag. Run the **Renovate** workflow from the Actions tab to get updates sooner, or to have it act on a rebase request.
