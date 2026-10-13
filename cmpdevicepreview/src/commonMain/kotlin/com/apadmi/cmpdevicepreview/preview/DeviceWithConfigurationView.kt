@@ -34,7 +34,6 @@ import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
-import com.apadmi.cmpdevicepreview.core.adaptedToDevice
 
 /** The narrowest the view can be and still show the panel beside the device. */
 private val SidePanelMinWidth = 840.dp

@@ -53,16 +53,19 @@ internal const val MaxFreeformSize = 4096f
 /** The side of a handle's hit area, centred on a corner or an edge of the device. */
 internal val ResizeHandleSize = 24.dp
 
+private val HandleHighlight = PanelColors.Accent
+
 /**
  * A place on the device that can be dragged to resize it: a corner or an edge midpoint. [x] and [y]
  * are each -1 (left, top), 0 (the middle) or 1 (right, bottom): the sides the handle moves.
+ * @property x
+ * @property y
  */
 internal data class ResizeHandle(val x: Int, val y: Int) {
+    val isCorner: Boolean get() = x != 0 && y != 0
     init {
         require(x in -1..1 && y in -1..1 && (x != 0 || y != 0)) { "Not a handle: ($x, $y)" }
     }
-
-    val isCorner: Boolean get() = x != 0 && y != 0
 
     companion object {
         val Corners = listOf(ResizeHandle(-1, -1), ResizeHandle(1, -1), ResizeHandle(1, 1), ResizeHandle(-1, 1))
@@ -73,6 +76,10 @@ internal data class ResizeHandle(val x: Int, val y: Int) {
 /**
  * A resize in progress: [handle] has been dragged [offset] pixels from where it was pressed. The
  * [scale] stays as it was when the drag began, so the dragged corner doesn't run away from the cursor.
+ * @property handle
+ * @property start
+ * @property scale
+ * @property offset
  */
 internal data class ResizeDrag(
     val handle: ResizeHandle,
@@ -80,41 +87,6 @@ internal data class ResizeDrag(
     val scale: Float,
     val offset: Offset = Offset.Zero,
 )
-
-/**
- * The screen size, in dp, after dragging [handle] by [drag] pixels at [scale] pixels per dp. The
- * device stays centred, so each side the handle moves grows by twice the drag. Sides are whole dp,
- * between [MinFreeformSize] and [max] (at most [MaxFreeformSize]), unless already larger.
- *
- * @param start The screen size, in dp, when the drag began.
- * @param handle The handle being dragged.
- * @param drag How far the handle has been dragged from where it was pressed, in pixels.
- * @param scale The pixels per dp the drag is measured at.
- * @param max The room there is for the device, in dp; a side with no limit is infinite.
- * @return The new screen size, in dp, with any side the handle doesn't move left as it was.
- */
-internal fun resizedScreenSize(start: Size, handle: ResizeHandle, drag: Offset, scale: Float, max: Size): Size {
-    fun side(start: Float, direction: Int, drag: Float, max: Float): Float {
-        if (direction == 0) return start
-        val upper = maxOf(MinFreeformSize, floor(minOf(max, MaxFreeformSize)), start)
-        return (start + 2f * direction * drag / scale).roundToInt().toFloat().coerceIn(MinFreeformSize, upper)
-    }
-    return Size(
-        width = side(start.width, handle.x, drag.x, max.width),
-        height = side(start.height, handle.y, drag.y, max.height),
-    )
-}
-
-/**
- * The cursor shown over [handle].
- *
- * @param handle The handle the pointer is over.
- * @return The resize cursor that points along the handle's direction, or the default cursor on a
- * platform that has none.
- */
-internal expect fun resizeCursor(handle: ResizeHandle): PointerIcon
-
-private val HandleHighlight = PanelColors.Accent
 
 /**
  * The handles on a device whose visible bounds measure [visibleSize] pixels, centred in the parent.
@@ -150,6 +122,42 @@ internal fun BoxScope.ResizeHandles(
             onDrag = onDrag,
             onEnd = onEnd,
             onCancel = onCancel,
+        )
+    }
+}
+
+/**
+ * A dashed outline of a freeform window of [size] dp at [scale] pixels per dp, centred on the
+ * parent, with its size written in it: where the device lands when the handle is let go.
+ *
+ * @param size The size of the window, in dp.
+ * @param scale The pixels per dp the outline is drawn at.
+ */
+@Composable
+internal fun BoxScope.ResizeOutline(size: Size, scale: Float) {
+    val density = LocalDensity.current
+    Box(
+        Modifier
+            .align(Alignment.Center)
+            .requiredSize(with(density) { DpSize((size.width * scale).toDp(), (size.height * scale).toDp()) })
+            .drawBehind {
+                val stroke = 2.dp.toPx()
+                drawRect(HandleHighlight.copy(alpha = 0.10f))
+                drawRect(
+                    color = HandleHighlight,
+                    topLeft = Offset(stroke / 2f, stroke / 2f),
+                    size = Size(this.size.width - stroke, this.size.height - stroke),
+                    style = Stroke(stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10.dp.toPx(), 6.dp.toPx()))),
+                )
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicText(
+            size.dimensionsLabel(),
+            modifier = Modifier
+                .drawBehind { drawRoundRect(HandleHighlight, cornerRadius = CornerRadius(6.dp.toPx())) }
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            style = TextStyle(color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium),
         )
     }
 }
@@ -197,7 +205,9 @@ private fun BoxScope.ResizeHandleView(
                 }
             }
             .drawBehind {
-                if (isHighlighted || isAlwaysVisible) drawHandle(handle, isHighlighted)
+                if (isHighlighted || isAlwaysVisible) {
+                    drawHandle(handle, isHighlighted)
+                }
             }
     )
 }
@@ -220,37 +230,48 @@ private fun DrawScope.drawHandle(handle: ResizeHandle, isHighlighted: Boolean) {
 }
 
 /**
- * A dashed outline of a freeform window of [size] dp at [scale] pixels per dp, centred on the
- * parent, with its size written in it: where the device lands when the handle is let go.
+ * The screen size, in dp, after dragging [handle] by [drag] pixels at [scale] pixels per dp. The
+ * device stays centred, so each side the handle moves grows by twice the drag. Sides are whole dp,
+ * between [MinFreeformSize] and [max] (at most [MaxFreeformSize]), unless already larger.
  *
- * @param size The size of the window, in dp.
- * @param scale The pixels per dp the outline is drawn at.
+ * @param start The screen size, in dp, when the drag began.
+ * @param handle The handle being dragged.
+ * @param drag How far the handle has been dragged from where it was pressed, in pixels.
+ * @param scale The pixels per dp the drag is measured at.
+ * @param max The room there is for the device, in dp; a side with no limit is infinite.
+ * @return The new screen size, in dp, with any side the handle doesn't move left as it was.
  */
-@Composable
-internal fun BoxScope.ResizeOutline(size: Size, scale: Float) {
-    val density = LocalDensity.current
-    Box(
-        Modifier
-            .align(Alignment.Center)
-            .requiredSize(with(density) { DpSize((size.width * scale).toDp(), (size.height * scale).toDp()) })
-            .drawBehind {
-                val stroke = 2.dp.toPx()
-                drawRect(HandleHighlight.copy(alpha = 0.10f))
-                drawRect(
-                    color = HandleHighlight,
-                    topLeft = Offset(stroke / 2f, stroke / 2f),
-                    size = Size(this.size.width - stroke, this.size.height - stroke),
-                    style = Stroke(stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10.dp.toPx(), 6.dp.toPx()))),
-                )
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        BasicText(
-            size.dimensionsLabel(),
-            modifier = Modifier
-                .drawBehind { drawRoundRect(HandleHighlight, cornerRadius = CornerRadius(6.dp.toPx())) }
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            style = TextStyle(color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium),
-        )
+internal fun resizedScreenSize(
+    start: Size,
+    handle: ResizeHandle,
+    drag: Offset,
+    scale: Float,
+    max: Size
+): Size = Size(
+    width = resizedSide(start.width, handle.x, drag.x, scale, max.width),
+    height = resizedSide(start.height, handle.y, drag.y, scale, max.height),
+)
+
+/**
+ * The cursor shown over [handle].
+ *
+ * @param handle The handle the pointer is over.
+ * @return The resize cursor that points along the handle's direction, or the default cursor on a
+ * platform that has none.
+ */
+internal expect fun resizeCursor(handle: ResizeHandle): PointerIcon
+
+/** One side of [resizedScreenSize]: [start] moved by [drag] pixels in [direction], or as it was when 0. */
+private fun resizedSide(
+    start: Float,
+    direction: Int,
+    drag: Float,
+    scale: Float,
+    max: Float
+): Float {
+    if (direction == 0) {
+        return start
     }
+    val upper = maxOf(MinFreeformSize, floor(minOf(max, MaxFreeformSize)), start)
+    return (start + 2f * direction * drag / scale).roundToInt().toFloat().coerceIn(MinFreeformSize, upper)
 }

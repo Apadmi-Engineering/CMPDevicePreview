@@ -11,7 +11,6 @@ import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
-import com.apadmi.cmpdevicepreview.core.adaptedToDevice
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
 
 /**

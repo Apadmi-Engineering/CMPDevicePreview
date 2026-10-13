@@ -25,12 +25,11 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class DeviceWithConfigurationViewTest {
-
     private val wide = 1000.dp
     private val narrow = 600.dp
 
     @Test
-    fun thePanelIsBesideTheDeviceWhenThereIsRoomAndBehindAButtonOtherwise() = runComposeUiTest {
+    fun thePanelIsBesideTheDeviceWhenThereIsRoomAndBehindAButtonIfNot() = runComposeUiTest {
         var width by mutableStateOf(wide)
         setContent {
             Box(Modifier.width(width).height(800.dp)) {

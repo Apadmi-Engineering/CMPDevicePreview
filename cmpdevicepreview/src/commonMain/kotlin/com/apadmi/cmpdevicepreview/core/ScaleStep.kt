@@ -3,13 +3,11 @@ package com.apadmi.cmpdevicepreview.core
 import kotlin.math.abs
 import kotlin.math.min
 
-/**
- * A value a device's settings offer, such as a text size, with the name the panel gives it.
- *
- * @property label The name the panel shows for the step, e.g. `Default` or `150%`.
- * @property scale The scale the step applies, where 1 is the default.
- */
-internal class ScaleStep(val label: String, val scale: Float)
+private const val DefaultLabel = "Default"
+private const val MinDisplayScale = 0.85f
+private const val MaxDisplayScale = 1.5f
+private const val MinDisplayScaleInterval = 0.09f
+private const val MinShorterSide = 320f
 
 /**
  * The text sizes the panel offers, smallest first, as font scales: 50% to 300% in steps of 5%, on
@@ -37,13 +35,15 @@ internal val Device.displayScaleSteps: List<ScaleStep>
             }
         }
     }
-
-private const val DefaultLabel = "Default"
-private const val MinDisplayScale = 0.85f
-private const val MaxDisplayScale = 1.5f
-private const val MinDisplayScaleInterval = 0.09f
-private const val MinShorterSide = 320f
 private val LargerDisplayLabels = listOf("Large", "Larger", "Largest")
+
+/**
+ * A value a device's settings offer, such as a text size, with the name the panel gives it.
+ *
+ * @property label The name the panel shows for the step, e.g. `Default` or `150%`.
+ * @property scale The scale the step applies, where 1 is the default.
+ */
+internal class ScaleStep(val label: String, val scale: Float)
 
 /**
  * The step nearest [scale], or of two as near, the one nearer the default.

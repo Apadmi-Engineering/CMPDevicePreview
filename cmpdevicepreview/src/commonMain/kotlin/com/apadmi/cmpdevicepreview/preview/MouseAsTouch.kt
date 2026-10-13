@@ -1,3 +1,7 @@
+@file:Suppress("FILE_NAME_MATCH_CLASS")
+
+// Named for the feature, like its platform files.
+
 package com.apadmi.cmpdevicepreview.preview
 
 import androidx.compose.ui.Modifier
@@ -7,14 +11,6 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
-
-/**
- * Makes the host's mouse act as a finger on this node, since Compose's scrollables ignore mouse
- * drags: a primary-button press that starts on the node is reported as a touch until it is
- * released. Hover, the wheel and other buttons stay mouse events. Only the web can relabel
- * pointers; elsewhere this does nothing.
- */
-internal fun Modifier.mouseAsTouch(): Modifier = this then MouseAsTouchElement
 
 private data object MouseAsTouchElement : ModifierNodeElement<MouseAsTouchNode>() {
     override fun create(): MouseAsTouchNode = MouseAsTouchNode()
@@ -39,6 +35,16 @@ private class MouseAsTouchNode : Modifier.Node(), GlobalPositionAwareModifierNod
         bounds = coordinates.boundsInWindow()
     }
 }
+
+/**
+ * Makes the host's mouse act as a finger on this node, since Compose's scrollables ignore mouse
+ * drags: a primary-button press that starts on the node is reported as a touch until it is
+ * released. Hover, the wheel and other buttons stay mouse events. Only the web can relabel
+ * pointers; elsewhere this does nothing.
+ *
+ * @return
+ */
+internal fun Modifier.mouseAsTouch(): Modifier = this then MouseAsTouchElement
 
 /**
  * Starts relabelling presses whose window position, in pixels, [startsOnNode] accepts. Returns a

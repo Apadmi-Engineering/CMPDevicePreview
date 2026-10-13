@@ -41,11 +41,11 @@ private class XmlParser(private val source: String) {
         while (true) {
             skipWhitespace()
             if (index >= source.length) fail("No XML element found")
-            if (!startsWith("<")) fail("Expected an element")
+            if (!isAt("<")) fail("Expected an element")
             when {
-                startsWith("<?") -> skipUntil("?>")
-                startsWith("<!--") -> skipUntil("-->")
-                startsWith("<!") -> skipDeclaration()
+                isAt("<?") -> skipUntil("?>")
+                isAt("<!--") -> skipUntil("-->")
+                isAt("<!") -> skipDeclaration()
                 else -> return parseElement()
             }
         }
@@ -57,11 +57,11 @@ private class XmlParser(private val source: String) {
         val attributes = mutableMapOf<String, String>()
         while (true) {
             skipWhitespace()
-            if (startsWith("/>")) {
+            if (isAt("/>")) {
                 index += 2
                 return XmlElement(localName(name), attributes, emptyList())
             }
-            if (startsWith(">")) {
+            if (isAt(">")) {
                 index++
                 break
             }
@@ -78,7 +78,7 @@ private class XmlParser(private val source: String) {
             while (index < source.length && source[index] != '<') index++
             if (index >= source.length) fail("Unterminated element \"<$name>\"", textStart)
             when {
-                startsWith("</") -> {
+                isAt("</") -> {
                     index += 2
                     val closing = readName()
                     skipWhitespace()
@@ -86,10 +86,10 @@ private class XmlParser(private val source: String) {
                     if (closing != name) fail("Closing tag \"</$closing>\" does not match \"<$name>\"")
                     return XmlElement(localName(name), attributes, children)
                 }
-                startsWith("<!--") -> skipUntil("-->")
-                startsWith("<![CDATA[") -> skipUntil("]]>")
-                startsWith("<?") -> skipUntil("?>")
-                startsWith("<!") -> skipDeclaration()
+                isAt("<!--") -> skipUntil("-->")
+                isAt("<![CDATA[") -> skipUntil("]]>")
+                isAt("<?") -> skipUntil("?>")
+                isAt("<!") -> skipDeclaration()
                 else -> children += parseElement()
             }
         }
@@ -97,10 +97,10 @@ private class XmlParser(private val source: String) {
 
     private fun localName(name: String): String = name.substringAfter(':')
 
-    private fun startsWith(pattern: String): Boolean = source.startsWith(pattern, index)
+    private fun isAt(pattern: String): Boolean = source.startsWith(pattern, index)
 
     private fun expect(pattern: String) {
-        if (!startsWith(pattern)) fail("Expected \"$pattern\"")
+        if (!isAt(pattern)) fail("Expected \"$pattern\"")
         index += pattern.length
     }
 

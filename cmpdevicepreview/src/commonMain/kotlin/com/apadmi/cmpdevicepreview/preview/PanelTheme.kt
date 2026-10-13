@@ -1,3 +1,5 @@
+@file:Suppress("FILE_NAME_MATCH_CLASS") // Named for the theme; SegmentOption is the only class in it.
+
 package com.apadmi.cmpdevicepreview.preview
 
 import androidx.compose.animation.animateColorAsState

@@ -76,6 +76,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
 import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
@@ -84,14 +85,16 @@ import com.apadmi.cmpdevicepreview.core.FontScaleSteps
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
-import com.apadmi.cmpdevicepreview.core.adaptedToDevice
 import com.apadmi.cmpdevicepreview.core.currentContentSize
 import com.apadmi.cmpdevicepreview.core.displayScaleSteps
 import com.apadmi.cmpdevicepreview.core.hasFrameArtwork
+import com.apadmi.cmpdevicepreview.core.isLaidOutInPortrait
 import com.apadmi.cmpdevicepreview.core.isRotatable
-import com.apadmi.cmpdevicepreview.core.laidOutInPortrait
 import com.apadmi.cmpdevicepreview.core.nearest
+
 import kotlin.math.roundToInt
+
+private const val NotAvailable = "Not available for this frame"
 
 private val OrientationOptions = listOf(
     SegmentOption("Portrait", Icons.Outlined.StayCurrentPortrait),
@@ -116,7 +119,8 @@ private val BackdropOptions = Backdrop.entries.map { backdrop ->
     }
 }
 
-private const val NotAvailable = "Not available for this frame"
+private val MinFreeformSizeDp = MinFreeformSize.roundToInt()
+private val MaxFreeformSizeDp = MaxFreeformSize.roundToInt()
 
 /**
  * The configuration panel, which picks the device and sets how it and the preview are shown.
@@ -142,8 +146,8 @@ public fun ConfigurationView(
 ) {
     val device = simulatedDevice.device
     // Every change is fitted to the device, whichever setting it comes from.
-    fun update(changed: SimulatedDevice) = onSimulatedDeviceChange(changed.adaptedToDevice())
-    fun updateConfiguration(changed: DeviceConfiguration) = update(simulatedDevice.copy(configuration = changed))
+    val update = { changed: SimulatedDevice -> onSimulatedDeviceChange(changed.adaptedToDevice()) }
+    val updateConfiguration = { changed: DeviceConfiguration -> update(simulatedDevice.copy(configuration = changed)) }
 
     PanelTheme {
         var isPickerShown by remember { mutableStateOf(false) }
@@ -179,16 +183,16 @@ public fun ConfigurationView(
                 if (device is FreeformDevice) {
                     SizeSection(device.size) { size -> update(simulatedDevice.copy(device = FreeformDevice(size))) }
                 } else {
-                    OrientationSection(device, simulatedDevice.configuration, ::updateConfiguration)
+                    OrientationSection(device, simulatedDevice.configuration, updateConfiguration)
                 }
                 Spacer(Modifier.height(20.dp))
-                AppearanceSection(simulatedDevice.configuration, ::updateConfiguration)
+                AppearanceSection(simulatedDevice.configuration, updateConfiguration)
                 Spacer(Modifier.height(20.dp))
-                TextAndDisplaySection(simulatedDevice, ::updateConfiguration)
+                TextAndDisplaySection(simulatedDevice, updateConfiguration)
                 Spacer(Modifier.height(20.dp))
-                LayoutDirectionSection(simulatedDevice.configuration, ::updateConfiguration)
+                LayoutDirectionSection(simulatedDevice.configuration, updateConfiguration)
                 Spacer(Modifier.height(20.dp))
-                DisplaySection(simulatedDevice, ::updateConfiguration)
+                DisplaySection(simulatedDevice, updateConfiguration)
                 Spacer(Modifier.height(20.dp))
                 BackdropSection(previewSettings, onPreviewSettingsChange)
                 ScreenshotSection(device)
@@ -240,7 +244,7 @@ private fun PanelHeader() {
 private fun FrameSection(simulatedDevice: SimulatedDevice, onChangeFrame: () -> Unit) {
     val device = simulatedDevice.device
     SectionLabel("Frame")
-    DeviceCard(device, isPortrait = device.laidOutInPortrait(simulatedDevice.configuration.isPortrait), onChangeFrame)
+    DeviceCard(device, isPortrait = device.isLaidOutInPortrait(simulatedDevice.configuration.isPortrait), onChangeFrame)
     FrameDisclaimer()
 }
 
@@ -251,7 +255,11 @@ private fun SizeSection(size: Size, onChange: (Size) -> Unit) {
 }
 
 @Composable
-private fun OrientationSection(device: Device, configuration: DeviceConfiguration, onChange: (DeviceConfiguration) -> Unit) {
+private fun OrientationSection(
+    device: Device,
+    configuration: DeviceConfiguration,
+    onChange: (DeviceConfiguration) -> Unit
+) {
     SectionLabel("Orientation")
     // A desktop window can't turn, so it shows as landscape.
     SegmentedControl(
@@ -260,7 +268,9 @@ private fun OrientationSection(device: Device, configuration: DeviceConfiguratio
         onSelect = { index -> onChange(configuration.copy(isPortrait = index == 0)) },
         enabled = device.isRotatable,
     )
-    if (!device.isRotatable) PanelCaption("Desktop windows are landscape only")
+    if (!device.isRotatable) {
+        PanelCaption("Desktop windows are landscape only")
+    }
 }
 
 @Composable
@@ -366,7 +376,9 @@ private fun BackdropSection(previewSettings: PreviewSettings, onChange: (Preview
 private fun ScreenshotSection(device: Device) {
     val screenshots = LocalDeviceScreenshots.current
     val download = pngDownloader
-    if (screenshots == null || download == null) return
+    if (screenshots == null || download == null) {
+        return
+    }
     Spacer(Modifier.height(20.dp))
     SectionLabel("Screenshot")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -389,7 +401,11 @@ private fun ScreenshotSection(device: Device) {
 
 /** The current frame, which opens the picker. Its thumbnail turns with the frame. */
 @Composable
-private fun DeviceCard(device: Device, isPortrait: Boolean, onClick: () -> Unit) {
+private fun DeviceCard(
+    device: Device,
+    isPortrait: Boolean,
+    onClick: () -> Unit
+) {
     val shape = RoundedCornerShape(14.dp)
     val turn by animateFloatAsState(if (isPortrait) 0f else -90f, label = "thumbnailTurn")
     Row(
@@ -443,7 +459,7 @@ private fun FrameDisclaimer() {
         )
         Text(
             "Frames give a feel for a device's size and shape. They don't simulate the device: your " +
-                "app runs here, in a window that size.",
+                    "app runs here, in a window that size.",
             modifier = Modifier.padding(start = 6.dp),
             color = PanelColors.TextTertiary,
             fontSize = 12.sp,
@@ -474,28 +490,32 @@ private fun SizeFields(size: Size, onChange: (Size) -> Unit) {
     PanelCaption("$MinFreeformSizeDp–$MaxFreeformSizeDp dp")
 }
 
-private val MinFreeformSizeDp = MinFreeformSize.roundToInt()
-private val MaxFreeformSizeDp = MaxFreeformSize.roundToInt()
-
 /**
  * A side of a freeform window, in dp. What is typed is applied on Enter or when the field loses
  * focus, kept between [MinFreeformSize] and [MaxFreeformSize]; what isn't a number is dropped.
  */
 @Composable
-private fun SizeField(label: String, value: Float, modifier: Modifier = Modifier, onCommit: (Float) -> Unit) {
+private fun SizeField(
+    label: String,
+    value: Float,
+    modifier: Modifier = Modifier,
+    onCommit: (Float) -> Unit
+) {
     val shown = value.roundToInt().toString()
     // Starts over whenever the size changes from elsewhere, such as by dragging a corner.
     var text by remember(shown) { mutableStateOf(shown) }
     var isFocused by remember { mutableStateOf(false) }
-    fun commit() {
+    val commit: () -> Unit = {
         val typed = text.toIntOrNull()
         if (typed == null) {
             text = shown
-            return
+        } else {
+            val size = typed.coerceIn(MinFreeformSizeDp, MaxFreeformSizeDp)
+            text = size.toString()
+            if (size != value.roundToInt()) {
+                onCommit(size.toFloat())
+            }
         }
-        val size = typed.coerceIn(MinFreeformSizeDp, MaxFreeformSizeDp)
-        text = size.toString()
-        if (size != value.roundToInt()) onCommit(size.toFloat())
     }
     val shape = RoundedCornerShape(10.dp)
     BasicTextField(
@@ -503,12 +523,16 @@ private fun SizeField(label: String, value: Float, modifier: Modifier = Modifier
         onValueChange = { text = it.filter(Char::isDigit).take(MaxFreeformSizeDp.toString().length) },
         modifier = modifier
             .onFocusChanged {
-                if (isFocused && !it.isFocused) commit()
+                if (isFocused && !it.isFocused) {
+                    commit()
+                }
                 isFocused = it.isFocused
             }
             .onPreviewKeyEvent { event ->
                 val isEnter = event.key == Key.Enter || event.key == Key.NumPadEnter
-                if (isEnter && event.type == KeyEventType.KeyDown) commit()
+                if (isEnter && event.type == KeyEventType.KeyDown) {
+                    commit()
+                }
                 isEnter
             },
         singleLine = true,

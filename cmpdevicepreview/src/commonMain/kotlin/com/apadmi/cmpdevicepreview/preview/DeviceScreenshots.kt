@@ -18,20 +18,23 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toSize
 
+/** Where the [DeviceFrameView] below records its screenshots, or null when it doesn't. */
+internal val LocalDeviceScreenshots = staticCompositionLocalOf<DeviceScreenshots?> { null }
+
+/**
+ * Saves an image as a PNG: the browser downloads it. Null where the platform has no way to, and
+ * there the panel has no screenshot buttons.
+ */
+internal expect val pngDownloader: PngDownloader?
+
+/** Saves `image` as a PNG called `fileName`. */
+internal typealias PngDownloader = (image: ImageBitmap, fileName: String) -> Unit
+
 /**
  * Screenshots of the device a [DeviceFrameView] below [LocalDeviceScreenshots] shows: of its screen,
  * or of the whole device in its frame. The view records both while it is shown and not turning.
  */
 internal class DeviceScreenshots {
-
-    /**
-     * What the view last drew into [layer], and the [size] a screenshot of it is, in pixels.
-     *
-     * @property layer The graphics layer the view draws into.
-     * @property size The size of a screenshot of the layer, in pixels.
-     */
-    class Recording(val layer: GraphicsLayer, val size: IntSize)
-
     private var screen by mutableStateOf<Recording?>(null)
     private var device by mutableStateOf<Recording?>(null)
 
@@ -62,7 +65,9 @@ internal class DeviceScreenshots {
         val recording = (if (includeFrame) device else screen) ?: return null
         val drawn = recording.layer.size
         val size = recording.size
-        if (drawn.width <= 0 || drawn.height <= 0 || size.width <= 0 || size.height <= 0) return null
+        if (drawn.width <= 0 || drawn.height <= 0 || size.width <= 0 || size.height <= 0) {
+            return null
+        }
         val image = ImageBitmap(size.width, size.height)
         // Drawn again at the new scale rather than resampled, so text and frames stay sharp.
         CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, Canvas(image), size.toSize()) {
@@ -72,6 +77,13 @@ internal class DeviceScreenshots {
         }
         return image
     }
+    /**
+     * What the view last drew into [layer], and the [size] a screenshot of it is, in pixels.
+     *
+     * @property layer The graphics layer the view draws into.
+     * @property size The size of a screenshot of the layer, in pixels.
+     */
+    data class Recording(val layer: GraphicsLayer, val size: IntSize)
 }
 
 /**
@@ -84,12 +96,3 @@ internal fun Modifier.recordInto(layer: GraphicsLayer): Modifier = drawWithConte
     layer.record { this@drawWithContent.drawContent() }
     drawLayer(layer)
 }
-
-/** Where the [DeviceFrameView] below records its screenshots, or null when it doesn't. */
-internal val LocalDeviceScreenshots = staticCompositionLocalOf<DeviceScreenshots?> { null }
-
-/**
- * Saves [image] as a PNG called `fileName`: the browser downloads it. Null where the platform has
- * no way to, and there the panel has no screenshot buttons.
- */
-internal expect val pngDownloader: ((image: ImageBitmap, fileName: String) -> Unit)?

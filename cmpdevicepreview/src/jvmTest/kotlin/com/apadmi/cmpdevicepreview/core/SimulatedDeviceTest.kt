@@ -22,7 +22,7 @@ class SimulatedDeviceTest {
     fun aDesktopWindowCannotBeTurned() {
         val desktop = DevicePresets.largeDesktopWindow
         assertFalse(desktop.isRotatable)
-        assertTrue(desktop.laidOutInPortrait(isPortrait = false))
+        assertTrue(desktop.isLaidOutInPortrait(isPortrait = false))
 
         // Asking for landscape changes nothing: the window keeps its natural, wide shape.
         val natural = SimulatedDevice(desktop).currentSize

@@ -200,7 +200,7 @@ private class Flattener(
         val rawFill = valueOf(attributes, "fill")
         // `none` is inheritable, so it is carried as a null color rather than handled at the leaf.
         val color: Color?
-        var inheritsColor = parent.inheritsColor
+        val inheritsColor: Boolean
         when (rawFill) {
             "currentColor" -> {
                 // The paint-time tint, not the inherited fill, as CSS `color` is independent of
@@ -208,8 +208,14 @@ private class Flattener(
                 color = Color.Black
                 inheritsColor = true
             }
-            null -> color = parent.color
-            "none", "transparent" -> color = null
+            null -> {
+                color = parent.color
+                inheritsColor = parent.inheritsColor
+            }
+            "none", "transparent" -> {
+                color = null
+                inheritsColor = parent.inheritsColor
+            }
             else -> {
                 val parsed = parseColor(rawFill)
                 color = parsed ?: parent.color
@@ -256,7 +262,7 @@ private class Flattener(
 
     private fun buildShape(element: XmlElement, attributes: Map<String, String>): Path? {
         val fillType = if (valueOf(attributes, "fill-rule") == "evenodd") PathFillType.EvenOdd else PathFillType.NonZero
-        fun number(name: String): Float? = parseNumber(valueOf(attributes, name))
+        val number = { name: String -> parseNumber(valueOf(attributes, name)) }
         return when (element.name) {
             "path" -> valueOf(attributes, "d")?.let { parseSvgPathData(it, fillType) }
             "rect" -> {

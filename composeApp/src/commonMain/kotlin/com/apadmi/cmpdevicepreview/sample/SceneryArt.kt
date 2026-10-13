@@ -88,8 +88,8 @@ private fun landPath(scene: Scene, size: Size, baseline: Float, layer: Int, rand
                 lineTo(0f, baseline + swing)
                 lineTo(width, baseline + swing)
             } else {
-                var x = 0f
                 lineTo(0f, baseline)
+                var x = 0f
                 while (x < width) {
                     val buildingWidth = width * (0.05f + random.nextFloat() * 0.07f)
                     val top = baseline - swing * (0.3f + random.nextFloat() * 1.2f)

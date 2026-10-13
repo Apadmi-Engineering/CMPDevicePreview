@@ -85,6 +85,12 @@ import com.apadmi.cmpdevicepreview.frame.DeviceFramePainter
 import com.apadmi.cmpdevicepreview.isMobilePlatform
 import kotlin.math.min
 
+/** The words a search has to find in the pinned Freeform row. */
+private const val FreeformKeywords = "freeform custom resize window"
+
+/** How many rows the list shows above the selected device when it opens. */
+private const val RowsAboveSelected = 2
+
 /** The device kinds the picker can narrow its list to, with null for every device. */
 private val KindFilters: List<Pair<String, DeviceKind?>> = listOf(
     "All" to null,
@@ -94,14 +100,22 @@ private val KindFilters: List<Pair<String, DeviceKind?>> = listOf(
     "Desktop" to DeviceKind.DESKTOP,
 )
 
-/** The words a search has to find in the pinned Freeform row. */
-private const val FreeformKeywords = "freeform custom resize window"
-
 /** The built-in devices by platform, in the order the picker lists them. */
 private val deviceGroups: Map<DeviceType, List<DevicePreset>> = allDevices.groupBy { it.type }
 
-/** How many rows the list shows above the selected device when it opens. */
-private const val RowsAboveSelected = 2
+/** Whether [query] finds this preset, among those of [kind] when it is set. */
+private fun DevicePreset.isFoundBy(query: String, kind: DeviceKind?): Boolean {
+    if (kind != null && this.kind != kind) {
+        return false
+    }
+    return query.hasAllWordsIn(listOfNotNull(name, brand, type.displayName).joinToString(" "))
+}
+
+/** Whether every word of the query, if any, appears in [haystack]. */
+private fun String.hasAllWordsIn(haystack: String): Boolean {
+    val text = haystack.lowercase()
+    return lowercase().split(' ').filter { it.isNotBlank() }.all { it in text }
+}
 
 /**
  * A searchable list of the built-in devices, grouped by platform, with [selected] checked. The
@@ -124,15 +138,17 @@ internal fun DevicePickerDialog(
         PanelTheme {
             var query by remember { mutableStateOf("") }
             var kind by remember { mutableStateOf<DeviceKind?>(null) }
-            val results = remember(query, kind) { allDevices.filter { it.matches(query, kind) } }
+            val results = remember(query, kind) { allDevices.filter { it.isFoundBy(query, kind) } }
             val groups = results.groupBy { it.type }
             // Freeform isn't a kind of device, so only the unfiltered list has it.
-            val showFreeform = kind == null && query.matchesAll(FreeformKeywords)
+            val showFreeform = kind == null && query.hasAllWordsIn(FreeformKeywords)
             // Opens with the current device in view: each group is a header followed by its rows.
             val listState = rememberLazyListState(initialFirstVisibleItemIndex = remember { indexInList(selected) })
             // A search or filter shows its matches from the top.
             LaunchedEffect(query, kind) {
-                if (query.isNotEmpty() || kind != null) listState.scrollToItem(0)
+                if (query.isNotEmpty() || kind != null) {
+                    listState.scrollToItem(0)
+                }
             }
 
             val shape = RoundedCornerShape(16.dp)
@@ -224,118 +240,6 @@ internal fun DevicePickerDialog(
 }
 
 /**
- * The first row to show so [device] is in view in the unfiltered list, counting the Freeform row and
- * each platform's header.
- */
-private fun indexInList(device: Device): Int {
-    if (device is FreeformDevice) return 0
-    var index = 1 // The Freeform row.
-    for (devices in deviceGroups.values) {
-        index++ // The header.
-        val at = devices.indexOf(device)
-        if (at >= 0) return maxOf(0, index + at - RowsAboveSelected)
-        index += devices.size
-    }
-    return 0
-}
-
-private fun DevicePreset.matches(query: String, kind: DeviceKind?): Boolean {
-    if (kind != null && this.kind != kind) return false
-    return query.matchesAll(listOfNotNull(name, brand, type.displayName).joinToString(" "))
-}
-
-/** Whether every word of the query, if any, appears in [haystack]. */
-private fun String.matchesAll(haystack: String): Boolean {
-    val text = haystack.lowercase()
-    return lowercase().split(' ').filter { it.isNotBlank() }.all { it in text }
-}
-
-@Composable
-private fun SearchField(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onSubmit: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val focusRequester = remember { FocusRequester() }
-    // On a desktop or in a browser, typing filters straight away; on a phone that would raise the
-    // keyboard over the list.
-    LaunchedEffect(Unit) {
-        if (!isMobilePlatform) focusRequester.requestFocus()
-    }
-    val shape = RoundedCornerShape(10.dp)
-    BasicTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = modifier.fillMaxWidth().focusRequester(focusRequester),
-        singleLine = true,
-        textStyle = TextStyle(color = PanelColors.TextPrimary, fontSize = 14.sp),
-        cursorBrush = SolidColor(PanelColors.Accent),
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
-        decorationBox = { field ->
-            Row(
-                Modifier
-                    .height(40.dp)
-                    .background(PanelColors.Surface, shape)
-                    .border(1.dp, PanelColors.Border, shape)
-                    .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Outlined.Search, contentDescription = null, tint = PanelColors.TextTertiary, modifier = Modifier.size(18.dp))
-                Box(Modifier.weight(1f).padding(start = 10.dp)) {
-                    if (query.isEmpty()) {
-                        Text("Search by name or brand", color = PanelColors.TextTertiary, fontSize = 14.sp)
-                    }
-                    field()
-                }
-            }
-        },
-    )
-}
-
-@Composable
-private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(8.dp)
-    Text(
-        label,
-        modifier = Modifier
-            .clip(shape)
-            .background(if (selected) PanelColors.AccentSoft else PanelColors.Surface)
-            .border(1.dp, if (selected) PanelColors.Accent.copy(alpha = 0.5f) else PanelColors.Border, shape)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .pointerHoverIcon(PointerIcon.Hand)
-            .padding(horizontal = 10.dp, vertical = 5.dp),
-        color = if (selected) PanelColors.AccentBright else PanelColors.TextSecondary,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.Medium,
-    )
-}
-
-@Composable
-private fun DeviceRow(device: Device, details: String, isSelected: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (isSelected) PanelColors.AccentSoft else Color.Transparent)
-            .selectable(selected = isSelected, role = Role.RadioButton, onClick = onClick)
-            .pointerHoverIcon(PointerIcon.Hand)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        DeviceThumbnail(device, Modifier.size(40.dp), isHighlighted = isSelected)
-        Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
-            Text(device.name, color = PanelColors.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Text(details, color = PanelColors.TextTertiary, fontSize = 12.sp)
-        }
-        if (isSelected) {
-            Icon(Icons.Rounded.Check, contentDescription = "Selected", tint = PanelColors.AccentBright, modifier = Modifier.size(18.dp))
-        }
-    }
-}
-
-/**
  * The device's own frame in miniature, fitted inside the node, with its screen lit by a gradient;
  * a plain icon for a device without artwork.
  *
@@ -345,7 +249,11 @@ private fun DeviceRow(device: Device, details: String, isSelected: Boolean, onCl
  * device, rather than muted.
  */
 @Composable
-internal fun DeviceThumbnail(device: Device, modifier: Modifier = Modifier, isHighlighted: Boolean = false) {
+internal fun DeviceThumbnail(
+    device: Device,
+    modifier: Modifier = Modifier,
+    isHighlighted: Boolean = false
+) {
     val frame = device.frame?.takeUnless { it.isEmpty }
     val painter = remember(frame) { frame?.let(::DeviceFramePainter) }
     if (frame == null || painter?.body == null) {
@@ -389,8 +297,126 @@ internal fun DeviceThumbnail(device: Device, modifier: Modifier = Modifier, isHi
     }
 }
 
+/**
+ * The first row to show so [device] is in view in the unfiltered list, counting the Freeform row and
+ * each platform's header.
+ */
+private fun indexInList(device: Device): Int {
+    if (device is FreeformDevice) {
+        return 0
+    }
+    var index = 1  // The Freeform row.
+    for (devices in deviceGroups.values) {
+        index++  // The header.
+        val at = devices.indexOf(device)
+        if (at >= 0) {
+            return maxOf(0, index + at - RowsAboveSelected)
+        }
+        index += devices.size
+    }
+    return 0
+}
+
+@Composable
+private fun SearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val focusRequester = remember { FocusRequester() }
+    // On a desktop or in a browser, typing filters straight away; on a phone that would raise the
+    // keyboard over the list.
+    LaunchedEffect(Unit) {
+        if (!isMobilePlatform) {
+            focusRequester.requestFocus()
+        }
+    }
+    val shape = RoundedCornerShape(10.dp)
+    BasicTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier.fillMaxWidth().focusRequester(focusRequester),
+        singleLine = true,
+        textStyle = TextStyle(color = PanelColors.TextPrimary, fontSize = 14.sp),
+        cursorBrush = SolidColor(PanelColors.Accent),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
+        decorationBox = { field ->
+            Row(
+                Modifier
+                    .height(40.dp)
+                    .background(PanelColors.Surface, shape)
+                    .border(1.dp, PanelColors.Border, shape)
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.Search, contentDescription = null, tint = PanelColors.TextTertiary, modifier = Modifier.size(18.dp))
+                Box(Modifier.weight(1f).padding(start = 10.dp)) {
+                    if (query.isEmpty()) {
+                        Text("Search by name or brand", color = PanelColors.TextTertiary, fontSize = 14.sp)
+                    }
+                    field()
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun FilterChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(8.dp)
+    Text(
+        label,
+        modifier = Modifier
+            .clip(shape)
+            .background(if (selected) PanelColors.AccentSoft else PanelColors.Surface)
+            .border(1.dp, if (selected) PanelColors.Accent.copy(alpha = 0.5f) else PanelColors.Border, shape)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .pointerHoverIcon(PointerIcon.Hand)
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        color = if (selected) PanelColors.AccentBright else PanelColors.TextSecondary,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Medium,
+    )
+}
+
+@Composable
+private fun DeviceRow(
+    device: Device,
+    details: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (isSelected) PanelColors.AccentSoft else Color.Transparent)
+            .selectable(selected = isSelected, role = Role.RadioButton, onClick = onClick)
+            .pointerHoverIcon(PointerIcon.Hand)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DeviceThumbnail(device, Modifier.size(40.dp), isHighlighted = isSelected)
+        Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
+            Text(device.name, color = PanelColors.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text(details, color = PanelColors.TextTertiary, fontSize = 12.sp)
+        }
+        if (isSelected) {
+            Icon(Icons.Rounded.Check, contentDescription = "Selected", tint = PanelColors.AccentBright, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
 private fun deviceIcon(device: Device): ImageVector {
-    if (device is FreeformDevice) return Icons.Outlined.AspectRatio
+    if (device is FreeformDevice) {
+        return Icons.Outlined.AspectRatio
+    }
     val isApple = device.type == DeviceType.IOS
     return when (device.kind) {
         DeviceKind.TABLET -> if (isApple) Icons.Filled.TabletMac else Icons.Filled.TabletAndroid

@@ -7,6 +7,7 @@ package com.apadmi.cmpdevicepreview.frame
  * @param parse Parses the artwork; an exception it throws counts as a failure.
  * @return The result of [parse], or null when it failed.
  */
+@Suppress("DEBUG_PRINT")  // The library has no logging dependency, and println works on every target.
 internal fun <T : Any> reportingParseFailure(what: String, parse: () -> T): T? = try {
     parse()
 } catch (error: Exception) {

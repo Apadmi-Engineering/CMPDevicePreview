@@ -30,53 +30,6 @@ import kotlin.test.assertTrue
 
 /** Drags the resize handles of [DeviceFrameView] in a scene where one pixel is one dp at scale 1. */
 class DeviceResizeSceneTest {
-
-    /** A device in a scene, the way the preview holds it: resized when it is told to be. */
-    private class Harness(device: Device, val width: Int, val height: Int, onResize: Boolean = true) : AutoCloseable {
-        var device by mutableStateOf(device)
-        val resized = mutableListOf<FreeformDevice>()
-        var contentSize = IntSize.Zero
-        private var clock = 0L
-
-        val scene = ImageComposeScene(width = width, height = height) {
-            Box(Modifier.fillMaxSize().background(Color.White)) {
-                DeviceFrameView(
-                    device = this@Harness.device,
-                    modifier = Modifier.fillMaxSize(),
-                    configuration = DeviceConfiguration(),
-                    onResize = if (onResize) ({ resized += it; this@Harness.device = it }) else null,
-                ) {
-                    Box(Modifier.fillMaxSize().background(Color.Red).onSizeChanged { contentSize = it })
-                }
-            }
-        }
-
-        val center: Offset get() = Offset(width / 2f, height / 2f)
-
-        fun frame(): PixelMap = scene.render(clock * 1_000_000).toComposeImageBitmap().toPixelMap()
-
-        private fun send(type: PointerEventType, at: Offset) {
-            clock += 16
-            scene.sendPointerEvent(type, at, timeMillis = clock, type = PointerType.Touch)
-            frame()
-        }
-
-        fun press(at: Offset) = send(PointerEventType.Press, at)
-        fun move(to: Offset) = send(PointerEventType.Move, to)
-        fun release(at: Offset) = send(PointerEventType.Release, at)
-
-        /** Presses at [from], moves in [steps] to [from] + [by], and returns before letting go. */
-        fun dragTo(from: Offset, by: Offset, steps: Int = 4) {
-            press(from)
-            for (step in 1..steps) move(from + by * (step.toFloat() / steps))
-        }
-
-        /** Where [handle] sits on a centred device whose visible bounds are [bounds] pixels. */
-        fun at(handle: ResizeHandle, bounds: Size) = center + Offset(handle.x * bounds.width / 2f, handle.y * bounds.height / 2f)
-
-        override fun close() = scene.close()
-    }
-
     private val bottomRight = ResizeHandle(1, 1)
     private val topLeft = ResizeHandle(-1, -1)
 
@@ -241,9 +194,73 @@ class DeviceResizeSceneTest {
         var count = 0
         for (y in 0 until pixels.height) {
             for (x in 0 until pixels.width) {
-                if (pixels[x, y] == accent) count++
+                if (pixels[x, y] == accent) {
+                    count++
+                }
             }
         }
         return count
+    }
+    /** A device in a scene, the way the preview holds it: resized when it is told to be. */
+    private class Harness(
+        device: Device,
+        val width: Int,
+        val height: Int,
+        onResize: Boolean = true
+    ) : AutoCloseable {
+        var device by mutableStateOf(device)
+        val resized = mutableListOf<FreeformDevice>()
+        var contentSize = IntSize.Zero
+        private var clock = 0L
+        val scene = ImageComposeScene(width = width, height = height) {
+            Box(Modifier.fillMaxSize().background(Color.White)) {
+                DeviceFrameView(
+                    device = this@Harness.device,
+                    modifier = Modifier.fillMaxSize(),
+                    configuration = DeviceConfiguration(),
+                    onResize = if (onResize) {
+                        {
+                            resized += it
+                            this@Harness.device = it
+                        }
+                    } else {
+                        null
+                    },
+                ) {
+                    Box(Modifier.fillMaxSize().background(Color.Red).onSizeChanged { contentSize = it })
+                }
+            }
+        }
+
+        val center: Offset get() = Offset(width / 2f, height / 2f)
+
+        fun frame(): PixelMap = scene.render(clock * 1_000_000).toComposeImageBitmap().toPixelMap()
+
+        private fun send(type: PointerEventType, at: Offset) {
+            clock += 16
+            scene.sendPointerEvent(type, at, timeMillis = clock, type = PointerType.Touch)
+            frame()
+        }
+
+        fun press(at: Offset) = send(PointerEventType.Press, at)
+        fun move(to: Offset) = send(PointerEventType.Move, to)
+        fun release(at: Offset) = send(PointerEventType.Release, at)
+
+        /** Presses at [from], moves in [steps] to [from] + [by], and returns before letting go. */
+        fun dragTo(
+            from: Offset,
+            by: Offset,
+            steps: Int = 4
+        ) {
+            press(from)
+            for (step in 1..steps) {
+                move(from + by * (step.toFloat() / steps))
+            }
+        }
+
+        /** Where [handle] sits on a centred device whose visible bounds are [bounds] pixels. */
+        fun at(handle: ResizeHandle, bounds: Size) = center + Offset(handle.x * bounds.width / 2f, handle.y * bounds.height / 2f)
+
+        override fun close() = scene.close()
     }
 }

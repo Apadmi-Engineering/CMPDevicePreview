@@ -38,16 +38,8 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertSame
 
 class PreviewSaversTest {
-
-    /** A device of your own, which the saver can only restore as the initial device. */
-    private class CustomDevice(override val name: String) : Device {
-        override val type: DeviceType = DeviceType.OTHER
-        override val portraitSize: Size = Size(400f, 800f)
-        override val devicePixelRatio: Float = 2f
-    }
-
     private fun <T : Any> Saver<T, Any>.roundTrip(value: T): T {
-        val saved = assertNotNull(with(this) { SaverScope(::fitsInABundle).save(value) })
+        val saved = assertNotNull(with(this) { SaverScope(::isBundleable).save(value) })
         return assertNotNull(restore(saved))
     }
 
@@ -100,7 +92,7 @@ class PreviewSaversTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun thePreviewKeepsItsSettingsWhenItsStateIsRestored() = runComposeUiTest {
-        var registry by mutableStateOf(SaveableStateRegistry(restoredValues = null, canBeSaved = ::fitsInABundle))
+        var registry by mutableStateOf(SaveableStateRegistry(restoredValues = null, canBeSaved = ::isBundleable))
         var isShown by mutableStateOf(true)
         setContent {
             CompositionLocalProvider(LocalSaveableStateRegistry provides registry) {
@@ -118,7 +110,7 @@ class PreviewSaversTest {
         val saved = registry.performSave()
         isShown = false
         waitForIdle()
-        registry = SaveableStateRegistry(restoredValues = saved, canBeSaved = ::fitsInABundle)
+        registry = SaveableStateRegistry(restoredValues = saved, canBeSaved = ::isBundleable)
         isShown = true
         waitForIdle()
 
@@ -127,9 +119,15 @@ class PreviewSaversTest {
     }
 
     /** Whether [value] is made only of types an Android Bundle holds, as Android's registry requires. */
-    private fun fitsInABundle(value: Any): Boolean = when (value) {
-        is SnapshotMutableState<*> -> value.value.let { it == null || fitsInABundle(it) }
-        is List<*> -> value.all { it == null || fitsInABundle(it) }
+    private fun isBundleable(value: Any): Boolean = when (value) {
+        is SnapshotMutableState<*> -> value.value.let { it == null || isBundleable(it) }
+        is List<*> -> value.all { it == null || isBundleable(it) }
         else -> value is String || value is Boolean || value is Float || value is Int
+    }
+    /** A device of your own, which the saver can only restore as the initial device. */
+    private class CustomDevice(override val name: String) : Device {
+        override val type: DeviceType = DeviceType.OTHER
+        override val portraitSize: Size = Size(400f, 800f)
+        override val devicePixelRatio: Float = 2f
     }
 }

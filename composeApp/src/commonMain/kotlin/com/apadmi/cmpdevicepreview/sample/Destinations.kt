@@ -12,7 +12,7 @@ enum class Category(val label: String) {
 /** The kind of landscape a destination's illustration draws. */
 enum class Scene { Peaks, Hills, Sea, Dunes, Skyline }
 
-class Destination(
+data class Destination(
     val id: Int,
     val name: String,
     val country: String,

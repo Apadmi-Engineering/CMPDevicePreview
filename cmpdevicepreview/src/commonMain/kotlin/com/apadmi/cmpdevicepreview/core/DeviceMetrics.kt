@@ -21,9 +21,11 @@ internal val Device.isTouchscreen: Boolean
  * @param isPortrait Whether the device is asked to be shown in portrait.
  * @return Whether the device is laid out in portrait.
  */
-internal fun Device.laidOutInPortrait(isPortrait: Boolean): Boolean = isPortrait || !isRotatable
+internal fun Device.isLaidOutInPortrait(isPortrait: Boolean): Boolean = isPortrait || !isRotatable
 
-/** This size a quarter turn round: its width and height swapped. */
+/** This size a quarter turn round: its width and height swapped.
+ *
+ * @return*/
 internal fun Size.turned(): Size = Size(height, width)
 
 internal fun Device.screenSizeIn(isPortrait: Boolean): Size =

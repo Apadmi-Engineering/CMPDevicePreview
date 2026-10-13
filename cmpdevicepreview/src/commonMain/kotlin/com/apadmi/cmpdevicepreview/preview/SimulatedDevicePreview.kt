@@ -12,7 +12,6 @@ import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
-import com.apadmi.cmpdevicepreview.core.adaptedToDevice
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
 
 /** How much of the space, in each direction, the device may fill: the rest is margin. */

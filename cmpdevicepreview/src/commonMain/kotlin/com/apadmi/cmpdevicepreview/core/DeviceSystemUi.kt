@@ -17,8 +17,8 @@ public data class DeviceSystemUi(
     val statusBar: SystemUiBar? = null,
     val navigationBar: SystemUiBar? = null,
 ) {
-
     /** Whether nothing would be drawn. */
+    @Suppress("WRONG_NAME_OF_VARIABLE_INSIDE_ACCESSOR")  // The accessor reads each bar's own isEmpty, not this one.
     public val isEmpty: Boolean
         get() = (statusBar?.isEmpty ?: true) && (navigationBar?.isEmpty ?: true)
 }
@@ -43,12 +43,11 @@ public data class SystemUiBar(
     val inset: Float = 16f,
     val bottomInset: Float? = null,
 ) {
-
     /** Whether this bar has no artwork. */
     public val isEmpty: Boolean
         get() = leading.isEmpty() && center.isEmpty() && trailing.isEmpty()
 
     override fun toString(): String =
         "SystemUiBar(leading=${leading.length} chars, center=${center.length} chars, " +
-            "trailing=${trailing.length} chars, inset=$inset, bottomInset=$bottomInset)"
+                "trailing=${trailing.length} chars, inset=$inset, bottomInset=$bottomInset)"
 }
