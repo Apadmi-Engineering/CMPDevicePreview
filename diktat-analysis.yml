@@ -497,7 +497,7 @@
 # But Kotlin architects wanted Kotlin to be fully compatible with Java, that's why `null` keyword was also introduced in Kotlin.
 # There are several code-structures that can be used in Kotlin to avoid null-checks. For example: `?:`,  `.let {}`, `.also {}`, e.t.c
 - name: AVOID_NULL_CHECKS
-  enabled: true
+  enabled: false # Crashes Diktat on some expressions, and the autofix turns if/else into harder to read ?.let { } ?: chains
 # Checks if class instantiation can be wrapped in `apply` for better readability
 - name: COMPACT_OBJECT_INITIALIZATION
   enabled: true
