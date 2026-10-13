@@ -1,6 +1,7 @@
 package com.apadmi.cmpdevicepreview.sample
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,20 +24,32 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Payments
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +58,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+
+import kotlinx.coroutines.launch
+
+private val currencies = listOf("GBP", "EUR", "USD", "JPY")
+private val languages = listOf("Welsh", "English", "Portuguese", "Español", "日本語")
 
 /**
  * The saved destinations: a list on a phone, a grid with more room.
@@ -108,7 +126,8 @@ fun SavedScreen(
 }
 
 /**
- * A profile and a few settings, in a column that stops growing on wide screens.
+ * A profile and a few settings, in a column that stops growing on wide screens. The currency is
+ * picked from a menu, the language from a bottom sheet, and signing out asks first in a dialog.
  *
  * @param state The app state that supplies the number of saved destinations in the profile stats.
  * @param modifier The modifier for the screen.
@@ -116,6 +135,11 @@ fun SavedScreen(
 @Composable
 fun ProfileScreen(state: WanderState, modifier: Modifier = Modifier) {
     var reminders by remember { mutableStateOf(true) }
+    var currency by remember { mutableStateOf(currencies.first()) }
+    var isPickingCurrency by remember { mutableStateOf(false) }
+    var language by remember { mutableStateOf(languages.first()) }
+    var isPickingLanguage by remember { mutableStateOf(false) }
+    var isSigningOut by remember { mutableStateOf(false) }
     Box(modifier.fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
         Column(
             Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(24.dp),
@@ -149,11 +173,84 @@ fun ProfileScreen(state: WanderState, modifier: Modifier = Modifier) {
                         Switch(checked = reminders, onCheckedChange = { reminders = it })
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    SettingRow(Icons.Rounded.Payments, "Currency") { SettingValue("GBP") }
+                    SettingRow(Icons.Rounded.Payments, "Currency", onClick = { isPickingCurrency = true }) {
+                        // The menu opens from the value, at the screen's edge.
+                        Box {
+                            SettingValue(currency)
+                            DropdownMenu(expanded = isPickingCurrency, onDismissRequest = { isPickingCurrency = false }) {
+                                for (option in currencies) {
+                                    DropdownMenuItem(
+                                        text = { Text(option) },
+                                        onClick = {
+                                            currency = option
+                                            isPickingCurrency = false
+                                        },
+                                        trailingIcon = if (option == currency) {
+                                            { Icon(Icons.Rounded.Check, contentDescription = null) }
+                                        } else {
+                                            null
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    SettingRow(Icons.Rounded.Language, "Language") { SettingValue("English") }
+                    SettingRow(Icons.Rounded.Language, "Language", onClick = { isPickingLanguage = true }) {
+                        SettingValue(language)
+                    }
                 }
             }
+            OutlinedButton(onClick = { isSigningOut = true }, modifier = Modifier.fillMaxWidth()) {
+                Text("Sign out")
+            }
+        }
+    }
+    if (isPickingLanguage) {
+        LanguageSheet(language, onPick = { language = it }, onDismiss = { isPickingLanguage = false })
+    }
+    if (isSigningOut) {
+        AlertDialog(
+            onDismissRequest = { isSigningOut = false },
+            icon = { Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null) },
+            title = { Text("Sign out?") },
+            text = { Text("Your saved places stay on this device, ready for when you sign back in.") },
+            confirmButton = { TextButton(onClick = { isSigningOut = false }) { Text("Sign out") } },
+            dismissButton = { TextButton(onClick = { isSigningOut = false }) { Text("Cancel") } },
+        )
+    }
+}
+
+/** The languages in a bottom sheet, which slides away once one is picked. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LanguageSheet(
+    language: String,
+    onPick: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Text(
+            "Language",
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        for (option in languages) {
+            ListItem(
+                headlineContent = { Text(option) },
+                trailingContent = if (option == language) {
+                    { Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                } else {
+                    null
+                },
+                modifier = Modifier.clickable {
+                    onPick(option)
+                    scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+                },
+            )
         }
     }
 }
@@ -176,9 +273,16 @@ private fun Stat(
 private fun SettingRow(
     icon: ImageVector,
     title: String,
+    onClick: (() -> Unit)? = null,
     trailing: @Composable () -> Unit
 ) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         Text(title, modifier = Modifier.weight(1f).padding(horizontal = 16.dp), style = MaterialTheme.typography.bodyLarge)
         trailing()
