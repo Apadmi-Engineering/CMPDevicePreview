@@ -44,14 +44,14 @@ import kotlin.math.roundToInt
 // Compose Multiplatform draws a Dialog or Popup in a layer of its own over the whole window, which
 // knows nothing of the device. The layers come from a scene context that is internal to Compose,
 // so this file reaches past its visibility to hand Dialog and Popup one that knows the screen.
+// CONTRIBUTING.md lists this and the library's other uses of Compose internals.
 
 /**
- * Compose's own local for the scene that `Dialog` and `Popup` make their layers in. It is internal
- * to Compose, and the only way to reach those layers.
+ * Compose's own local for the scene that `Dialog` and `Popup` make their layers in, or null if the
+ * Compose this runs with no longer has it. It is internal to Compose, and the only way to reach
+ * those layers.
  */
-@Suppress("INVISIBLE_REFERENCE")
-private val LocalSceneContext: ProvidableCompositionLocal<ComposeSceneContext?>
-    get() = androidx.compose.ui.scene.LocalComposeSceneContext
+private val LocalSceneContext: ProvidableCompositionLocal<ComposeSceneContext?>? = findLocalSceneContext()
 
 /** The device's screen, as the dialogs and popups shown on it need it. */
 @Stable
@@ -260,14 +260,40 @@ internal fun rememberSimulatedScreen(
     }
 
 /**
- * Keeps the dialogs and popups opened in [content] to [screen].
+ * Keeps the dialogs and popups opened in [content] to [screen], unless the Compose this runs with
+ * has no [LocalSceneContext].
  *
  * @param screen The screen to keep them to.
  * @param content What is shown, and opens the dialogs and popups.
  */
 @Composable
 internal fun ScreenLayers(screen: SimulatedScreen, content: @Composable () -> Unit) {
-    val host = LocalSceneContext.current
+    val local = LocalSceneContext
+    if (local == null) {
+        content()
+        return
+    }
+    val host = local.current
     val context = remember(host, screen) { host?.let { ScreenSceneContext(it, screen) } }
-    CompositionLocalProvider(LocalSceneContext provides context, content = content)
+    CompositionLocalProvider(local provides context, content = content)
 }
+
+// Why the try/catch: LocalComposeSceneContext is internal, so any Compose release may rename or
+// remove it, and an app can pair this library with a newer Compose than it was built against. The
+// reference is then broken when the app runs: on the JVM it throws a LinkageError (NoSuchMethodError
+// or NoClassDefFoundError) the first time it is read, and on iOS and the web, Kotlin's partial
+// linkage warns when the app is linked and throws here instead (unless the app has turned partial
+// linkage off, when its build fails). Catching it leaves dialogs and popups as Compose draws them,
+// over the whole window, rather than crashing the preview.
+// It catches Throwable because the error partial linkage throws is internal to the Kotlin runtime.
+// The read happens once, here, because Compose doesn't allow a try/catch around composable calls.
+// This only guards the reference: a change to the interfaces this file implements, or to how
+// Dialog and Popup use them, can still break the preview. SimulatedScreenLayersTest catches that
+// on the JVM, and CONTRIBUTING.md says what to check on iOS.
+@Suppress("INVISIBLE_REFERENCE")
+private fun findLocalSceneContext(): ProvidableCompositionLocal<ComposeSceneContext?>? =
+    try {
+        androidx.compose.ui.scene.LocalComposeSceneContext
+    } catch (_: Throwable) {
+        null
+    }
