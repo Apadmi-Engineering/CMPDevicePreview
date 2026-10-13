@@ -21,7 +21,7 @@ DeviceWithConfigurationView {
 }
 ```
 
-Inside the device, Compose's own APIs report the simulated device, so your app doesn't need to know it is being previewed: window insets, `isSystemInDarkTheme()`, font scale, layout direction and window size classes all follow it, except window insets and dark mode on Android (see [Platform differences](#platform-differences)).
+Inside the device, Compose's own APIs report the simulated device, so your app doesn't need to know it is being previewed: window insets, `isSystemInDarkTheme()`, font scale, layout direction and window size classes all follow it, and dialogs, bottom sheets and menus stay on its screen. On Android, window insets, dark mode and dialogs don't (see [Platform differences](#platform-differences)).
 
 ## Developing with Hot Reload
 
@@ -82,8 +82,8 @@ DeviceWithConfigurationView(
 
 ## Platform differences
 
-- **Android** can't override the window insets or the dark mode its host reports, so the app inside the device sees the real ones.
-- **Screenshots** of the device are saved from the web build only.
+- **Android** can't override the window insets or the dark mode its host reports, so the app inside the device sees the real ones. Its dialogs, bottom sheets and menus are windows of their own, so they aren't kept to the device's screen.
+- **Screenshots** of the device are saved from the web build only, and leave out an open dialog, bottom sheet or menu.
 
 ## Credits
 

@@ -3,21 +3,32 @@
 package com.apadmi.cmpdevicepreview.preview
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.LocalSystemTheme
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.SystemTheme
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalPlatformWindowInsets
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.PlatformWindowInsets
 import androidx.compose.ui.platform.PlatformWindowInsetsProviderNode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.apadmi.cmpdevicepreview.core.DeviceInsets
+
+internal data class PixelInsets(
+    override val left: Int,
+    override val top: Int,
+    override val right: Int,
+    override val bottom: Int,
+) : PlatformInsets
 
 /**
  * The simulated device's insets: the top of its safe area is the status bar, the bottom the
@@ -42,6 +53,12 @@ private data class SimulatedWindowInsets(
     override val mandatorySystemGestures: PlatformInsets = navigationBars
     override val ime: PlatformInsets = insets(bottom = keyboardHeight)
 
+    // What a dialog or popup's content sees once the layer has kept clear of these insets.
+    override fun excluding(safeInsets: Boolean, ime: Boolean): PlatformWindowInsets = copy(
+        safeArea = if (safeInsets) DeviceInsets.Zero else safeArea,
+        keyboardHeight = if (ime) 0f else keyboardHeight,
+    )
+
     /** Insets given in the device's logical pixels. */
     private fun insets(
         left: Float = 0f,
@@ -53,13 +70,6 @@ private data class SimulatedWindowInsets(
             PixelInsets(left.dp.roundToPx(), top.dp.roundToPx(), right.dp.roundToPx(), bottom.dp.roundToPx())
         }
 }
-
-private data class PixelInsets(
-    override val left: Int,
-    override val top: Int,
-    override val right: Int,
-    override val bottom: Int,
-) : PlatformInsets
 
 /**
  * Gives the modifiers below it [insets] to read, such as `safeDrawingPadding()` and `imePadding()`.
@@ -85,30 +95,43 @@ private class SimulatedWindowInsetsNode(private var insets: PlatformWindowInsets
     }
 }
 
+/**
+ * Makes [insets] the ones modifiers such as `safeDrawingPadding()` read below this node.
+ *
+ * @param insets The insets given to the modifiers below, in place of those of the ancestors.
+ * @return This modifier, then the one that gives [insets].
+ */
+internal fun Modifier.windowInsets(insets: PlatformWindowInsets): Modifier = this then SimulatedWindowInsetsElement(insets)
+
 // Compose Multiplatform's hooks for these are internal, and the theme one is deprecated: this file
-// is the only place that uses them, so a Compose update that changes them only breaks this file.
+// and SimulatedScreenLayers.skiko.kt are the only places that use them, so a Compose update that
+// changes them only breaks these files.
 
 @Composable
 internal actual fun SimulatedPlatform(
     safeArea: DeviceInsets,
     keyboardHeight: Float,
     isDarkMode: Boolean,
+    screenShape: Shape,
     content: @Composable () -> Unit,
 ) {
     val density = LocalDensity.current
     val insets = remember(safeArea, keyboardHeight, density) {
         SimulatedWindowInsets(safeArea, keyboardHeight, density)
     }
+    val screen = rememberSimulatedScreen(LocalWindowInfo.current, insets, screenShape)
     @Suppress("DEPRECATION")
     CompositionLocalProvider(
         // Read in composition: `WindowInsets.safeDrawing`, `WindowInsets.ime`, Scaffold's defaults.
         LocalPlatformWindowInsets provides insets,
         LocalSystemTheme provides if (isDarkMode) SystemTheme.Dark else SystemTheme.Light,
     ) {
-        // Read by modifiers such as `safeDrawingPadding()` and `imePadding()`, from the nearest
-        // provider above them.
-        Box(SimulatedWindowInsetsElement(insets)) {
-            content()
+        ScreenLayers(screen) {
+            // Read by modifiers such as `safeDrawingPadding()` and `imePadding()`, from the nearest
+            // provider above them.
+            Box(Modifier.fillMaxSize().screenPosition(screen).windowInsets(insets)) {
+                content()
+            }
         }
     }
 }
