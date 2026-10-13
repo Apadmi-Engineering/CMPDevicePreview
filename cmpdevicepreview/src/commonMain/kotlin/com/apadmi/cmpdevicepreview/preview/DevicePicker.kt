@@ -1,10 +1,8 @@
 package com.apadmi.cmpdevicepreview.preview
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +21,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -67,6 +67,7 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -83,7 +84,6 @@ import com.apadmi.cmpdevicepreview.devices.allDevices
 import com.apadmi.cmpdevicepreview.frame.DeviceFramePainter
 import com.apadmi.cmpdevicepreview.isMobilePlatform
 import kotlin.math.min
-import kotlin.math.roundToInt
 
 /** The device kinds the picker can narrow its list to, with null for every device. */
 private val KindFilters: List<Pair<String, DeviceKind?>> = listOf(
@@ -97,11 +97,16 @@ private val KindFilters: List<Pair<String, DeviceKind?>> = listOf(
 /** The words a search has to find in the pinned Freeform row. */
 private const val FreeformKeywords = "freeform custom resize window"
 
+/** The built-in devices by platform, in the order the picker lists them. */
+private val deviceGroups: Map<DeviceType, List<DevicePreset>> = allDevices.groupBy { it.type }
+
+/** How many rows the list shows above the selected device when it opens. */
+private const val RowsAboveSelected = 2
+
 /**
  * A searchable list of the built-in devices, grouped by platform, with [selected] checked. The
  * Freeform row comes first, and picking it gives [freeform].
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun DevicePickerDialog(
     selected: Device,
@@ -114,11 +119,15 @@ internal fun DevicePickerDialog(
             var query by remember { mutableStateOf("") }
             var kind by remember { mutableStateOf<DeviceKind?>(null) }
             val results = remember(query, kind) { allDevices.filter { it.matches(query, kind) } }
-            val groups = results.groupBy { it.type }.toList().sortedBy { (type, _) -> type.order }
+            val groups = results.groupBy { it.type }
             // Freeform isn't a kind of device, so only the unfiltered list has it.
             val showFreeform = kind == null && query.matchesAll(FreeformKeywords)
             // Opens with the current device in view: each group is a header followed by its rows.
             val listState = rememberLazyListState(initialFirstVisibleItemIndex = remember { indexInList(selected) })
+            // A search or filter shows its matches from the top.
+            LaunchedEffect(query, kind) {
+                if (query.isNotEmpty() || kind != null) listState.scrollToItem(0)
+            }
 
             val shape = RoundedCornerShape(16.dp)
             Column(
@@ -154,7 +163,8 @@ internal fun DevicePickerDialog(
                     Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .selectableGroup(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     for ((label, filter) in KindFilters) {
@@ -207,14 +217,17 @@ internal fun DevicePickerDialog(
     }
 }
 
-/** Where [device] sits in the unfiltered list, counting the Freeform row and each platform's header. */
+/**
+ * The first row to show so [device] is in view in the unfiltered list, counting the Freeform row and
+ * each platform's header.
+ */
 private fun indexInList(device: Device): Int {
     if (device is FreeformDevice) return 0
     var index = 1 // The Freeform row.
-    for ((_, devices) in allDevices.groupBy { it.type }.toList().sortedBy { (type, _) -> type.order }) {
+    for (devices in deviceGroups.values) {
         index++ // The header.
         val at = devices.indexOf(device)
-        if (at >= 0) return maxOf(0, index + at - 2)
+        if (at >= 0) return maxOf(0, index + at - RowsAboveSelected)
         index += devices.size
     }
     return 0
@@ -284,7 +297,7 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
             .clip(shape)
             .background(if (selected) PanelColors.AccentSoft else PanelColors.Surface)
             .border(1.dp, if (selected) PanelColors.Accent.copy(alpha = 0.5f) else PanelColors.Border, shape)
-            .clickable(onClick = onClick)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .pointerHoverIcon(PointerIcon.Hand)
             .padding(horizontal = 10.dp, vertical = 5.dp),
         color = if (selected) PanelColors.AccentBright else PanelColors.TextSecondary,
@@ -300,7 +313,7 @@ private fun DeviceRow(device: Device, details: String, isSelected: Boolean, onCl
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(if (isSelected) PanelColors.AccentSoft else Color.Transparent)
-            .clickable(onClick = onClick)
+            .selectable(selected = isSelected, role = Role.RadioButton, onClick = onClick)
             .pointerHoverIcon(PointerIcon.Hand)
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -341,13 +354,13 @@ internal fun DeviceThumbnail(device: Device, modifier: Modifier = Modifier, isHi
         painter.screenClip(screen, isPortrait = true) ?: Path().apply { addRect(Rect(Offset.Zero, screen)) }
     }
     val screenColors = if (isHighlighted) {
-        listOf(PanelColors.Accent, Color(0xFF4FA3FF))
+        listOf(PanelColors.Accent, PanelColors.AccentBlue)
     } else {
-        listOf(Color(0xFF24242B), Color(0xFF32323B))
+        listOf(PanelColors.ThumbnailScreenTop, PanelColors.ThumbnailScreenBottom)
     }
     // The artwork's bezels are near-black, which vanishes on the panel: draw the body as a
     // silhouette instead, keeping its outline, buttons and camera cut-outs.
-    val bodyPaint = remember { Paint().apply { colorFilter = ColorFilter.tint(Color(0xFF5A5A66)) } }
+    val bodyPaint = remember { Paint().apply { colorFilter = ColorFilter.tint(PanelColors.ThumbnailBody) } }
     Canvas(modifier) {
         val scale = min(size.width / bounds.width, size.height / bounds.height)
         withTransform({
@@ -365,7 +378,7 @@ internal fun DeviceThumbnail(device: Device, modifier: Modifier = Modifier, isHi
     }
 }
 
-internal fun deviceIcon(device: Device): ImageVector {
+private fun deviceIcon(device: Device): ImageVector {
     if (device is FreeformDevice) return Icons.Outlined.AspectRatio
     val isApple = device.type == DeviceType.IOS
     return when (device.kind) {
@@ -380,12 +393,7 @@ internal fun deviceIcon(device: Device): ImageVector {
 }
 
 /** E.g. "Apple · 2024 · 402 × 874": brand, release year and logical portrait size. */
-internal fun deviceDetails(device: Device): String {
-    val size = device.portraitSize
+private fun deviceDetails(device: Device): String {
     val preset = device as? DevicePreset
-    return listOfNotNull(
-        preset?.brand,
-        preset?.year?.toString(),
-        "${size.width.roundToInt()} × ${size.height.roundToInt()}",
-    ).joinToString(" · ")
+    return listOfNotNull(preset?.brand, preset?.year?.toString(), device.portraitSize.dimensionsLabel()).joinToString(" · ")
 }

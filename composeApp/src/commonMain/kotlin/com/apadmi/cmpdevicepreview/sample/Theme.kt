@@ -1,4 +1,4 @@
-package com.apadmi.sample
+package com.apadmi.cmpdevicepreview.sample
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

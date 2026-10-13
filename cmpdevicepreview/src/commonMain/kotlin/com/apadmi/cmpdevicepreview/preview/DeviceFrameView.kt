@@ -25,12 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -58,11 +57,14 @@ import com.apadmi.cmpdevicepreview.core.isTouchscreen
 import com.apadmi.cmpdevicepreview.core.keyboardHeightIn
 import com.apadmi.cmpdevicepreview.core.laidOutInPortrait
 import com.apadmi.cmpdevicepreview.core.safeAreaIn
+import com.apadmi.cmpdevicepreview.core.screenSizeIn
+import com.apadmi.cmpdevicepreview.core.turned
 import com.apadmi.cmpdevicepreview.frame.DeviceFramePainter
 import com.apadmi.cmpdevicepreview.frame.DeviceScreenShape
 import com.apadmi.cmpdevicepreview.frame.SystemUiColors
 import com.apadmi.cmpdevicepreview.frame.SystemUiPainter
 import com.apadmi.cmpdevicepreview.frame.paintSimulatedKeyboard
+import com.apadmi.cmpdevicepreview.frame.paintSystemUi
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -79,9 +81,6 @@ import kotlin.math.sin
  * band are drawn over the content and don't take touches. On the web, the mouse acts as a finger on
  * a touchscreen device.
  *
- * [DeviceConfiguration.backdrop], [DeviceConfiguration.isDotGridVisible] and
- * [DeviceConfiguration.isPreviewModeEnabled] are not used here.
- *
  * @param onResize When set, dragging a corner of the device (or an edge of a [FreeformDevice])
  * resizes it into a [FreeformDevice], passed here on release. Pass it back as [device] to apply it.
  */
@@ -96,7 +95,7 @@ public fun DeviceFrameView(
     val wantsPortrait = device.laidOutInPortrait(configuration.isPortrait)
     val turn = rememberDeviceTurn(device, wantsPortrait)
     val isPortrait = turn.isLayoutPortrait
-    val screenSize = device.portraitSize.let { if (isPortrait) it else Size(it.height, it.width) }
+    val screenSize = device.screenSizeIn(isPortrait)
     val safeArea = device.safeAreaIn(isPortrait)
     val keyboardInset = if (configuration.isKeyboardVisible) device.keyboardHeightIn(isPortrait) ?: 0f else 0f
     val layoutDirection = configuration.layoutDirection ?: LocalLayoutDirection.current
@@ -122,7 +121,7 @@ public fun DeviceFrameView(
 
     BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
         val density = LocalDensity.current
-        val portraitBounds = if (isPortrait) bounds.size else Size(bounds.height, bounds.width)
+        val portraitBounds = if (isPortrait) bounds.size else bounds.size.turned()
         val layoutDegrees = if (isPortrait) 0f else -90f
         // The handles reach half their size beyond the device and have to stay inside this view to
         // be touched, so the device is fitted to a space that much smaller all round.
@@ -141,16 +140,16 @@ public fun DeviceFrameView(
             scaleX = turnScale
             scaleY = turnScale
         }
-        // A larger display size draws the content larger on the same screen, so it has fewer dp.
         val simulatedDensity = remember(scale, configuration.displayScale, configuration.fontScale) {
             Density(density = scale * configuration.displayScale, fontScale = configuration.fontScale)
         }
-        // The window the content sees is the device's screen, so window size classes follow it.
+        // So that window size classes follow the device's screen rather than the host's window.
         val hostWindowInfo = LocalWindowInfo.current
         val simulatedWindowInfo = remember(hostWindowInfo, screenSize, scale, configuration.displayScale) {
             SimulatedWindowInfo(hostWindowInfo, screenSize, scale, configuration.displayScale)
         }
         val screenshotLayers = recordScreenshots(device, screenSize, bounds.size, turn.isTurning)
+        val visibleSize = bounds.size.toPixels(scale)
 
         Layout(
             // Inside the turn, so a screenshot of the device is upright in its orientation.
@@ -165,7 +164,6 @@ public fun DeviceFrameView(
                         LocalWindowInfo provides simulatedWindowInfo,
                         LocalLayoutDirection provides layoutDirection,
                     ) {
-                        // The insets keep their size on the screen, so they are fewer of the content's dp.
                         SimulatedPlatform(
                             safeArea / configuration.displayScale,
                             keyboardInset / configuration.displayScale,
@@ -176,13 +174,9 @@ public fun DeviceFrameView(
                 }
             },
         ) { measurables, _ ->
-            val screen = measurables.single().measure(
-                Constraints.fixed(
-                    width = (screenSize.width * scale).roundToInt(),
-                    height = (screenSize.height * scale).roundToInt(),
-                )
-            )
-            layout((bounds.width * scale).roundToInt(), (bounds.height * scale).roundToInt()) {
+            val screenPixels = screenSize.toPixels(scale)
+            val screen = measurables.single().measure(Constraints.fixed(screenPixels.width, screenPixels.height))
+            layout(visibleSize.width, visibleSize.height) {
                 screen.place((-bounds.left * scale).roundToInt(), (-bounds.top * scale).roundToInt())
             }
         }
@@ -191,7 +185,7 @@ public fun DeviceFrameView(
             ResizeLayer(
                 device = device,
                 screenSize = screenSize,
-                visibleSize = IntSize((bounds.width * scale).roundToInt(), (bounds.height * scale).roundToInt()),
+                visibleSize = visibleSize,
                 scale = scale,
                 room = fitConstraints,
                 onResize = { resized, dragScale ->
@@ -204,7 +198,7 @@ public fun DeviceFrameView(
 }
 
 /** How long the device takes to turn between portrait and landscape. */
-private const val TurnMillis = 450
+internal const val TurnMillis = 450
 
 /**
  * The orientation the content is laid out in, and how far the device is turned from it. A change
@@ -247,7 +241,6 @@ private fun rememberDeviceTurn(device: Device, wantsPortrait: Boolean): DeviceTu
 
 private val WindowCornerRadius = 4.dp
 private val WindowShadow = 8.dp
-private val WindowBorder = Color(0xFF9A9AA6)
 
 /**
  * Clips the content to the device's screen outline. A device without artwork is a plain window,
@@ -269,7 +262,7 @@ private fun rememberScreenClip(
         isWindow && isFrameVisible -> RoundedCornerShape(WindowCornerRadius).let { shape ->
             Modifier
                 .shadow(WindowShadow, shape, clip = false)
-                .border(shape = shape, border = BorderStroke(1.dp, WindowBorder))
+                .border(shape = shape, border = BorderStroke(1.dp, PanelColors.FrameOutline))
                 .clip(shape)
         }
         else -> Modifier.clipToBounds()
@@ -291,14 +284,17 @@ private fun Modifier.systemOverlay(
 ): Modifier {
     if (systemUi == null && keyboardInset <= 0f) return this
     val iconColor = SystemUiColors.icons(isDarkMode)
-    return drawWithContent {
-        drawContent()
-        drawIntoCanvas { canvas ->
-            canvas.save()
-            canvas.scale(size.width / screenSize.width, size.height / screenSize.height)
-            paintSimulatedKeyboard(canvas, screenSize, keyboardInset)
-            systemUi?.paint(canvas, screenSize, safeArea, iconColor, deviceLayoutDirection)
-            canvas.restore()
+    return drawWithCache {
+        val bars = systemUi?.layout(screenSize, safeArea, deviceLayoutDirection).orEmpty()
+        onDrawWithContent {
+            drawContent()
+            drawIntoCanvas { canvas ->
+                canvas.save()
+                canvas.scale(size.width / screenSize.width, size.height / screenSize.height)
+                paintSimulatedKeyboard(canvas, screenSize, keyboardInset)
+                paintSystemUi(canvas, bars, iconColor)
+                canvas.restore()
+            }
         }
     }
 }
@@ -335,9 +331,8 @@ private fun recordScreenshots(device: Device, screenSize: Size, deviceSize: Size
     val screenLayer = rememberGraphicsLayer()
     val deviceLayer = rememberGraphicsLayer()
     val pixelRatio = device.devicePixelRatio ?: LocalDensity.current.density
-    fun pixels(size: Size) = IntSize((size.width * pixelRatio).roundToInt(), (size.height * pixelRatio).roundToInt())
-    val screenPixels = pixels(screenSize)
-    val devicePixels = pixels(deviceSize)
+    val screenPixels = screenSize.toPixels(pixelRatio)
+    val devicePixels = deviceSize.toPixels(pixelRatio)
     DisposableEffect(screenshots, screenLayer, deviceLayer, screenPixels, devicePixels, isTurning) {
         if (!isTurning) {
             screenshots.attach(
@@ -376,11 +371,9 @@ private fun BoxScope.ResizeLayer(
     fun sizeAfter(drag: ResizeDrag) = resizedScreenSize(drag.start, drag.handle, drag.offset, drag.scale, roomAt(drag.scale))
 
     resizing?.let { drag -> ResizeOutline(sizeAfter(drag), drag.scale) }
-    val isFreeform = device is FreeformDevice
     ResizeHandles(
         visibleSize = visibleSize,
-        showCorners = isFreeform,
-        showEdges = isFreeform,
+        isFreeform = device is FreeformDevice,
         active = resizing?.handle,
         onStart = { handle -> resizing = ResizeDrag(handle, screenSize, scale) },
         onDrag = { offset -> resizing = resizing?.copy(offset = offset) },
@@ -398,10 +391,7 @@ private fun BoxScope.ResizeLayer(
     )
 }
 
-/**
- * The host's window, resized to a device screen of [screenSize] dp at [scale], which the content
- * sees as [displayScale] times fewer dp.
- */
+/** The host's window, resized to the device's screen. */
 private class SimulatedWindowInfo(
     private val host: WindowInfo,
     screenSize: Size,
@@ -409,10 +399,12 @@ private class SimulatedWindowInfo(
     displayScale: Float,
 ) : WindowInfo {
     override val isWindowFocused: Boolean get() = host.isWindowFocused
-    override val containerSize: IntSize =
-        IntSize((screenSize.width * scale).roundToInt(), (screenSize.height * scale).roundToInt())
+    override val containerSize: IntSize = screenSize.toPixels(scale)
     override val containerDpSize: DpSize = DpSize((screenSize.width / displayScale).dp, (screenSize.height / displayScale).dp)
 }
+
+/** This size in pixels, at [scale] pixels per unit. */
+private fun Size.toPixels(scale: Float): IntSize = IntSize((width * scale).roundToInt(), (height * scale).roundToInt())
 
 /**
  * The scale at which a device whose portrait bounds are [portraitBounds] fits [constraints] when

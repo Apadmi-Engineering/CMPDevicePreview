@@ -22,6 +22,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
@@ -31,9 +32,9 @@ import androidx.compose.ui.unit.dp
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
+import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 import com.apadmi.cmpdevicepreview.core.adaptedToDevice
-import kotlin.math.roundToInt
 
 /** The narrowest the view can be and still show the panel beside the device. */
 private val SidePanelMinWidth = 840.dp
@@ -49,6 +50,7 @@ private val SidePanelMinWidth = 840.dp
  * @param initialDevice The device shown first: a built-in preset, or a [Device] of your own. The
  * panel's picker offers the built-in presets.
  * @param initialConfiguration How the device is shown at first.
+ * @param initialPreviewSettings How the preview around the device is shown at first.
  * @param panelItems Your own items for the configuration panel, below its settings: see
  * [ConfigurationView].
  */
@@ -57,35 +59,49 @@ public fun DeviceWithConfigurationView(
     modifier: Modifier = Modifier,
     initialDevice: Device = DefaultDevice,
     initialConfiguration: DeviceConfiguration = DeviceConfiguration(),
+    initialPreviewSettings: PreviewSettings = PreviewSettings(),
     panelItems: List<@Composable () -> Unit> = emptyList(),
     content: @Composable () -> Unit,
 ) {
-    var simulatedDevice by remember {
+    val simulatedDeviceSaver = remember(initialDevice) { simulatedDeviceSaver(initialDevice) }
+    var simulatedDevice by rememberSaveable(stateSaver = simulatedDeviceSaver) {
         mutableStateOf(SimulatedDevice(initialDevice, initialConfiguration).adaptedToDevice())
     }
-    if (!simulatedDevice.configuration.isPreviewModeEnabled) {
+    var previewSettings by rememberSaveable(stateSaver = PreviewSettingsSaver) {
+        mutableStateOf(initialPreviewSettings)
+    }
+    if (!previewSettings.isPreviewModeEnabled) {
         content()
         return
     }
-    val onChange: (SimulatedDevice) -> Unit = { simulatedDevice = it }
+    val onSimulatedDeviceChange: (SimulatedDevice) -> Unit = { simulatedDevice = it }
+    val onPreviewSettingsChange: (PreviewSettings) -> Unit = { previewSettings = it }
     CompositionLocalProvider(LocalDeviceScreenshots provides rememberDeviceScreenshots()) {
         BoxWithConstraints(modifier) {
             val isWide = maxWidth >= SidePanelMinWidth
             // The device keeps its place in the composition whichever way the panel is shown, so
             // neither it nor the content is recreated when the view crosses the width above.
             PreviewLayout(isWide) {
-                SimulatedDevicePreview(simulatedDevice, onChangeConfiguration = onChange, content = content)
-                // One node, whatever dialogs the panel opens.
+                SimulatedDevicePreview(
+                    simulatedDevice = simulatedDevice,
+                    previewSettings = previewSettings,
+                    onResize = onSimulatedDeviceChange,
+                    content = content,
+                )
+                // PreviewLayout measures exactly two children, so the panel stays one node even
+                // while it shows a dialog.
                 Box {
                     if (isWide) {
                         ConfigurationView(
-                            modifier = Modifier.fillMaxSize(),
                             simulatedDevice = simulatedDevice,
-                            onChangeConfiguration = onChange,
+                            onSimulatedDeviceChange = onSimulatedDeviceChange,
+                            previewSettings = previewSettings,
+                            onPreviewSettingsChange = onPreviewSettingsChange,
+                            modifier = Modifier.fillMaxSize(),
                             panelItems = panelItems,
                         )
                     } else {
-                        PanelSheet(simulatedDevice, onChange, panelItems)
+                        PanelSheet(simulatedDevice, onSimulatedDeviceChange, previewSettings, onPreviewSettingsChange, panelItems)
                     }
                 }
             }
@@ -129,7 +145,9 @@ private fun PreviewLayout(isWide: Boolean, content: @Composable () -> Unit) {
 @Composable
 private fun PanelSheet(
     simulatedDevice: SimulatedDevice,
-    onChange: (SimulatedDevice) -> Unit,
+    onSimulatedDeviceChange: (SimulatedDevice) -> Unit,
+    previewSettings: PreviewSettings,
+    onPreviewSettingsChange: (PreviewSettings) -> Unit,
     panelItems: List<@Composable () -> Unit>,
 ) {
     var isSheetShown by remember { mutableStateOf(false) }
@@ -140,9 +158,11 @@ private fun PanelSheet(
             containerColor = PanelColors.Background,
         ) {
             ConfigurationView(
-                modifier = Modifier.fillMaxSize(),
                 simulatedDevice = simulatedDevice,
-                onChangeConfiguration = onChange,
+                onSimulatedDeviceChange = onSimulatedDeviceChange,
+                previewSettings = previewSettings,
+                onPreviewSettingsChange = onPreviewSettingsChange,
+                modifier = Modifier.fillMaxSize(),
                 panelItems = panelItems,
             )
         }
@@ -167,4 +187,4 @@ private fun rememberDeviceScreenshots(): DeviceScreenshots? = remember { pngDown
 
 /** The device's name, with its size for a freeform window: "Freeform · 834 × 1112". */
 private fun deviceLabel(device: Device): String =
-    if (device is FreeformDevice) "${device.name} · ${device.size.width.roundToInt()} × ${device.size.height.roundToInt()}" else device.name
+    if (device is FreeformDevice) "${device.name} · ${device.size.dimensionsLabel()}" else device.name

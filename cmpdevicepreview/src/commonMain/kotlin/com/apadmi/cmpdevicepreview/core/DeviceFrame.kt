@@ -11,14 +11,6 @@ import androidx.compose.ui.geometry.Size
  * Coordinates are portrait dp with the origin at the screen's top-left corner, so the body starts
  * at `-screenOffset`. In landscape the whole frame is turned a quarter turn.
  *
- * ```
- *  ┌───────────────────┐  ← body, at -screenOffset
- *  │  ┌─────────────┐  │
- *  │  │   screen    │  │  ← origin (0, 0)
- *  │  └─────────────┘  │
- *  └───────────────────┘
- * ```
- *
  * @property size The size of the body artwork.
  * @property screenOffset Where the screen's top-left corner is in the body.
  * @property screenPath SVG path data (a `d` attribute) for the screen outline, cutouts included,
@@ -36,7 +28,7 @@ public data class DeviceFrame(
 ) {
 
     /** Whether this frame carries no artwork at all. */
-    val isEmpty: Boolean
+    public val isEmpty: Boolean
         get() = screenPath.isEmpty() && body.isEmpty()
 
     /**
@@ -46,7 +38,6 @@ public data class DeviceFrame(
     public fun bodyBounds(screenSize: Size, isPortrait: Boolean): Rect {
         val portrait = Rect(Offset(-screenOffset.x, -screenOffset.y), size)
         if (isPortrait) return portrait
-        // In landscape the screen is (portraitHeight, portraitWidth).
         val portraitWidth = screenSize.height
         return Rect(
             left = portrait.top,

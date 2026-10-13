@@ -1,4 +1,4 @@
-package com.apadmi.sample
+package com.apadmi.cmpdevicepreview.sample.android
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.ui.Modifier
 import com.apadmi.cmpdevicepreview.preview.DeviceWithConfigurationView
+import com.apadmi.cmpdevicepreview.sample.App
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -15,9 +16,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             // The app runs inside the device preview; take this wrapper away and it runs on its own.
-            // Android can't override the window insets the app sees, so the preview sits inside the
-            // real system bars, which also keeps them out of the app: only the simulated device's
-            // status bar is drawn over it.
+            // Android's insets can't be simulated, so the preview sits inside the real system bars.
             DeviceWithConfigurationView(Modifier.safeDrawingPadding()) {
                 App()
             }

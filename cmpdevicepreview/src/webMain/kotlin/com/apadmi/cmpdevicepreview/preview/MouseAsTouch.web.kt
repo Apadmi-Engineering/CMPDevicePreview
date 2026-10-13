@@ -7,11 +7,7 @@ internal actual fun relabelMouseAsTouch(startsOnNode: (x: Float, y: Float) -> Bo
     return { callStop(stop) }
 }
 
-/**
- * Listens on the window, ahead of Compose's own listeners on its canvas, and replaces a mouse press
- * that starts on the node with the same events labelled as a touch. Compose then reads it as a
- * finger. Returns the function that removes the listeners.
- */
+/** Listens on the window, ahead of Compose's listeners on its canvas. Returns the function that removes the listeners. */
 private fun installMouseAsTouch(startsOnNode: (Double, Double) -> Boolean): JsAny = js(
     """(() => {
         let pressed = null; // The pointer being relabelled, and the canvas its press started on.

@@ -1,4 +1,4 @@
-package com.apadmi.sample
+package com.apadmi.cmpdevicepreview.sample
 
 import androidx.compose.ui.window.ComposeUIViewController
 import com.apadmi.cmpdevicepreview.preview.DeviceWithConfigurationView

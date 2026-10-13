@@ -106,12 +106,17 @@ class DeviceFrameViewTest {
         val raised = Captured().also { render(isKeyboardVisible = true, captured = it) }
         assertEquals(335, raised.safeAreaBottom)
         assertEquals(335, raised.keyboardBottom)
+    }
 
+    @Test
+    fun withoutAKeyboardTheSafeAreaIsTheDevicesOwn() {
         val hidden = Captured().also { render(captured = it) }
         assertEquals(34, hidden.safeAreaBottom)
         assertEquals(0, hidden.keyboardBottom)
+    }
 
-        // A desktop window has no software keyboard to raise.
+    @Test
+    fun aDesktopWindowHasNoKeyboardToRaise() {
         val desktop = Captured().also {
             render(device = DevicePresets.largeDesktopWindow, isKeyboardVisible = true, captured = it)
         }

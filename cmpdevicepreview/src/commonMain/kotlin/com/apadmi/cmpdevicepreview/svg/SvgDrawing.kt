@@ -14,10 +14,8 @@ import androidx.compose.ui.graphics.vector.PathParser
 import kotlin.math.roundToInt
 
 /**
- * A single flattened, ready-to-paint shape of an [SvgDrawing].
- *
- * The path is already expressed in the drawing's own (view box) coordinate space: every ancestor
- * `transform` has been baked in at parse time, so painting is a flat loop with no state to unwind.
+ * A shape of an [SvgDrawing], in the drawing's view box coordinates with every ancestor
+ * `transform` already applied.
  *
  * @property color The resolved fill color, including `fill-opacity` and inherited `opacity`.
  * @property clips Clip outlines to intersect before filling, outermost first.
@@ -32,21 +30,10 @@ internal class SvgShape(
 )
 
 /**
- * A parsed rendering of the small SVG subset device artwork needs.
- *
- * ## Supported subset
- *
- * * Structure: `<svg>` (`viewBox`, `width`/`height`), `<g>`, `<defs>`, `<clipPath>`.
- * * Shapes: `<path>`, `<rect>` (including `rx`/`ry`), `<circle>`, `<ellipse>`, `<polygon>`.
- * * Paint: `fill` (`#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`, `rgb()`, `rgba()`, a handful of named
- *   colors, `none`), `fill-opacity`, `fill-rule`, `opacity`, and the same properties written
- *   inside a `style="…"` attribute.
- * * Geometry: `transform` (`matrix`, `translate`, `scale`, `rotate`, `skewX`, `skewY`) and
- *   `clip-path="url(#id)"`.
- *
- * Everything else, such as strokes, gradients, filters, text, images and masks, is ignored.
- * Group `opacity` is multiplied into descendant fills rather than composited through a layer,
- * which is exact for non-overlapping flat artwork.
+ * A parsed rendering of the small SVG subset device artwork needs, described on
+ * [com.apadmi.cmpdevicepreview.core.DeviceFrame.body]. Group `opacity` is multiplied into
+ * descendant fills rather than composited through a layer, which is exact for non-overlapping flat
+ * artwork.
  *
  * Ported from flutter_device_preview's `SvgDrawing`, which device specs are authored against.
  */
@@ -60,13 +47,14 @@ internal class SvgDrawing(val viewBox: Rect, val shapes: List<SvgShape>) {
     val isEmpty: Boolean
         get() = shapes.isEmpty()
 
+    private val paint = Paint().apply { isAntiAlias = true }
+
     /**
      * Paints the drawing in its own view box coordinates.
      *
      * [currentColor] tints every shape that inherited its fill, preserving the shape's own opacity.
      */
     fun paint(canvas: Canvas, currentColor: Color? = null) {
-        val paint = Paint().apply { isAntiAlias = true }
         for (shape in shapes) {
             paint.color = if (currentColor != null && shape.followsCurrentColor) {
                 currentColor.copy(alpha = currentColor.alpha * shape.color.alpha)
@@ -254,15 +242,12 @@ private class Flattener(
                 val height = number("height") ?: 0f
                 if (width <= 0f || height <= 0f) return null
                 val rect = Rect(Offset(number("x") ?: 0f, number("y") ?: 0f), Size(width, height))
-                val rx = number("rx")
-                val ry = number("ry")
+                // A missing radius takes the other's value, as in SVG.
+                val rx = number("rx") ?: number("ry")
+                val ry = number("ry") ?: rx
                 Path().apply {
                     this.fillType = fillType
-                    if (rx == null && ry == null) {
-                        addRect(rect)
-                    } else {
-                        addRoundRect(RoundRect(rect, CornerRadius(rx ?: ry!!, ry ?: rx!!)))
-                    }
+                    if (rx == null || ry == null) addRect(rect) else addRoundRect(RoundRect(rect, CornerRadius(rx, ry)))
                 }
             }
             "circle" -> {

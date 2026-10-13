@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import kotlin.math.min
 
 /** The radius of the keyboard band's top corners, in logical pixels. */
-internal const val KeyboardBandRadius: Float = 8f
+private const val KeyboardBandRadius: Float = 8f
 
 /** The pitch of the band's hatching, in logical pixels. */
 private const val HatchPitch: Float = 12f
@@ -52,12 +52,12 @@ internal fun paintSimulatedKeyboard(canvas: Canvas, screenSize: Size, height: Fl
             RoundRect(band, topLeft = CornerRadius(KeyboardBandRadius), topRight = CornerRadius(KeyboardBandRadius))
         )
     }
-    canvas.drawPath(shape, Paint().apply { color = Color(0xCC17171A) })
+    canvas.drawPath(shape, KeyboardPaints.band)
     // The hatching and the hairline follow the rounded corners instead of cutting across them.
     canvas.save()
     canvas.clipPath(shape)
     paintHatch(canvas, band)
-    canvas.drawRect(Rect(band.left, band.top, band.right, band.top + 1f), Paint().apply { color = Color(0x1FFFFFFF) })
+    canvas.drawRect(Rect(band.left, band.top, band.right, band.top + 1f), KeyboardPaints.hairline)
     canvas.restore()
 
     val markSize = keyboardMarkSize(band) ?: return
@@ -70,17 +70,12 @@ internal fun paintSimulatedKeyboard(canvas: Canvas, screenSize: Size, height: Fl
 
 /** Fills [band] with 45° hatching at a fixed pitch, clipped to it. */
 private fun paintHatch(canvas: Canvas, band: Rect) {
-    val stripe = Paint().apply {
-        style = PaintingStyle.Stroke
-        strokeWidth = 1f
-        color = Color(0x14FFFFFF)
-    }
     canvas.save()
     canvas.clipRect(band)
     // Start a full band-height to the left so the first slanted stripe still crosses the left edge.
     var x = band.left - band.height
     while (x < band.right) {
-        canvas.drawLine(Offset(x, band.bottom), Offset(x + band.height, band.top), stripe)
+        canvas.drawLine(Offset(x, band.bottom), Offset(x + band.height, band.top), KeyboardPaints.stripe)
         x += HatchPitch
     }
     canvas.restore()
@@ -88,15 +83,8 @@ private fun paintHatch(canvas: Canvas, band: Rect) {
 
 /** Draws the keyboard mark on a 16×16 grid at the canvas origin: an outline, eight keys and a space bar. */
 private fun paintKeyboardMark(canvas: Canvas) {
-    val ink = Color(0x40FFFFFF)
-    val stroke = Paint().apply {
-        style = PaintingStyle.Stroke
-        strokeWidth = 1f
-        strokeCap = StrokeCap.Round
-        strokeJoin = StrokeJoin.Round
-        color = ink
-    }
-    val fill = Paint().apply { color = ink }
+    val stroke = KeyboardPaints.markStroke
+    val fill = KeyboardPaints.markFill
     canvas.drawRoundRect(1.25f, 3.75f, 14.75f, 12.25f, 1.75f, 1.75f, stroke)
     for (y in listOf(6.3f, 8.6f)) {
         for (x in listOf(4.0f, 6.5f, 9.0f, 11.5f)) {
@@ -104,4 +92,25 @@ private fun paintKeyboardMark(canvas: Canvas) {
         }
     }
     canvas.drawLine(Offset(5.5f, 10.6f), Offset(10.5f, 10.6f), stroke)
+}
+
+/** The keyboard band's paints, made once, on first use. */
+private object KeyboardPaints {
+    private val MarkInk = Color(0x40FFFFFF)
+
+    val band = Paint().apply { color = Color(0xCC17171A) }
+    val hairline = Paint().apply { color = Color(0x1FFFFFFF) }
+    val stripe = Paint().apply {
+        style = PaintingStyle.Stroke
+        strokeWidth = 1f
+        color = Color(0x14FFFFFF)
+    }
+    val markStroke = Paint().apply {
+        style = PaintingStyle.Stroke
+        strokeWidth = 1f
+        strokeCap = StrokeCap.Round
+        strokeJoin = StrokeJoin.Round
+        color = MarkInk
+    }
+    val markFill = Paint().apply { color = MarkInk }
 }

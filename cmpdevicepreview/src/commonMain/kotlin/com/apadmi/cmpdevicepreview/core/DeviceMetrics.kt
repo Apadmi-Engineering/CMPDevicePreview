@@ -1,5 +1,7 @@
 package com.apadmi.cmpdevicepreview.core
 
+import androidx.compose.ui.geometry.Size
+
 /** Whether the device can be turned between portrait and landscape. A desktop window is resized instead. */
 internal val Device.isRotatable: Boolean
     get() = kind != DeviceKind.DESKTOP
@@ -17,6 +19,12 @@ internal val Device.isTouchscreen: Boolean
  * rotate always is, since its portrait size is its natural one.
  */
 internal fun Device.laidOutInPortrait(isPortrait: Boolean): Boolean = isPortrait || !isRotatable
+
+/** This size a quarter turn round: its width and height swapped. */
+internal fun Size.turned(): Size = Size(height, width)
+
+internal fun Device.screenSizeIn(isPortrait: Boolean): Size =
+    if (isPortrait) portraitSize else portraitSize.turned()
 
 internal fun Device.safeAreaIn(isPortrait: Boolean): DeviceInsets =
     if (isPortrait) portraitSafeArea else landscapeSafeArea

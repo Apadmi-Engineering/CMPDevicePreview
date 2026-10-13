@@ -59,13 +59,9 @@ kotlin {
             implementation(libs.compose.material.icons.extended)
             implementation(libs.compose.ui)
             implementation(libs.compose.ui.tooling.preview)
-            implementation(libs.androidx.lifecycle.viewmodel)
-            implementation(libs.androidx.lifecycle.runtime.compose)
             implementation(libs.jetbrains.material3.adaptive)
         }
-        // Each platform's entry point shows the app inside the device preview; the app's own code
-        // doesn't know about it. The entry points of the Android and desktop apps are in
-        // :androidApp and :desktopApp.
+        // The entry points wrap the app in the preview (Android and desktop: :androidApp, :desktopApp).
         iosMain.dependencies {
             implementation(project(":cmpdevicepreview"))
         }

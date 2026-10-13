@@ -1,4 +1,4 @@
-package com.apadmi.sample
+package com.apadmi.cmpdevicepreview.sample
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -69,9 +69,7 @@ fun SavedScreen(state: WanderState, layout: AppLayout, modifier: Modifier = Modi
         LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { title() }
             if (saved.isEmpty()) item { empty() }
-            items(saved, key = { it.id }) { destination ->
-                ListCard(destination, true, { state.toggleSaved(destination) }, { state.open(destination) })
-            }
+            items(saved, key = { it.id }) { destination -> ListCard(destination, state) }
         }
     } else {
         LazyVerticalGrid(
@@ -85,7 +83,7 @@ fun SavedScreen(state: WanderState, layout: AppLayout, modifier: Modifier = Modi
             if (saved.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { empty() }
             items(saved, key = { it.id }) { destination ->
                 TileCard(
-                    destination, true, { state.toggleSaved(destination) }, { state.open(destination) },
+                    destination, state,
                     isSelected = layout.hasDetailPane && destination == state.selected,
                     artAspectRatio = if (layout == AppLayout.PhoneLandscape) 16f / 9f else 4f / 3f,
                 )

@@ -1,4 +1,4 @@
-package com.apadmi.sample
+package com.apadmi.cmpdevicepreview.sample
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +23,6 @@ import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.Sell
 import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,15 +51,14 @@ fun DestinationDetail(
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    val isSaved = destination.id in state.saved
     if (layout == AppLayout.PhoneLandscape) {
         Row(modifier.fillMaxSize()) {
             Box(Modifier.weight(0.45f).fillMaxHeight().padding(12.dp).clip(RoundedCornerShape(24.dp))) {
                 SceneryArt(destination, Modifier.matchParentSize())
-                ArtButtons(onBack, isSaved, { state.toggleSaved(destination) })
+                ArtButtons(destination, state, onBack)
             }
             DetailBody(
-                destination, isSaved, { state.toggleSaved(destination) },
+                destination, state,
                 Modifier.weight(0.55f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(20.dp),
             )
         }
@@ -74,13 +72,10 @@ fun DestinationDetail(
                     .then(if (edgeToEdge) Modifier else Modifier.padding(12.dp).clip(RoundedCornerShape(24.dp)))
             ) {
                 SceneryArt(destination, Modifier.matchParentSize())
-                ArtButtons(
-                    onBack, isSaved, { state.toggleSaved(destination) },
-                    if (edgeToEdge) Modifier.statusBarsPadding() else Modifier,
-                )
+                ArtButtons(destination, state, onBack, if (edgeToEdge) Modifier.statusBarsPadding() else Modifier)
             }
             DetailBody(
-                destination, isSaved, { state.toggleSaved(destination) },
+                destination, state,
                 Modifier.padding(20.dp).then(if (edgeToEdge) Modifier.navigationBarsPadding() else Modifier),
             )
         }
@@ -88,7 +83,7 @@ fun DestinationDetail(
 }
 
 @Composable
-private fun ArtButtons(onBack: (() -> Unit)?, isSaved: Boolean, onToggleSave: () -> Unit, modifier: Modifier = Modifier) {
+private fun ArtButtons(destination: Destination, state: WanderState, onBack: (() -> Unit)?, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
         if (onBack != null) {
             IconButton(
@@ -99,13 +94,13 @@ private fun ArtButtons(onBack: (() -> Unit)?, isSaved: Boolean, onToggleSave: ()
             }
         }
         Box(Modifier.weight(1f))
-        SaveButton(isSaved, onToggleSave, onArt = true)
+        SaveButton(destination, state, onArt = true)
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DetailBody(destination: Destination, isSaved: Boolean, onToggleSave: () -> Unit, modifier: Modifier) {
+private fun DetailBody(destination: Destination, state: WanderState, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column {
             Text(destination.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
@@ -127,11 +122,8 @@ private fun DetailBody(destination: Destination, isSaved: Boolean, onToggleSave:
             Fact(Icons.Rounded.Sell, "from £${destination.price}")
         }
         Text(destination.blurb, style = MaterialTheme.typography.bodyLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = {}, modifier = Modifier.weight(1f)) { Text("Plan a trip") }
-            FilledTonalButton(onClick = onToggleSave, modifier = Modifier.weight(1f)) {
-                Text(if (isSaved) "Saved" else "Save")
-            }
+        FilledTonalButton(onClick = { state.toggleSaved(destination) }, modifier = Modifier.fillMaxWidth()) {
+            Text(if (destination.id in state.saved) "Saved" else "Save")
         }
     }
 }

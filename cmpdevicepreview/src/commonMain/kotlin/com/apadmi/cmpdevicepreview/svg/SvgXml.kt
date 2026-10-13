@@ -3,9 +3,6 @@ package com.apadmi.cmpdevicepreview.svg
 /**
  * A parsed XML element: a name, its attributes, and its element children.
  *
- * Text content, comments, processing instructions and doctypes are dropped, as the SVG subset this
- * library renders is entirely attribute-driven.
- *
  * @property name The local element name, with any namespace prefix stripped (`svg:path` → `path`).
  * @property attributes The element's attributes, keyed by their raw (prefixed) name.
  */
@@ -21,11 +18,9 @@ internal class XmlElement(
 }
 
 /**
- * Parses [source] into its root [XmlElement].
- *
- * A deliberately small, dependency-free reader: elements, attributes, self-closing tags, entity
- * references in attribute values, and the usual prologue noise (`<?xml …?>`, comments,
- * `<!DOCTYPE …>`, CDATA). Namespaces are not resolved; prefixes are stripped from element names.
+ * Parses [source] into its root [XmlElement]: elements, attributes and entity references in
+ * attribute values. Text, comments, CDATA, processing instructions and doctypes are skipped, as the
+ * SVG subset this library renders is entirely attribute-driven. Namespaces are not resolved.
  *
  * @throws IllegalArgumentException on malformed input.
  */
@@ -111,17 +106,11 @@ private class XmlParser(private val source: String) {
     /** Skips `<!DOCTYPE …>`, including a bracketed internal subset. */
     private fun skipDeclaration() {
         index += 2
-        var depth = 1
-        while (index < source.length && depth > 0) {
-            val char = source[index]
-            if (char == '[') {
-                skipUntil("]")
-                continue
-            }
-            if (char == '>') depth--
-            index++
+        while (index < source.length && source[index] != '>') {
+            if (source[index] == '[') skipUntil("]") else index++
         }
-        if (depth > 0) fail("Unterminated declaration")
+        if (index >= source.length) fail("Unterminated declaration")
+        index++
     }
 
     private fun skipWhitespace() {

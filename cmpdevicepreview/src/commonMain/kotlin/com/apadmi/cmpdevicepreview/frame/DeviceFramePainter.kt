@@ -15,11 +15,8 @@ import com.apadmi.cmpdevicepreview.svg.SvgDrawing
 import com.apadmi.cmpdevicepreview.svg.parseSvgPathData
 
 /**
- * Parses a [DeviceFrame] once and paints it.
- *
- * Path data and SVG artwork are parsed lazily on first use and cached for the painter's lifetime.
- * Malformed artwork never breaks the previewed content: the failure is reported once and that part
- * of the frame is simply not drawn.
+ * Parses a [DeviceFrame] on first use and paints it. Malformed artwork is reported once and that
+ * part of the frame is left undrawn.
  */
 internal class DeviceFramePainter(val frame: DeviceFrame) {
 
@@ -30,20 +27,14 @@ internal class DeviceFramePainter(val frame: DeviceFrame) {
         }
     }
 
-    /**
-     * The parsed screen outline in portrait screen coordinates, or null when absent or malformed
-     * (a rectangular screen).
-     */
+    /** The parsed screen outline in portrait screen coordinates, or null for a rectangular screen. */
     val screenPath: Path? by lazy(LazyThreadSafetyMode.NONE) {
         frame.screenPath.takeIf { it.isNotEmpty() }?.let {
             reportingParseFailure("device frame screen outline") { parseSvgPathData(it) }
         }
     }
 
-    /**
-     * The screen clip outline for a screen of [screenSize] (already orientation-resolved), in the
-     * content's own coordinates, or null for a rectangular screen.
-     */
+    /** The screen outline for a screen of [screenSize], or null for a rectangular screen. */
     fun screenClip(screenSize: Size, isPortrait: Boolean): Path? {
         val path = screenPath ?: return null
         if (isPortrait) return path
@@ -53,26 +44,17 @@ internal class DeviceFramePainter(val frame: DeviceFrame) {
         }
     }
 
-    /**
-     * Paints the body artwork behind a screen of [screenSize] (already orientation-resolved).
-     *
-     * The canvas origin must be the screen's top-left corner, in logical pixels.
-     */
+    /** Paints the body behind a screen of [screenSize], on a canvas whose origin is the screen's top-left corner. */
     fun paintBody(canvas: Canvas, screenSize: Size, isPortrait: Boolean) {
         val drawing = body ?: return
-        if (drawing.isEmpty) return
         canvas.save()
-        if (!isPortrait) {
-            // A quarter turn: portrait (x, y) → landscape (y, portraitWidth − x).
-            canvas.translate(0f, screenSize.height)
-            canvas.rotate(-90f)
-        }
+        if (!isPortrait) canvas.concat(landscapeTransform(screenSize).toMatrix())
         drawing.paintInto(canvas, Rect(Offset(-frame.screenOffset.x, -frame.screenOffset.y), frame.size))
         canvas.restore()
     }
 
     private companion object {
-        /** The same quarter turn as [paintBody], for a landscape screen of [screenSize]. */
+        /** A quarter turn onto a landscape screen of [screenSize]: portrait (x, y) → (y, portraitWidth − x). */
         fun landscapeTransform(screenSize: Size): Affine =
             Affine(a = 0f, b = -1f, c = 1f, d = 0f, e = 0f, f = screenSize.height)
     }

@@ -2,6 +2,7 @@ package com.apadmi.cmpdevicepreview.svg
 
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import com.apadmi.cmpdevicepreview.assertRectEquals
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -52,7 +53,7 @@ class SvgDrawingTest {
             """.trimIndent()
         )
         assertEquals(Rect(25f, 10f, 27f, 12f), drawing.shapes[0].path.getBounds())
-        assertRect(Rect(9f, 10f, 10f, 12f), drawing.shapes[1].path.getBounds())
+        assertRectEquals(Rect(9f, 10f, 10f, 12f), drawing.shapes[1].path.getBounds(), tolerance = 0.001f)
     }
 
     @Test
@@ -126,15 +127,5 @@ class SvgDrawingTest {
         assertFailsWith<IllegalArgumentException> { SvgDrawing.parse("<svg viewBox=\"0 0 1 1\"><rect></svg>") }
         assertFailsWith<IllegalArgumentException> { SvgDrawing.parse("<g/>") }
         assertFailsWith<IllegalArgumentException> { SvgDrawing.parse("<svg/>") }
-    }
-
-    private fun assertRect(expected: Rect, actual: Rect) {
-        val rounded = Rect(
-            Math.round(actual.left * 1000) / 1000f,
-            Math.round(actual.top * 1000) / 1000f,
-            Math.round(actual.right * 1000) / 1000f,
-            Math.round(actual.bottom * 1000) / 1000f,
-        )
-        assertEquals(expected, rounded)
     }
 }

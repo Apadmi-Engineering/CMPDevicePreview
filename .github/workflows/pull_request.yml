@@ -19,7 +19,7 @@ jobs:
         config:
           - { target: jvm, os: ubuntu-latest, tasks: ":cmpdevicepreview:jvmTest :composeApp:compileKotlinJvm :desktopApp:compileKotlin" }
           - { target: android, os: ubuntu-latest, tasks: ":cmpdevicepreview:compileAndroidMain :androidApp:assembleDebug" }
-          - { target: web, os: ubuntu-latest, tasks: ":cmpdevicepreview:compileKotlinJs :composeApp:wasmJsBrowserDevelopmentExecutableDistribution" }
+          - { target: web, os: ubuntu-latest, tasks: ":cmpdevicepreview:jsBrowserTest :cmpdevicepreview:wasmJsBrowserTest :composeApp:wasmJsBrowserDevelopmentExecutableDistribution" }
           # Kotlin/Native only builds the iOS targets on macOS.
           - { target: ios, os: macos-latest, tasks: ":cmpdevicepreview:compileKotlinIosSimulatorArm64 :composeApp:compileKotlinIosSimulatorArm64" }
     runs-on: ${{ matrix.config.os }}

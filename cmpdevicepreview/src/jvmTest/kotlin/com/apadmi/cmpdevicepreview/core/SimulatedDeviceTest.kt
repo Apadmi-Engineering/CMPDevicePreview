@@ -37,15 +37,20 @@ class SimulatedDeviceTest {
         val asked = SimulatedDevice(desktop, DeviceConfiguration(isPortrait = false)).currentSize
         assertEquals(natural, asked)
         assertTrue(asked.width > asked.height, "a desktop window is wider than tall")
+    }
 
-        // Everything else still turns.
+    @Test
+    fun phonesTabletsAndFoldablesTurn() {
         for (device in listOf(DevicePresets.pixel9, DevicePresets.galaxyTabS11, DevicePresets.pixel10ProFold)) {
             assertTrue(device.isRotatable, device.name)
             val upright = SimulatedDevice(device).currentSize
             val turned = SimulatedDevice(device, DeviceConfiguration(isPortrait = false)).currentSize
             assertEquals(Size(upright.height, upright.width), turned, device.name)
         }
-        // A device that doesn't give its kind is a phone, so it can be turned.
+    }
+
+    @Test
+    fun aDeviceThatDoesNotGiveItsKindCanBeTurned() {
         assertTrue(CustomDevice(DeviceType.OTHER).isRotatable)
     }
 

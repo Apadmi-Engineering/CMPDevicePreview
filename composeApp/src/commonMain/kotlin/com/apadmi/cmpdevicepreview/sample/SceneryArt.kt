@@ -1,8 +1,9 @@
-package com.apadmi.sample
+package com.apadmi.cmpdevicepreview.sample
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -16,20 +17,26 @@ import kotlin.random.Random
  */
 @Composable
 fun SceneryArt(destination: Destination, modifier: Modifier = Modifier) {
-    Canvas(modifier) {
-        drawRect(Brush.verticalGradient(destination.sky))
-        drawCircle(
-            color = destination.sun,
-            radius = size.minDimension * 0.11f,
-            center = Offset(size.width * 0.7f, size.height * 0.3f),
-        )
-        val random = Random(destination.id)
-        for (layer in 0 until 3) {
-            val color = lerp(destination.sky.last(), destination.land, (layer + 1) / 3f)
-            val baseline = size.height * (0.5f + layer * 0.16f)
-            drawPath(landPath(destination.scene, size, baseline, layer, random), color)
+    Spacer(
+        modifier.drawWithCache {
+            val sky = Brush.verticalGradient(destination.sky)
+            val random = Random(destination.id)
+            val land = (0 until 3).map { layer ->
+                val color = lerp(destination.sky.last(), destination.land, (layer + 1) / 3f)
+                val baseline = size.height * (0.5f + layer * 0.16f)
+                landPath(destination.scene, size, baseline, layer, random) to color
+            }
+            onDrawBehind {
+                drawRect(sky)
+                drawCircle(
+                    color = destination.sun,
+                    radius = size.minDimension * 0.11f,
+                    center = Offset(size.width * 0.7f, size.height * 0.3f),
+                )
+                for ((path, color) in land) drawPath(path, color)
+            }
         }
-    }
+    )
 }
 
 private fun landPath(scene: Scene, size: Size, baseline: Float, layer: Int, random: Random): Path = Path().apply {

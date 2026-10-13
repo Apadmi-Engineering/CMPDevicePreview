@@ -14,7 +14,7 @@ public data class SimulatedDevice(
 
     /** The screen size in the current orientation, in dp. */
     val currentSize: Size
-        get() = device.portraitSize.let { if (isPortrait) it else Size(it.height, it.width) }
+        get() = device.screenSizeIn(isPortrait)
 
     /** The safe area in the current orientation, not including a raised keyboard. */
     val currentSafeArea: DeviceInsets
@@ -25,7 +25,7 @@ public data class SimulatedDevice(
         get() = device.keyboardHeightIn(isPortrait)
 }
 
-/** The size of the window the content sees, in its dp: smaller when the display size is larger. */
+/** The size of the window the content sees, in its dp. */
 internal val SimulatedDevice.currentContentSize: Size
     get() = currentSize / configuration.displayScale
 

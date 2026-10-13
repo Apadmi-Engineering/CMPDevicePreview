@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 
-/** The colours of the configuration panel and the device picker. */
+/** The colours of the configuration panel, the device picker and the preview's handles. */
 internal object PanelColors {
     val Background = Color(0xFF111114)
     val Surface = Color(0xFF1B1B20)
@@ -59,11 +59,22 @@ internal object PanelColors {
     val Accent = Color(0xFF7C6CFF)
     val AccentBright = Color(0xFF9F94FF)
     val AccentSoft = Color(0x297C6CFF)
+
+    /** The far end of gradients that start at [Accent]. */
+    val AccentBlue = Color(0xFF4FA3FF)
     val SwitchOff = Color(0xFF3A3A43)
     val SegmentSelected = Color(0xFF303039)
+    val ThumbnailBody = Color(0xFF5A5A66)
+    val ThumbnailScreenTop = Color(0xFF24242B)
+    val ThumbnailScreenBottom = Color(0xFF32323B)
+
+    /** A plain window's border, and the resize handles at rest. */
+    val FrameOutline = Color(0xFF9A9AA6)
 }
 
 internal val PanelWidth = 300.dp
+
+private const val DisabledAlpha = 0.45f
 
 /** The panel's dark Material theme, so ripples, text fields and dialogs inside it match. */
 @Composable
@@ -99,6 +110,17 @@ internal fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     )
 }
 
+/** A short note below a control. */
+@Composable
+internal fun PanelCaption(text: String) {
+    Text(
+        text,
+        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+        color = PanelColors.TextTertiary,
+        fontSize = 12.sp,
+    )
+}
+
 internal class SegmentOption(val label: String, val icon: ImageVector)
 
 /** Equal-width options on a track, with an indicator that slides to the selected one. */
@@ -119,7 +141,7 @@ internal fun SegmentedControl(
             .background(PanelColors.Surface)
             .border(1.dp, PanelColors.Border, shape)
             .padding(3.dp)
-            .alpha(if (enabled) 1f else 0.45f)
+            .alpha(if (enabled) 1f else DisabledAlpha)
     ) {
         val segmentWidth = maxWidth / options.size
         val indicatorOffset by animateDpAsState(segmentWidth * selectedIndex, label = "segment")
@@ -201,7 +223,7 @@ internal fun ToggleRow(
             .clip(RoundedCornerShape(10.dp))
             .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
             .padding(horizontal = 8.dp, vertical = 10.dp)
-            .alpha(if (enabled) 1f else 0.45f),
+            .alpha(if (enabled) 1f else DisabledAlpha),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         SettingLabel(icon, title, note, badge)
@@ -304,7 +326,7 @@ internal fun PanelButton(
             .border(1.dp, PanelColors.Border, shape)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .pointerHoverIcon(PointerIcon.Hand)
-            .alpha(if (enabled) 1f else 0.45f)
+            .alpha(if (enabled) 1f else DisabledAlpha)
             .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,

@@ -71,9 +71,8 @@ internal data class ResizeHandle(val x: Int, val y: Int) {
 }
 
 /**
- * A resize in progress: [handle] has been dragged [offset] pixels from where it was pressed, on a
- * device whose screen is [start] dp at [scale] pixels per dp. The scale stays as it was when the
- * drag began, so the dragged corner doesn't run away from the cursor.
+ * A resize in progress: [handle] has been dragged [offset] pixels from where it was pressed. The
+ * [scale] stays as it was when the drag began, so the dragged corner doesn't run away from the cursor.
  */
 internal data class ResizeDrag(
     val handle: ResizeHandle,
@@ -83,14 +82,9 @@ internal data class ResizeDrag(
 )
 
 /**
- * The screen size, in dp, that dragging [handle] by [drag] pixels gives a device whose screen is
- * [start] dp at [scale] pixels per dp.
- *
- * The device stays centred, so it grows on both sides at once: the dragged side moves by the drag
- * and the opposite one by the same amount the other way, which keeps the dragged corner under the
- * cursor. Only the axes the handle sits on change. A side is rounded to whole dp, then kept between
- * [MinFreeformSize] and [max] (and [MaxFreeformSize]), unless the device is already larger than
- * that.
+ * The screen size, in dp, after dragging [handle] by [drag] pixels at [scale] pixels per dp. The
+ * device stays centred, so each side the handle moves grows by twice the drag. Sides are whole dp,
+ * between [MinFreeformSize] and [max] (at most [MaxFreeformSize]), unless already larger.
  */
 internal fun resizedScreenSize(start: Size, handle: ResizeHandle, drag: Offset, scale: Float, max: Size): Size {
     fun side(start: Float, direction: Int, drag: Float, max: Float): Float {
@@ -107,32 +101,28 @@ internal fun resizedScreenSize(start: Size, handle: ResizeHandle, drag: Offset, 
 /** The cursor shown over [handle]. */
 internal expect fun resizeCursor(handle: ResizeHandle): PointerIcon
 
-private val BracketColor = Color(0xFF9A9AA6)
 private val HandleHighlight = PanelColors.Accent
 
 /**
- * The handles of a device whose visible bounds measure [visibleSize] pixels: its corners, and its
- * edges when [showEdges]. They are drawn only when the pointer is over them, or always for the
- * corners when [showCorners]. Each is centred on the middle of the parent, and moved out to its
- * place on the bounds.
+ * The handles on a device whose visible bounds measure [visibleSize] pixels, centred in the parent.
+ * A freeform window has edge handles too, and its corners show even when the pointer isn't on them.
  */
 @Composable
 internal fun BoxScope.ResizeHandles(
     visibleSize: IntSize,
-    showCorners: Boolean,
-    showEdges: Boolean,
+    isFreeform: Boolean,
     active: ResizeHandle?,
     onStart: (ResizeHandle) -> Unit,
     onDrag: (Offset) -> Unit,
     onEnd: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    val handles = if (showEdges) ResizeHandle.Corners + ResizeHandle.Edges else ResizeHandle.Corners
+    val handles = if (isFreeform) ResizeHandle.Corners + ResizeHandle.Edges else ResizeHandle.Corners
     for (handle in handles) {
         ResizeHandleView(
             handle = handle,
             visibleSize = visibleSize,
-            isAlwaysVisible = showCorners && handle.isCorner,
+            isAlwaysVisible = isFreeform && handle.isCorner,
             isActive = handle == active,
             onStart = onStart,
             onDrag = onDrag,
@@ -191,7 +181,7 @@ private fun BoxScope.ResizeHandleView(
 }
 
 private fun DrawScope.drawHandle(handle: ResizeHandle, isHighlighted: Boolean) {
-    val color = if (isHighlighted) HandleHighlight else BracketColor
+    val color = if (isHighlighted) HandleHighlight else PanelColors.FrameOutline
     val width = (if (isHighlighted) 3.dp else 2.dp).toPx()
     val outward = 4.dp.toPx()
     val tip = center + Offset(handle.x * outward, handle.y * outward)
@@ -231,7 +221,7 @@ internal fun BoxScope.ResizeOutline(size: Size, scale: Float) {
         contentAlignment = Alignment.Center,
     ) {
         BasicText(
-            "${size.width.roundToInt()} × ${size.height.roundToInt()}",
+            size.dimensionsLabel(),
             modifier = Modifier
                 .drawBehind { drawRoundRect(HandleHighlight, cornerRadius = CornerRadius(6.dp.toPx())) }
                 .padding(horizontal = 8.dp, vertical = 4.dp),

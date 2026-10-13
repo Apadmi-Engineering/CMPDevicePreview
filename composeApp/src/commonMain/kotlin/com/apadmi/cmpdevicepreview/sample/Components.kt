@@ -1,4 +1,4 @@
-package com.apadmi.sample
+package com.apadmi.cmpdevicepreview.sample
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -150,9 +150,10 @@ fun CategoryChips(
 }
 
 @Composable
-fun SaveButton(isSaved: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier, onArt: Boolean = false) {
+fun SaveButton(destination: Destination, state: WanderState, modifier: Modifier = Modifier, onArt: Boolean = false) {
+    val isSaved = destination.id in state.saved
     IconButton(
-        onClick = onToggle,
+        onClick = { state.toggleSaved(destination) },
         modifier = modifier,
         colors = if (onArt) {
             IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.3f), contentColor = Color.White)
@@ -185,21 +186,15 @@ fun RatingRow(destination: Destination, modifier: Modifier = Modifier, color: Co
 
 /** A large card with the destination's name over its illustration. */
 @Composable
-fun FeaturedCard(
-    destination: Destination,
-    isSaved: Boolean,
-    onToggleSave: () -> Unit,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(modifier.clip(RoundedCornerShape(28.dp)).clickable(onClick = onClick)) {
+fun FeaturedCard(destination: Destination, state: WanderState, modifier: Modifier = Modifier) {
+    Box(modifier.clip(RoundedCornerShape(28.dp)).clickable { state.open(destination) }) {
         SceneryArt(destination, Modifier.matchParentSize())
         Box(
             Modifier
                 .matchParentSize()
                 .background(Brush.verticalGradient(0.4f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.7f)))
         )
-        SaveButton(isSaved, onToggleSave, Modifier.align(Alignment.TopEnd).padding(12.dp), onArt = true)
+        SaveButton(destination, state, Modifier.align(Alignment.TopEnd).padding(12.dp), onArt = true)
         Column(Modifier.align(Alignment.BottomStart).padding(20.dp)) {
             Text(
                 "FEATURED",
@@ -227,9 +222,7 @@ fun FeaturedCard(
 @Composable
 fun TileCard(
     destination: Destination,
-    isSaved: Boolean,
-    onToggleSave: () -> Unit,
-    onClick: () -> Unit,
+    state: WanderState,
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
     artAspectRatio: Float = 4f / 3f,
@@ -239,12 +232,12 @@ fun TileCard(
         modifier
             .clip(RoundedCornerShape(24.dp))
             .background(if (isSelected) colors.primaryContainer else colors.surfaceContainerLow)
-            .clickable(onClick = onClick)
+            .clickable { state.open(destination) }
             .padding(8.dp)
     ) {
         Box(Modifier.fillMaxWidth().aspectRatio(artAspectRatio).clip(RoundedCornerShape(18.dp))) {
             SceneryArt(destination, Modifier.matchParentSize())
-            SaveButton(isSaved, onToggleSave, Modifier.align(Alignment.TopEnd).padding(4.dp), onArt = true)
+            SaveButton(destination, state, Modifier.align(Alignment.TopEnd).padding(4.dp), onArt = true)
         }
         Column(Modifier.padding(horizontal = 8.dp, vertical = 10.dp)) {
             Text(destination.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
@@ -256,19 +249,13 @@ fun TileCard(
 
 /** A card for a list: a thumbnail beside the name. */
 @Composable
-fun ListCard(
-    destination: Destination,
-    isSaved: Boolean,
-    onToggleSave: () -> Unit,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun ListCard(destination: Destination, state: WanderState, modifier: Modifier = Modifier) {
     Row(
         modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .clickable(onClick = onClick)
+            .clickable { state.open(destination) }
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -278,7 +265,7 @@ fun ListCard(
             Text(destination.country, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             RatingRow(destination, Modifier.padding(top = 4.dp))
         }
-        SaveButton(isSaved, onToggleSave)
+        SaveButton(destination, state)
     }
 }
 

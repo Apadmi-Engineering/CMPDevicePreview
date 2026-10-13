@@ -1,4 +1,4 @@
-package com.apadmi.sample
+package com.apadmi.cmpdevicepreview.sample
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
@@ -41,7 +41,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 
@@ -92,8 +91,7 @@ fun App() {
         val state = remember { WanderState() }
         when (val layout = currentAppLayout()) {
             AppLayout.Phone -> PhoneApp(state)
-            AppLayout.PhoneLandscape, AppLayout.Tablet -> RailApp(state, layout)
-            AppLayout.Desktop -> RailApp(state, layout, detailPaneWidth = 360.dp)
+            AppLayout.PhoneLandscape, AppLayout.Tablet, AppLayout.Desktop -> RailApp(state, layout)
             AppLayout.LargeDesktop -> DrawerApp(state)
         }
     }
@@ -108,12 +106,13 @@ private fun TabContent(state: WanderState, layout: AppLayout, modifier: Modifier
     }
 }
 
-/** The tab, with the detail pane beside it when there's a destination to show. */
+/** The tab, with the layout's detail pane beside it when there's a destination to show. */
 @Composable
-private fun TabWithDetail(state: WanderState, layout: AppLayout, detailPaneWidth: Dp, modifier: Modifier = Modifier) {
+private fun TabWithDetail(state: WanderState, layout: AppLayout, modifier: Modifier = Modifier) {
     Row(modifier) {
         TabContent(state, layout, Modifier.weight(1f))
-        if (state.tab != Tab.Profile) {
+        val detailPaneWidth = layout.detailPaneWidth
+        if (detailPaneWidth != null && state.tab != Tab.Profile) {
             DetailPane(state, Modifier.width(detailPaneWidth))
         }
     }
@@ -149,9 +148,9 @@ private fun PhoneApp(state: WanderState) {
     }
 }
 
-/** A navigation rail beside the content, and a detail pane too when [detailPaneWidth] is given. */
+/** A navigation rail beside the content, and a detail pane too when the layout has one. */
 @Composable
-private fun RailApp(state: WanderState, layout: AppLayout, detailPaneWidth: Dp? = null) {
+private fun RailApp(state: WanderState, layout: AppLayout) {
     Row(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         NavigationRail(
             header = { AppMark(Modifier.padding(vertical = 8.dp)) },
@@ -175,7 +174,7 @@ private fun RailApp(state: WanderState, layout: AppLayout, detailPaneWidth: Dp? 
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.End))
         val opened = state.opened
         when {
-            detailPaneWidth != null -> TabWithDetail(state, layout, detailPaneWidth, contentModifier)
+            layout.hasDetailPane -> TabWithDetail(state, layout, contentModifier)
             opened != null -> DestinationDetail(opened, state, layout, onBack = { state.opened = null }, contentModifier)
             else -> TabContent(state, layout, contentModifier)
         }
@@ -220,7 +219,7 @@ private fun DrawerApp(state: WanderState) {
         },
     ) {
         TabWithDetail(
-            state, AppLayout.LargeDesktop, detailPaneWidth = 440.dp,
+            state, AppLayout.LargeDesktop,
             Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)

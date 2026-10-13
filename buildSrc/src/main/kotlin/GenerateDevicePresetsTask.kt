@@ -1,18 +1,21 @@
-// Generates the library's built-in `DevicePresets` catalog from the JSON device
-// specs in `device_specs/` (copied from flutter_device_preview, where they are
-// the source of truth for the Flutter package's `DevicePresets`).
-//
-// One `device_specs/<id>.json` in, one `DevicePreset` property out: the screen
-// size, pixel ratio, safe areas, frame artwork (screen outline and body), the
-// status bar and gesture pill artwork (`systemUi`) and the keyboard heights.
-// The generated file lands in the build directory and is wired into
-// `commonMain` by `build.gradle.kts`, so the specs stay the only thing to edit.
-//
-// The specs also describe fold display features, which this library does not
-// simulate (yet), and `systemUi.platform`: both are accepted and ignored.
-
 import groovy.json.JsonSlurper
+import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.tasks.CacheableTask
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
 
+/**
+ * Generates the library's built-in `DevicePresets` catalog from the JSON device specs (copied from
+ * flutter_device_preview), one `DevicePreset` property per spec. The specs' fold display features
+ * and `systemUi.platform` are accepted and ignored.
+ */
+@CacheableTask
 abstract class GenerateDevicePresetsTask : DefaultTask() {
 
     @get:InputFiles
@@ -24,7 +27,7 @@ abstract class GenerateDevicePresetsTask : DefaultTask() {
 
     @TaskAction
     fun generate() {
-        // Sorted by id so `fold-8` precedes `fold-8-ultra`, as in Flutter.
+        // Sorted by id, so `fold-8` precedes `fold-8-ultra`.
         val files = specFiles.files.sortedBy { it.nameWithoutExtension }
         if (files.isEmpty()) throw GradleException("No device specs found")
 
@@ -266,7 +269,7 @@ abstract class GenerateDevicePresetsTask : DefaultTask() {
         if (!Regex("^[a-zA-Z_][a-zA-Z0-9_]*$").matches(name)) {
             throw GradleException(
                 "$fileName: derived property name \"$name\" is not a valid identifier; " +
-                    "add the id to nameOverrides in device-presets.gradle.kts"
+                    "add the id to nameOverrides in buildSrc/src/main/kotlin/GenerateDevicePresetsTask.kt"
             )
         }
         return name
@@ -321,11 +324,4 @@ abstract class GenerateDevicePresetsTask : DefaultTask() {
             "ipad" to "iPad",
         )
     }
-}
-
-tasks.register<GenerateDevicePresetsTask>("generateDevicePresets") {
-    group = "build"
-    description = "Generates the DevicePresets catalog from device_specs/*.json."
-    specFiles.from(fileTree("device_specs") { include("*.json") })
-    outputDirectory.set(layout.buildDirectory.dir("generated/devicePresets/kotlin"))
 }

@@ -12,7 +12,6 @@ import com.apadmi.cmpdevicepreview.core.DeviceSystemUi
 import com.apadmi.cmpdevicepreview.core.SystemUiBar
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /** Ported from flutter_device_preview's "SystemUiPainter layout" tests. */
 class SystemUiPainterTest {
@@ -80,13 +79,17 @@ class SystemUiPainterTest {
     fun tintsArtworkThatFollowsCurrentColor() {
         for (tint in listOf(SystemUiColors.DarkIcons, SystemUiColors.LightIcons)) {
             val image = ImageBitmap(400, 800)
-            SystemUiPainter(systemUi).paint(Canvas(image), screen, safeArea, tint, LayoutDirection.Ltr)
+            paintSystemUi(Canvas(image), SystemUiPainter(systemUi).layout(screen, safeArea, LayoutDirection.Ltr), tint)
             val pixels = image.toPixelMap()
             assertEquals(tint, pixels[20, 20], "inside the leading block")
             assertEquals(tint, pixels[200, 792], "inside the pill")
             assertEquals(Color.Transparent, pixels[5, 20], "inside the inset")
         }
-        assertTrue(SystemUiColors.icons(isDarkMode = true) == SystemUiColors.LightIcons)
-        assertTrue(SystemUiColors.icons(isDarkMode = false) == SystemUiColors.DarkIcons)
+    }
+
+    @Test
+    fun iconsContrastWithTheTheme() {
+        assertEquals(SystemUiColors.LightIcons, SystemUiColors.icons(isDarkMode = true))
+        assertEquals(SystemUiColors.DarkIcons, SystemUiColors.icons(isDarkMode = false))
     }
 }

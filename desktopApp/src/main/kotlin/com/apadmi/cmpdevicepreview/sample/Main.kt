@@ -1,4 +1,4 @@
-package com.apadmi.sample
+package com.apadmi.cmpdevicepreview.sample
 
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -10,7 +10,7 @@ import com.apadmi.cmpdevicepreview.preview.DeviceWithConfigurationView
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "Device Preview Sample",
+        title = "CmpDevicePreview Sample",
         // Wide enough to show the configuration panel beside the device.
         state = rememberWindowState(size = DpSize(1280.dp, 900.dp)),
     ) {

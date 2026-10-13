@@ -12,10 +12,7 @@ import com.apadmi.cmpdevicepreview.svg.SvgDrawing
 import kotlin.math.max
 import kotlin.math.min
 
-/**
- * Parses a [DeviceSystemUi] once, then lays out and paints its bars as [DeviceSystemUi] describes.
- * Malformed artwork is reported once and skipped.
- */
+/** Lays out a [DeviceSystemUi]'s bars, parsing each piece of artwork once. Malformed artwork is skipped. */
 internal class SystemUiPainter(val systemUi: DeviceSystemUi) {
 
     private val parsed = mutableMapOf<String, SvgDrawing?>()
@@ -36,18 +33,6 @@ internal class SystemUiPainter(val systemUi: DeviceSystemUi) {
             placeBar(navigationBar, region, layoutDirection, placed)
         }
         return placed
-    }
-
-    /**
-     * Paints the bars of a screen of [screenSize] whose safe area is [safeArea], tinting artwork
-     * that follows `currentColor` with [tint].
-     *
-     * The canvas origin must be the screen's top-left corner, in logical pixels.
-     */
-    fun paint(canvas: Canvas, screenSize: Size, safeArea: DeviceInsets, tint: Color, layoutDirection: LayoutDirection) {
-        for (artwork in layout(screenSize, safeArea, layoutDirection)) {
-            artwork.drawing.paintInto(canvas, artwork.bounds, currentColor = tint)
-        }
     }
 
     private fun placeBar(bar: SystemUiBar, region: Rect, layoutDirection: LayoutDirection, into: MutableList<PlacedArtwork>) {
@@ -84,6 +69,15 @@ internal class SystemUiPainter(val systemUi: DeviceSystemUi) {
 
 /** A piece of system UI artwork and where it is drawn, in screen coordinates. */
 internal class PlacedArtwork(val drawing: SvgDrawing, val bounds: Rect)
+
+/**
+ * Paints system UI artwork laid out by [SystemUiPainter.layout], tinting what follows
+ * `currentColor` with [tint]. The canvas origin must be the screen's top-left corner, in logical
+ * pixels.
+ */
+internal fun paintSystemUi(canvas: Canvas, placed: List<PlacedArtwork>, tint: Color) {
+    for (artwork in placed) artwork.drawing.paintInto(canvas, artwork.bounds, currentColor = tint)
+}
 
 /** The tints system UI artwork is painted with. */
 internal object SystemUiColors {

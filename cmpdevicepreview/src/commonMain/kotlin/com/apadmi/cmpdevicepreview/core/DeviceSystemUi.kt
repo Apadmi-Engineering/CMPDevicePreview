@@ -19,7 +19,7 @@ public data class DeviceSystemUi(
 ) {
 
     /** Whether nothing would be drawn. */
-    val isEmpty: Boolean
+    public val isEmpty: Boolean
         get() = (statusBar?.isEmpty ?: true) && (navigationBar?.isEmpty ?: true)
 }
 
@@ -45,7 +45,7 @@ public data class SystemUiBar(
 ) {
 
     /** Whether this bar has no artwork. */
-    val isEmpty: Boolean
+    public val isEmpty: Boolean
         get() = leading.isEmpty() && center.isEmpty() && trailing.isEmpty()
 
     override fun toString(): String =

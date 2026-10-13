@@ -1,15 +1,17 @@
-package com.apadmi.sample
+package com.apadmi.cmpdevicepreview.sample
 
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.window.core.layout.WindowSizeClass
 
 /** The app's layouts, one per Material window size class it handles, labelled with that class. */
-enum class AppLayout(val label: String, val hasDetailPane: Boolean = false) {
+enum class AppLayout(val label: String, val detailPaneWidth: Dp? = null) {
     /** Compact width: a single column and a bottom navigation bar. */
     Phone("Compact"),
 
@@ -20,10 +22,13 @@ enum class AppLayout(val label: String, val hasDetailPane: Boolean = false) {
     Tablet("Medium"),
 
     /** Expanded width: a rail, a grid and a detail pane. */
-    Desktop("Expanded", hasDetailPane = true),
+    Desktop("Expanded", detailPaneWidth = 360.dp),
 
     /** Large width: a navigation drawer, a grid and a wider detail pane. */
-    LargeDesktop("Large", hasDetailPane = true),
+    LargeDesktop("Large", detailPaneWidth = 440.dp);
+
+    val hasDetailPane: Boolean
+        get() = detailPaneWidth != null
 }
 
 @Composable

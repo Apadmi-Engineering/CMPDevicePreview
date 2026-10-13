@@ -1,4 +1,4 @@
-package com.apadmi.sample
+package com.apadmi.cmpdevicepreview.sample
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,8 +30,7 @@ fun ExploreScreen(state: WanderState, layout: AppLayout, modifier: Modifier = Mo
     when (layout) {
         AppLayout.Phone -> PhoneExplore(state, modifier)
         AppLayout.PhoneLandscape -> LandscapeExplore(state, modifier)
-        AppLayout.Tablet -> GridExplore(state, layout, modifier, showFeatured = true)
-        AppLayout.Desktop, AppLayout.LargeDesktop -> GridExplore(state, layout, modifier, showFeatured = false)
+        AppLayout.Tablet, AppLayout.Desktop, AppLayout.LargeDesktop -> GridExplore(state, layout, modifier)
     }
 }
 
@@ -76,19 +75,12 @@ private fun PhoneExplore(state: WanderState, modifier: Modifier) {
         if (featured == null) {
             item { NoResults(state, Modifier.fillMaxWidth()) }
         } else {
-            item {
-                FeaturedCard(
-                    featured, featured.id in state.saved, { state.toggleSaved(featured) }, { state.open(featured) },
-                    Modifier.fillMaxWidth().height(300.dp),
-                )
-            }
+            item { FeaturedCard(featured, state, Modifier.fillMaxWidth().height(300.dp)) }
         }
         if (results.size > 1) {
             item { Text("Popular", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold) }
         }
-        items(results.drop(1), key = { it.id }) { destination ->
-            ListCard(destination, destination.id in state.saved, { state.toggleSaved(destination) }, { state.open(destination) })
-        }
+        items(results.drop(1), key = { it.id }) { destination -> ListCard(destination, state) }
     }
 }
 
@@ -106,10 +98,7 @@ private fun LandscapeExplore(state: WanderState, modifier: Modifier) {
             if (featured == null) {
                 NoResults(state, Modifier.fillMaxWidth())
             } else {
-                FeaturedCard(
-                    featured, featured.id in state.saved, { state.toggleSaved(featured) }, { state.open(featured) },
-                    Modifier.weight(1f).fillMaxWidth(),
-                )
+                FeaturedCard(featured, state, Modifier.weight(1f).fillMaxWidth())
             }
         }
         LazyVerticalGrid(
@@ -126,21 +115,18 @@ private fun LandscapeExplore(state: WanderState, modifier: Modifier) {
                 }
             }
             items(results.drop(1), key = { it.id }) { destination ->
-                TileCard(
-                    destination, destination.id in state.saved, { state.toggleSaved(destination) }, { state.open(destination) },
-                    artAspectRatio = 16f / 9f,
-                )
+                TileCard(destination, state, artAspectRatio = 16f / 9f)
             }
         }
     }
 }
 
 /**
- * A grid with as many columns as fit. With [showFeatured] the first result is a wide banner;
- * without it (the desktop, whose detail pane shows the selection) every result is a card.
+ * A grid with as many columns as fit. Without a detail pane the first result is a wide banner;
+ * with one, which shows the selection, every result is a card.
  */
 @Composable
-private fun GridExplore(state: WanderState, layout: AppLayout, modifier: Modifier, showFeatured: Boolean) {
+private fun GridExplore(state: WanderState, layout: AppLayout, modifier: Modifier) {
     val results = state.results
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 200.dp),
@@ -154,20 +140,14 @@ private fun GridExplore(state: WanderState, layout: AppLayout, modifier: Modifie
         if (results.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) { NoResults(state) }
         }
-        val featured = results.firstOrNull().takeIf { showFeatured }
+        val featured = results.firstOrNull().takeUnless { layout.hasDetailPane }
         if (featured != null) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                FeaturedCard(
-                    featured, featured.id in state.saved, { state.toggleSaved(featured) }, { state.open(featured) },
-                    Modifier.fillMaxWidth().height(280.dp),
-                )
+                FeaturedCard(featured, state, Modifier.fillMaxWidth().height(280.dp))
             }
         }
         items(if (featured != null) results.drop(1) else results, key = { it.id }) { destination ->
-            TileCard(
-                destination, destination.id in state.saved, { state.toggleSaved(destination) }, { state.open(destination) },
-                isSelected = !showFeatured && destination == state.selected,
-            )
+            TileCard(destination, state, isSelected = layout.hasDetailPane && destination == state.selected)
         }
     }
 }
