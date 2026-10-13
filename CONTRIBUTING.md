@@ -54,6 +54,21 @@ To try your changes in another project, publish the library to your local Maven 
 ./gradlew :cmpdevicepreview:publishToMavenLocal
 ```
 
+### Code style
+
+[Spotless](https://github.com/diffplug/spotless) runs [Diktat](https://github.com/saveourtool/diktat) over the Kotlin sources, configured by [`diktat-analysis.yml`](diktat-analysis.yml). `buildSrc` and the `.kts` build scripts aren't checked.
+
+```bash
+./gradlew spotlessCheck   # report violations
+./gradlew spotlessApply   # fix the ones Diktat can fix
+```
+
+The `Lint` job in `pull_request.yml` runs `spotlessCheck`, and so does the pre-commit hook described under [Commit messages](#commit-messages). When you add a source set, add it to `srcDirectories` (or `testDirs` for a test source set) in `diktat-analysis.yml`.
+
+`spotlessApply` rewrites files in place, and Diktat's autofix can rename a declaration without updating the places that use it, so review its diff and build before you commit. Several rules whose autofix did that here, or clashed with the code's own conventions, are switched off in `diktat-analysis.yml`; each says why.
+
+The existing code hasn't been cleaned up for Diktat yet, so `spotlessCheck` currently reports violations across the repository. Until that's done, `git commit --no-verify` skips the pre-commit hook.
+
 ## Adding or updating a device
 
 The built-in devices are generated from JSON specs. [`cmpdevicepreview/device_specs/README.md`](cmpdevicepreview/device_specs/README.md) describes the format, how to add a device, and how to update the catalog from Flutter Device Preview, where the specs come from.
@@ -71,7 +86,7 @@ Releases are automated. [release-please](https://github.com/googleapis/release-p
 
 Mark a breaking change with `!` after the type, as in `refactor!: describe devices in dp`, or with a `BREAKING CHANGE:` footer. Breaking changes are always in the changelog.
 
-Install the commit-message check once per clone. It rejects a message that isn't in this format:
+Install the git hooks once per clone. The `commit-msg` hook rejects a message that isn't in this format, and the `pre-commit` hook runs `spotlessCheck` when you commit a Kotlin file (see [Code style](#code-style)):
 
 ```bash
 git config core.hooksPath .githooks

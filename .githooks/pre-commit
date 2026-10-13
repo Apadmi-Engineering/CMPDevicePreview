@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Checks the Kotlin code with Spotless (Diktat) before a commit that stages a .kt file. It only
+# reports: nothing is rewritten. Diktat's autofix can rename a declaration without updating its
+# usages, so run ./gradlew spotlessApply yourself and review the diff.
+#
+# Install once per clone:  git config core.hooksPath .githooks
+
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+staged_kotlin="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.kt$' || true)"
+
+# Nothing to check.
+[[ -z "$staged_kotlin" ]] && exit 0
+
+echo "Running spotlessCheck..."
+if ! "$repo_root/gradlew" -p "$repo_root" spotlessCheck --quiet; then
+    echo >&2 "Commit rejected: spotlessCheck failed. Run ./gradlew spotlessApply, review the diff, and commit again."
+    exit 1
+fi
