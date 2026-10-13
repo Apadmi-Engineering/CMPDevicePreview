@@ -1,4 +1,6 @@
-@file:Suppress("FILE_NAME_MATCH_CLASS") // Named for the theme; SegmentOption is the only class in it.
+@file:Suppress("FILE_NAME_MATCH_CLASS")
+
+// Named for the theme; SegmentOption is the only class in it.
 
 package com.apadmi.cmpdevicepreview.preview
 
@@ -49,6 +51,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 
+private const val DisabledAlpha = 0.45f
+
+private const val MaxTicks = 12
+
+internal val PanelWidth = 300.dp
+
 /** The colours of the configuration panel, the device picker and the preview's handles. */
 internal object PanelColors {
     val Background = Color(0xFF111114)
@@ -74,9 +82,56 @@ internal object PanelColors {
     val FrameOutline = Color(0xFF9A9AA6)
 }
 
-internal val PanelWidth = 300.dp
+/**
+ * One option of a [SegmentedControl].
+ *
+ * @property label The option's name.
+ * @property icon The icon shown beside the name.
+ */
+internal class SegmentOption(val label: String, val icon: ImageVector)
 
-private const val DisabledAlpha = 0.45f
+/** A setting's icon, title, note and badge, filling the row but for what follows them. */
+@Composable
+private fun RowScope.SettingLabel(
+    icon: ImageVector,
+    title: String,
+    note: String?,
+    badge: String?
+) {
+    Box(
+        Modifier.size(32.dp).background(PanelColors.Surface, RoundedCornerShape(8.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = PanelColors.TextSecondary, modifier = Modifier.size(18.dp))
+    }
+    Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(title, color = PanelColors.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            if (badge != null) {
+                Text(
+                    badge,
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .background(PanelColors.AccentSoft, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 6.dp, vertical = 1.dp),
+                    color = PanelColors.AccentBright,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+        if (note != null) {
+            Text(
+                note,
+                color = PanelColors.TextTertiary,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
 
 /**
  * The panel's dark Material theme, so ripples, text fields and dialogs inside it match.
@@ -135,8 +190,6 @@ internal fun PanelCaption(text: String) {
         fontSize = 12.sp,
     )
 }
-
-internal class SegmentOption(val label: String, val icon: ImageVector)
 
 /**
  * Equal-width options on a track, with an indicator that slides to the selected one.
@@ -298,7 +351,13 @@ internal fun StepSlider(
         }
         Slider(
             value = selectedIndex.toFloat(),
-            onValueChange = { value -> value.roundToInt().let { if (it != selectedIndex) onSelect(it) } },
+            onValueChange = { value ->
+                value.roundToInt().let {
+                    if (it != selectedIndex) {
+                        onSelect(it)
+                    }
+                }
+            },
             modifier = Modifier.fillMaxWidth().pointerHoverIcon(PointerIcon.Hand),
             enabled = labels.size > 1,
             valueRange = 0f..(labels.size - 1).coerceAtLeast(1).toFloat(),
@@ -312,46 +371,6 @@ internal fun StepSlider(
                 inactiveTickColor = if (labels.size <= MaxTicks) PanelColors.TextTertiary else Color.Transparent,
             ),
         )
-    }
-}
-
-private const val MaxTicks = 12
-
-/** A setting's icon, title, note and badge, filling the row but for what follows them. */
-@Composable
-private fun RowScope.SettingLabel(icon: ImageVector, title: String, note: String?, badge: String?) {
-    Box(
-        Modifier.size(32.dp).background(PanelColors.Surface, RoundedCornerShape(8.dp)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = null, tint = PanelColors.TextSecondary, modifier = Modifier.size(18.dp))
-    }
-    Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(title, color = PanelColors.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            if (badge != null) {
-                Text(
-                    badge,
-                    modifier = Modifier
-                        .padding(start = 8.dp)
-                        .background(PanelColors.AccentSoft, RoundedCornerShape(6.dp))
-                        .padding(horizontal = 6.dp, vertical = 1.dp),
-                    color = PanelColors.AccentBright,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-        if (note != null) {
-            Text(
-                note,
-                color = PanelColors.TextTertiary,
-                fontSize = 12.sp,
-                lineHeight = 16.sp,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }
 

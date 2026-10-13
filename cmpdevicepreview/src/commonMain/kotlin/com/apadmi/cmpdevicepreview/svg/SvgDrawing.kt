@@ -13,10 +13,33 @@ import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.vector.PathParser
 import kotlin.math.roundToInt
 
+private val numberPattern = Regex("[-+]?(\\d*\\.\\d+|\\d+\\.?)([eE][-+]?\\d+)?")
+
+private val urlPattern = Regex("url\\(\\s*#([^)\\s]+)\\s*\\)")
+
+private val rgbPattern = Regex("rgba?\\(([^)]*)\\)")
+
+private val namedColors = mapOf(
+    "black" to Color(0xFF000000),
+    "white" to Color(0xFFFFFFFF),
+    "gray" to Color(0xFF808080),
+    "grey" to Color(0xFF808080),
+    "silver" to Color(0xFFC0C0C0),
+    "red" to Color(0xFFFF0000),
+    "green" to Color(0xFF008000),
+    "blue" to Color(0xFF0000FF),
+    "yellow" to Color(0xFFFFFF00),
+    "orange" to Color(0xFFFFA500),
+    "navy" to Color(0xFF000080),
+)
+
+private val transformPattern = Regex("(\\w+)\\s*\\(([^)]*)\\)")
+
 /**
  * A shape of an [SvgDrawing], in the drawing's view box coordinates with every ancestor
  * `transform` already applied.
  *
+ * @property path The shape's outline.
  * @property color The resolved fill color, including `fill-opacity` and inherited `opacity`.
  * @property clips Clip outlines to intersect before filling, outermost first.
  * @property followsCurrentColor Whether this shape inherited its fill (`fill="currentColor"`, or no
@@ -36,9 +59,11 @@ internal class SvgShape(
  * artwork.
  *
  * Ported from flutter_device_preview's `SvgDrawing`, which device specs are authored against.
+ *
+ * @property viewBox The area of the artwork's own coordinates that the drawing covers.
+ * @property shapes The shapes to paint, in painting order.
  */
 internal class SvgDrawing(val viewBox: Rect, val shapes: List<SvgShape>) {
-
     /** The size of [viewBox]. */
     val size: Size
         get() = viewBox.size
@@ -70,7 +95,9 @@ internal class SvgDrawing(val viewBox: Rect, val shapes: List<SvgShape>) {
                 continue
             }
             canvas.save()
-            for (clip in shape.clips) canvas.clipPath(clip)
+            for (clip in shape.clips) {
+                canvas.clipPath(clip)
+            }
             canvas.drawPath(shape.path, paint)
             canvas.restore()
         }
@@ -87,8 +114,14 @@ internal class SvgDrawing(val viewBox: Rect, val shapes: List<SvgShape>) {
      * @param currentColor The colour for shapes that follow `currentColor`, or null to paint them
      * in their own colour.
      */
-    fun paintInto(canvas: Canvas, destination: Rect, currentColor: Color? = null) {
-        if (shapes.isEmpty() || viewBox.isEmpty || destination.isEmpty) return
+    fun paintInto(
+        canvas: Canvas,
+        destination: Rect,
+        currentColor: Color? = null
+    ) {
+        if (shapes.isEmpty() || viewBox.isEmpty || destination.isEmpty) {
+            return
+        }
         canvas.save()
         canvas.translate(destination.left, destination.top)
         canvas.scale(destination.width / viewBox.width, destination.height / viewBox.height)
@@ -152,31 +185,20 @@ internal class SvgDrawing(val viewBox: Rect, val shapes: List<SvgShape>) {
 }
 
 /**
- * Parses SVG path data (the `d` attribute of `<path>`) into a [Path], using Compose's own parser:
- * the full command set, arcs included.
- *
- * @param data The path data, as in the `d` attribute.
- * @param fillType How overlapping sub-paths are filled: non-zero by default, or even-odd.
- * @return The parsed path, with [fillType] applied.
- */
-internal fun parseSvgPathData(data: String, fillType: PathFillType = PathFillType.NonZero): Path =
-    PathParser().parsePathString(data).toPath().apply { this.fillType = fillType }
-
-/**
  * Style inherited down the element tree while flattening.
  *
  * @property transform The `transform` of the element and its ancestors combined, mapping the
  * element's own coordinates into view box coordinates.
  * @property opacity The `opacity` of the element and its ancestors, multiplied together.
  * @property clips The clip outlines in effect, in view box coordinates, outermost first.
+ * @property color The inherited `fill`, or null for `fill="none"`.
+ * @property inheritsColor Whether [color] came from inheritance rather than an explicit fill.
  */
 private class InheritedStyle(
     val transform: Affine,
-    /** The inherited `fill`, or null for `fill="none"`. */
     val color: Color?,
     val opacity: Float,
     val clips: List<Path>,
-    /** Whether [color] came from inheritance rather than an explicit fill. */
     val inheritsColor: Boolean = true,
 )
 
@@ -185,68 +207,63 @@ private class Flattener(
     private val clipPaths: Map<String, List<XmlElement>>,
     private val shapes: MutableList<SvgShape>,
 ) {
-
     fun visitChildren(element: XmlElement, style: InheritedStyle) {
-        for (child in element.children) visit(child, style)
+        for (child in element.children) {
+            visit(child, style)
+        }
     }
 
     private fun visit(element: XmlElement, parent: InheritedStyle) {
-        if (element.name in skipped) return
+        if (element.name in skipped) {
+            return
+        }
         val attributes = resolveAttributes(element)
         val transform = valueOf(attributes, "transform")
             ?.let { parent.transform * parseTransform(it) }
             ?: parent.transform
         val opacity = parent.opacity * (parseNumber(valueOf(attributes, "opacity")) ?: 1f)
-        val rawFill = valueOf(attributes, "fill")
-        // `none` is inheritable, so it is carried as a null color rather than handled at the leaf.
-        val color: Color?
-        val inheritsColor: Boolean
-        when (rawFill) {
-            "currentColor" -> {
-                // The paint-time tint, not the inherited fill, as CSS `color` is independent of
-                // `fill`. Without a tint it is black, the initial value of `color`.
-                color = Color.Black
-                inheritsColor = true
-            }
-            null -> {
-                color = parent.color
-                inheritsColor = parent.inheritsColor
-            }
-            "none", "transparent" -> {
-                color = null
-                inheritsColor = parent.inheritsColor
-            }
-            else -> {
-                val parsed = parseColor(rawFill)
-                color = parsed ?: parent.color
-                inheritsColor = parsed == null && parent.inheritsColor
-            }
-        }
+        val fill = resolveFill(valueOf(attributes, "fill"), parent)
         val clips = resolveClips(attributes, transform, parent)
-        val style = InheritedStyle(transform, color, opacity, clips, inheritsColor)
+        val style = InheritedStyle(transform, fill.color, opacity, clips, fill.inheritsColor)
 
         if (element.name in containers) {
             visitChildren(element, style)
-            return
+        } else {
+            addShape(element, attributes, style)
         }
+    }
 
-        if (color == null) return
+    /** Adds [element] as a shape filled as [style] says, unless it has no fill or no geometry. */
+    private fun addShape(
+        element: XmlElement,
+        attributes: Map<String, String>,
+        style: InheritedStyle
+    ) {
+        val color = style.color ?: return
         val path = buildShape(element, attributes) ?: return
-        if (!transform.isIdentity) path.transform(transform.toMatrix())
+        if (!style.transform.isIdentity) {
+            path.transform(style.transform.toMatrix())
+        }
         val fillOpacity = parseNumber(valueOf(attributes, "fill-opacity")) ?: 1f
-        val alpha = (opacity * fillOpacity).coerceIn(0f, 1f)
+        val alpha = (style.opacity * fillOpacity).coerceIn(0f, 1f)
         shapes += SvgShape(
             path = path,
             color = color.copy(alpha = color.alpha * alpha),
-            clips = clips,
-            followsCurrentColor = inheritsColor,
+            clips = style.clips,
+            followsCurrentColor = style.inheritsColor,
         )
     }
 
-    private fun resolveClips(attributes: Map<String, String>, transform: Affine, parent: InheritedStyle): List<Path> {
+    private fun resolveClips(
+        attributes: Map<String, String>,
+        transform: Affine,
+        parent: InheritedStyle
+    ): List<Path> {
         val reference = valueOf(attributes, "clip-path") ?: return parent.clips
         val definition = parseUrlReference(reference)?.let { clipPaths[it] }
-        if (definition.isNullOrEmpty()) return parent.clips
+        if (definition.isNullOrEmpty()) {
+            return parent.clips
+        }
         // `clipPathUnits` defaults to `userSpaceOnUse`: the clip geometry lives in the user space
         // of the referencing element, i.e. under `transform`.
         val clip = Path()
@@ -256,7 +273,9 @@ private class Flattener(
             valueOf(childAttributes, "transform")?.let { shape.transform(parseTransform(it).toMatrix()) }
             clip.addPath(shape)
         }
-        if (!transform.isIdentity) clip.transform(transform.toMatrix())
+        if (!transform.isIdentity) {
+            clip.transform(transform.toMatrix())
+        }
         return parent.clips + clip
     }
 
@@ -265,52 +284,10 @@ private class Flattener(
         val number = { name: String -> parseNumber(valueOf(attributes, name)) }
         return when (element.name) {
             "path" -> valueOf(attributes, "d")?.let { parseSvgPathData(it, fillType) }
-            "rect" -> {
-                val width = number("width") ?: 0f
-                val height = number("height") ?: 0f
-                if (width <= 0f || height <= 0f) return null
-                val rect = Rect(Offset(number("x") ?: 0f, number("y") ?: 0f), Size(width, height))
-                // A missing radius takes the other's value, as in SVG.
-                val rx = number("rx") ?: number("ry")
-                val ry = number("ry") ?: rx
-                Path().apply {
-                    this.fillType = fillType
-                    if (rx == null || ry == null) addRect(rect) else addRoundRect(RoundRect(rect, CornerRadius(rx, ry)))
-                }
-            }
-            "circle" -> {
-                val radius = number("r") ?: 0f
-                if (radius <= 0f) return null
-                Path().apply {
-                    this.fillType = fillType
-                    addOval(Rect(Offset(number("cx") ?: 0f, number("cy") ?: 0f), radius))
-                }
-            }
-            "ellipse" -> {
-                val rx = number("rx") ?: 0f
-                val ry = number("ry") ?: 0f
-                if (rx <= 0f || ry <= 0f) return null
-                val cx = number("cx") ?: 0f
-                val cy = number("cy") ?: 0f
-                Path().apply {
-                    this.fillType = fillType
-                    addOval(Rect(cx - rx, cy - ry, cx + rx, cy + ry))
-                }
-            }
-            "polygon" -> {
-                val points = parseNumberList(valueOf(attributes, "points") ?: "")
-                if (points.size < 6) return null
-                Path().apply {
-                    this.fillType = fillType
-                    moveTo(points[0], points[1])
-                    var i = 2
-                    while (i + 1 < points.size) {
-                        lineTo(points[i], points[i + 1])
-                        i += 2
-                    }
-                    close()
-                }
-            }
+            "rect" -> rectPath(fillType, number)
+            "circle" -> circlePath(fillType, number)
+            "ellipse" -> ellipsePath(fillType, number)
+            "polygon" -> polygonPath(valueOf(attributes, "points") ?: "", fillType)
             else -> null
         }
     }
@@ -336,7 +313,9 @@ private class Flattener(
             val merged = element.attributes.toMutableMap()
             for (declaration in style.split(';')) {
                 val separator = declaration.indexOf(':')
-                if (separator <= 0) continue
+                if (separator <= 0) {
+                    continue
+                }
                 merged[declaration.substring(0, separator).trim()] = declaration.substring(separator + 1).trim()
             }
             return merged
@@ -347,7 +326,100 @@ private class Flattener(
     }
 }
 
-private val numberPattern = Regex("[-+]?(\\d*\\.\\d+|\\d+\\.?)([eE][-+]?\\d+)?")
+/**
+ * A resolved fill.
+ *
+ * @property color The fill, or null for `fill="none"`.
+ * @property inheritsColor Whether [color] came from inheritance rather than an explicit fill.
+ */
+private data class ResolvedFill(val color: Color?, val inheritsColor: Boolean)
+
+/**
+ * Parses SVG path data (the `d` attribute of `<path>`) into a [Path], using Compose's own parser:
+ * the full command set, arcs included.
+ *
+ * @param data The path data, as in the `d` attribute.
+ * @param fillType How overlapping sub-paths are filled: non-zero by default, or even-odd.
+ * @return The parsed path, with [fillType] applied.
+ */
+internal fun parseSvgPathData(data: String, fillType: PathFillType = PathFillType.NonZero): Path =
+    PathParser().parsePathString(data).toPath().apply { this.fillType = fillType }
+
+/** The fill an element gets from its `fill` attribute [rawFill], inheriting from [parent] where it is silent. */
+private fun resolveFill(rawFill: String?, parent: InheritedStyle): ResolvedFill = when (rawFill) {
+    // The paint-time tint, not the inherited fill, as CSS `color` is independent of `fill`.
+    // Without a tint it is black, the initial value of `color`.
+    "currentColor" -> ResolvedFill(Color.Black, inheritsColor = true)
+    null -> ResolvedFill(parent.color, parent.inheritsColor)
+    // `none` is inheritable, so it is carried as a null color rather than handled at the leaf.
+    "none", "transparent" -> ResolvedFill(null, parent.inheritsColor)
+    else -> {
+        val parsed = parseColor(rawFill)
+        ResolvedFill(parsed ?: parent.color, inheritsColor = parsed == null && parent.inheritsColor)
+    }
+}
+
+/** The `<rect>` whose attributes [number] reads, or null when it has no area. */
+private fun rectPath(fillType: PathFillType, number: (String) -> Float?): Path? {
+    val width = number("width") ?: 0f
+    val height = number("height") ?: 0f
+    if (width <= 0f || height <= 0f) {
+        return null
+    }
+    val rect = Rect(Offset(number("x") ?: 0f, number("y") ?: 0f), Size(width, height))
+    // A missing radius takes the other's value, as in SVG.
+    val rx = number("rx") ?: number("ry")
+    val ry = number("ry") ?: rx
+    return Path().apply {
+        this.fillType = fillType
+        if (rx == null || ry == null) addRect(rect) else addRoundRect(RoundRect(rect, CornerRadius(rx, ry)))
+    }
+}
+
+/** The `<circle>` whose attributes [number] reads, or null when it has no radius. */
+private fun circlePath(fillType: PathFillType, number: (String) -> Float?): Path? {
+    val radius = number("r") ?: 0f
+    if (radius <= 0f) {
+        return null
+    }
+    return Path().apply {
+        this.fillType = fillType
+        addOval(Rect(Offset(number("cx") ?: 0f, number("cy") ?: 0f), radius))
+    }
+}
+
+/** The `<ellipse>` whose attributes [number] reads, or null when it has no area. */
+private fun ellipsePath(fillType: PathFillType, number: (String) -> Float?): Path? {
+    val rx = number("rx") ?: 0f
+    val ry = number("ry") ?: 0f
+    if (rx <= 0f || ry <= 0f) {
+        return null
+    }
+    val cx = number("cx") ?: 0f
+    val cy = number("cy") ?: 0f
+    return Path().apply {
+        this.fillType = fillType
+        addOval(Rect(cx - rx, cy - ry, cx + rx, cy + ry))
+    }
+}
+
+/** The `<polygon>` through the coordinate pairs in [rawPoints], or null when it has fewer than three. */
+private fun polygonPath(rawPoints: String, fillType: PathFillType): Path? {
+    val points = parseNumberList(rawPoints)
+    if (points.size < 6) {
+        return null
+    }
+    return Path().apply {
+        this.fillType = fillType
+        moveTo(points[0], points[1])
+        var i = 2
+        while (i + 1 < points.size) {
+            lineTo(points[i], points[i + 1])
+            i += 2
+        }
+        close()
+    }
+}
 
 /** Parses a whitespace/comma separated list of numbers. */
 private fun parseNumberList(raw: String): List<Float> =
@@ -358,16 +430,14 @@ private fun parseNumber(raw: String?): Float? = raw?.trim()?.toFloatOrNull()
 /** Parses a length, dropping a `px` suffix (other units are unsupported). */
 private fun parseLength(raw: String?): Float? = raw?.removeSuffix("px")?.trim()?.toFloatOrNull()
 
-private val urlPattern = Regex("url\\(\\s*#([^)\\s]+)\\s*\\)")
-
 private fun parseUrlReference(raw: String): String? = urlPattern.find(raw)?.groupValues?.get(1)
-
-private val rgbPattern = Regex("rgba?\\(([^)]*)\\)")
 
 /** Parses the color syntaxes of the supported subset; null for anything else. */
 private fun parseColor(raw: String): Color? {
     val value = raw.trim()
-    if (value.isEmpty() || value == "none" || value == "transparent") return null
+    if (value.isEmpty() || value == "none" || value == "transparent") {
+        return null
+    }
     if (value.startsWith("#")) {
         val hex = value.substring(1)
         return when (hex.length) {
@@ -378,7 +448,9 @@ private fun parseColor(raw: String): Color? {
     }
     rgbPattern.find(value)?.let { match ->
         val components = parseNumberList(match.groupValues[1])
-        if (components.size < 3) return null
+        if (components.size < 3) {
+            return null
+        }
         val alpha = if (components.size > 3) components[3] else 1f
         return Color(
             red = components[0].roundToInt().coerceIn(0, 255),
@@ -395,22 +467,6 @@ private fun parseHex(hex: String): Color? {
     // #rrggbb → 0xFFrrggbb; #rrggbbaa → 0xaarrggbb.
     return if (hex.length == 6) Color(0xFF000000 or value) else Color(((value and 0xFF) shl 24) or (value ushr 8))
 }
-
-private val namedColors = mapOf(
-    "black" to Color(0xFF000000),
-    "white" to Color(0xFFFFFFFF),
-    "gray" to Color(0xFF808080),
-    "grey" to Color(0xFF808080),
-    "silver" to Color(0xFFC0C0C0),
-    "red" to Color(0xFFFF0000),
-    "green" to Color(0xFF008000),
-    "blue" to Color(0xFF0000FF),
-    "yellow" to Color(0xFFFFFF00),
-    "orange" to Color(0xFFFFA500),
-    "navy" to Color(0xFF000080),
-)
-
-private val transformPattern = Regex("(\\w+)\\s*\\(([^)]*)\\)")
 
 /** Parses an SVG `transform` attribute; its operations apply right to left, as in SVG. */
 private fun parseTransform(raw: String): Affine {
@@ -436,7 +492,9 @@ private fun parseTransform(raw: String): Affine {
             "skewY" -> values.firstOrNull()?.let(Affine::skewY)
             else -> null
         }
-        if (operation != null) result *= operation
+        if (operation != null) {
+            result *= operation
+        }
     }
     return result
 }

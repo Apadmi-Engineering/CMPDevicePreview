@@ -58,8 +58,9 @@ private val HandleHighlight = PanelColors.Accent
 /**
  * A place on the device that can be dragged to resize it: a corner or an edge midpoint. [x] and [y]
  * are each -1 (left, top), 0 (the middle) or 1 (right, bottom): the sides the handle moves.
- * @property x
- * @property y
+ *
+ * @property x The side the handle moves horizontally: -1 for the left, 0 for neither, 1 for the right.
+ * @property y The side the handle moves vertically: -1 for the top, 0 for neither, 1 for the bottom.
  */
 internal data class ResizeHandle(val x: Int, val y: Int) {
     val isCorner: Boolean get() = x != 0 && y != 0
@@ -76,10 +77,11 @@ internal data class ResizeHandle(val x: Int, val y: Int) {
 /**
  * A resize in progress: [handle] has been dragged [offset] pixels from where it was pressed. The
  * [scale] stays as it was when the drag began, so the dragged corner doesn't run away from the cursor.
- * @property handle
- * @property start
- * @property scale
- * @property offset
+ *
+ * @property handle The handle being dragged.
+ * @property start The screen size, in dp, when the drag began.
+ * @property scale The pixels per dp the drag is measured at.
+ * @property offset How far the handle has been dragged from where it was pressed, in pixels.
  */
 internal data class ResizeDrag(
     val handle: ResizeHandle,

@@ -2,13 +2,8 @@
 
 package com.apadmi.cmpdevicepreview.preview
 
-internal actual fun relabelMouseAsTouch(startsOnNode: (x: Float, y: Float) -> Boolean): (() -> Unit)? {
-    val stop = installMouseAsTouch { x, y -> startsOnNode(x.toFloat(), y.toFloat()) }
-    return { callStop(stop) }
-}
-
-/** Listens on the window, ahead of Compose's listeners on its canvas. Returns the function that removes the listeners. */
-private fun installMouseAsTouch(startsOnNode: (Double, Double) -> Boolean): JsAny = js(
+/** The script behind [installMouseAsTouch]; it reads the function's `startsOnNode` parameter by name. */
+private const val MouseAsTouchScript =
     """(() => {
         let pressed = null; // The pointer being relabelled, and the canvas its press started on.
         let passedThrough = null; // A mouse press left as a mouse, such as one off the node.
@@ -77,6 +72,13 @@ private fun installMouseAsTouch(startsOnNode: (Double, Double) -> Boolean): JsAn
             for (const type of types) window.removeEventListener(type, listener, true);
         };
     })()"""
-)
+
+internal actual fun relabelMouseAsTouch(startsOnNode: (x: Float, y: Float) -> Boolean): (() -> Unit)? {
+    val stop = installMouseAsTouch { x, y -> startsOnNode(x.toFloat(), y.toFloat()) }
+    return { callStop(stop) }
+}
+
+/** Listens on the window, ahead of Compose's listeners on its canvas. Returns the function that removes the listeners. */
+private fun installMouseAsTouch(startsOnNode: (Double, Double) -> Boolean): JsAny = js(MouseAsTouchScript)
 
 private fun callStop(stop: JsAny): Unit = js("stop()")

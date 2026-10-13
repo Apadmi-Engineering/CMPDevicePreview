@@ -37,7 +37,7 @@ public data class SimulatedDevice(
      * the device has none in this orientation, and the display size moves to the nearest one the
      * device offers. Every device offers the same text sizes, so the text size is kept.
      *
-     * @return
+     * @return This device, or a copy with the configuration fitted to it.
      */
     internal fun adaptedToDevice(): SimulatedDevice {
         val adapted = configuration.copy(

@@ -6,10 +6,11 @@ import androidx.compose.ui.unit.dp
 /**
  * Insets from each edge of a simulated screen, in logical pixels (the dp the previewed content
  * sees), e.g. the safe area around a notch, a Dynamic Island or a home indicator.
- * @property left
- * @property top
- * @property right
- * @property bottom
+ *
+ * @property left The inset from the left edge.
+ * @property top The inset from the top edge.
+ * @property right The inset from the right edge.
+ * @property bottom The inset from the bottom edge.
  */
 public data class DeviceInsets(
     val left: Float = 0f,

@@ -98,8 +98,10 @@ private class DeviceTurn(isPortrait: Boolean) {
 }
 
 /**
- * @property screen
- * @property device
+ * The graphics layers the screenshots of a device are recorded into.
+ *
+ * @property screen The layer for the screen alone.
+ * @property device The layer for the whole device, in its frame.
  */
 private class ScreenshotLayers(val screen: GraphicsLayer, val device: GraphicsLayer)
 

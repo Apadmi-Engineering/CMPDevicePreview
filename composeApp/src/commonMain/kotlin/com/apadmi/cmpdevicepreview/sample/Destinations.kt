@@ -2,39 +2,12 @@ package com.apadmi.cmpdevicepreview.sample
 
 import androidx.compose.ui.graphics.Color
 
-enum class Category(val label: String) {
-    Mountains("Mountains"),
-    Coast("Coast"),
-    City("City"),
-    Desert("Desert"),
-}
-
-/** The kind of landscape a destination's illustration draws. */
-enum class Scene { Peaks, Hills, Sea, Dunes, Skyline }
-
-data class Destination(
-    val id: Int,
-    val name: String,
-    val country: String,
-    val category: Category,
-    val rating: Float,
-    val nights: Int,
-    val price: Int,
-    val blurb: String,
-    /** The sky, top to bottom. */
-    val sky: List<Color>,
-    /** The nearest layer of land; the layers behind it fade towards the sky. */
-    val land: Color,
-    val sun: Color,
-    val scene: Scene,
-)
-
 val destinations: List<Destination> = listOf(
     Destination(
         id = 1, name = "Lofoten", country = "Norway", category = Category.Mountains,
         rating = 4.9f, nights = 5, price = 840,
         blurb = "Granite peaks rise straight out of the sea, with red fishing cabins along the shore " +
-            "and the midnight sun in summer.",
+                "and the midnight sun in summer.",
         sky = listOf(Color(0xFF3B2A6B), Color(0xFFE88BA6)), land = Color(0xFF1C1633),
         sun = Color(0xFFFFD3B0), scene = Scene.Peaks,
     ),
@@ -42,7 +15,7 @@ val destinations: List<Destination> = listOf(
         id = 2, name = "Santorini", country = "Greece", category = Category.Coast,
         rating = 4.8f, nights = 4, price = 720,
         blurb = "Whitewashed villages on the rim of a flooded caldera, and sunsets over the Aegean " +
-            "from Oia's terraces.",
+                "from Oia's terraces.",
         sky = listOf(Color(0xFF2B79C2), Color(0xFFA6E1FA)), land = Color(0xFF0B3D6B),
         sun = Color(0xFFFFF4C2), scene = Scene.Sea,
     ),
@@ -116,4 +89,53 @@ val destinations: List<Destination> = listOf(
         sky = listOf(Color(0xFF8E2DE2), Color(0xFFF7797D)), land = Color(0xFF2E0F3A),
         sun = Color(0xFFFFE0B5), scene = Scene.Skyline,
     ),
+)
+
+/**
+ * What kind of place a destination is.
+ *
+ * @property label The name shown for the category.
+ */
+enum class Category(val label: String) {
+    Mountains("Mountains"),
+    Coast("Coast"),
+    City("City"),
+    Desert("Desert"),
+    ;
+}
+
+/** The kind of landscape a destination's illustration draws. */
+enum class Scene {
+    Peaks, Hills, Sea, Dunes, Skyline
+}
+
+/**
+ * A place the sample app offers, with the colours its illustration is drawn from.
+ *
+ * @property id Tells destinations apart, and seeds its illustration so it always draws the same.
+ * @property name The destination's name.
+ * @property country The country it is in.
+ * @property category What kind of place it is.
+ * @property rating The average review score.
+ * @property nights How many nights a stay is priced for.
+ * @property price What the stay costs, in pounds, from.
+ * @property blurb A short description.
+ * @property sky The sky, top to bottom.
+ * @property land The nearest layer of land; the layers behind it fade towards the sky.
+ * @property sun The colour of the sun.
+ * @property scene The kind of landscape its illustration draws.
+ */
+data class Destination(
+    val id: Int,
+    val name: String,
+    val country: String,
+    val category: Category,
+    val rating: Float,
+    val nights: Int,
+    val price: Int,
+    val blurb: String,
+    val sky: List<Color>,
+    val land: Color,
+    val sun: Color,
+    val scene: Scene,
 )

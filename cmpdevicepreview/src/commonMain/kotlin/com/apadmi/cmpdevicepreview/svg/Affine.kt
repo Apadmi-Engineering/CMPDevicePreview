@@ -13,12 +13,13 @@ import kotlin.math.tan
  * x' = a·x + c·y + e
  * y' = b·x + d·y + f
  * ```
- * @property a
- * @property b
- * @property c
- * @property d
- * @property e
- * @property f
+ *
+ * @property a How much x adds to x'.
+ * @property b How much x adds to y'.
+ * @property c How much y adds to x'.
+ * @property d How much y adds to y'.
+ * @property e How far x' is translated.
+ * @property f How far y' is translated.
  */
 @Suppress("IDENTIFIER_LENGTH")  // The components are named as in SVG's matrix(a b c d e f).
 internal data class Affine(

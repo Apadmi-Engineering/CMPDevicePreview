@@ -20,6 +20,26 @@ private const val KeyboardBandRadius: Float = 8f
 /** The pitch of the band's hatching, in logical pixels. */
 private const val HatchPitch: Float = 12f
 
+/** The keyboard band's paints, made once, on first use. */
+private object KeyboardPaints {
+    private val MarkInk = Color(0x40FFFFFF)
+    val band = Paint().apply { color = Color(0xCC17171A) }
+    val hairline = Paint().apply { color = Color(0x1FFFFFFF) }
+    val stripe = Paint().apply {
+        style = PaintingStyle.Stroke
+        strokeWidth = 1f
+        color = Color(0x14FFFFFF)
+    }
+    val markStroke = Paint().apply {
+        style = PaintingStyle.Stroke
+        strokeWidth = 1f
+        strokeCap = StrokeCap.Round
+        strokeJoin = StrokeJoin.Round
+        color = MarkInk
+    }
+    val markFill = Paint().apply { color = MarkInk }
+}
+
 /**
  * The band a keyboard of [height] covers at the bottom of a screen of [screenSize], or null when
  * nothing is covered. A keyboard taller than the screen is clamped to it.
@@ -29,7 +49,9 @@ private const val HatchPitch: Float = 12f
  * @return The covered band in the screen's coordinates, or null when nothing is covered.
  */
 internal fun keyboardBand(screenSize: Size, height: Float): Rect? {
-    if (height <= 0f || screenSize.isEmpty()) return null
+    if (height <= 0f || screenSize.isEmpty()) {
+        return null
+    }
     val covered = min(height, screenSize.height)
     return Rect(0f, screenSize.height - covered, screenSize.width, screenSize.height)
 }
@@ -55,7 +77,11 @@ internal fun keyboardMarkSize(band: Rect): Float? =
  * @param screenSize The size of the screen the keyboard is raised on, in dp.
  * @param height The height the keyboard covers, in dp; nothing is painted when it is zero or less.
  */
-internal fun paintSimulatedKeyboard(canvas: Canvas, screenSize: Size, height: Float) {
+internal fun paintSimulatedKeyboard(
+    canvas: Canvas,
+    screenSize: Size,
+    height: Float
+) {
     val band = keyboardBand(screenSize, height) ?: return
     // Rounded where it meets the content, square where it meets the screen edge.
     val shape = Path().apply {
@@ -103,25 +129,4 @@ private fun paintKeyboardMark(canvas: Canvas) {
         }
     }
     canvas.drawLine(Offset(5.5f, 10.6f), Offset(10.5f, 10.6f), stroke)
-}
-
-/** The keyboard band's paints, made once, on first use. */
-private object KeyboardPaints {
-    private val MarkInk = Color(0x40FFFFFF)
-
-    val band = Paint().apply { color = Color(0xCC17171A) }
-    val hairline = Paint().apply { color = Color(0x1FFFFFFF) }
-    val stripe = Paint().apply {
-        style = PaintingStyle.Stroke
-        strokeWidth = 1f
-        color = Color(0x14FFFFFF)
-    }
-    val markStroke = Paint().apply {
-        style = PaintingStyle.Stroke
-        strokeWidth = 1f
-        strokeCap = StrokeCap.Round
-        strokeJoin = StrokeJoin.Round
-        color = MarkInk
-    }
-    val markFill = Paint().apply { color = MarkInk }
 }

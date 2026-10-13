@@ -42,7 +42,7 @@ private class MouseAsTouchNode : Modifier.Node(), GlobalPositionAwareModifierNod
  * released. Hover, the wheel and other buttons stay mouse events. Only the web can relabel
  * pointers; elsewhere this does nothing.
  *
- * @return
+ * @return This modifier, with the node that relabels the mouse added.
  */
 internal fun Modifier.mouseAsTouch(): Modifier = this then MouseAsTouchElement
 
