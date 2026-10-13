@@ -85,6 +85,13 @@ internal data class ResizeDrag(
  * The screen size, in dp, after dragging [handle] by [drag] pixels at [scale] pixels per dp. The
  * device stays centred, so each side the handle moves grows by twice the drag. Sides are whole dp,
  * between [MinFreeformSize] and [max] (at most [MaxFreeformSize]), unless already larger.
+ *
+ * @param start The screen size, in dp, when the drag began.
+ * @param handle The handle being dragged.
+ * @param drag How far the handle has been dragged from where it was pressed, in pixels.
+ * @param scale The pixels per dp the drag is measured at.
+ * @param max The room there is for the device, in dp; a side with no limit is infinite.
+ * @return The new screen size, in dp, with any side the handle doesn't move left as it was.
  */
 internal fun resizedScreenSize(start: Size, handle: ResizeHandle, drag: Offset, scale: Float, max: Size): Size {
     fun side(start: Float, direction: Int, drag: Float, max: Float): Float {
@@ -98,7 +105,13 @@ internal fun resizedScreenSize(start: Size, handle: ResizeHandle, drag: Offset, 
     )
 }
 
-/** The cursor shown over [handle]. */
+/**
+ * The cursor shown over [handle].
+ *
+ * @param handle The handle the pointer is over.
+ * @return The resize cursor that points along the handle's direction, or the default cursor on a
+ * platform that has none.
+ */
 internal expect fun resizeCursor(handle: ResizeHandle): PointerIcon
 
 private val HandleHighlight = PanelColors.Accent
@@ -106,6 +119,15 @@ private val HandleHighlight = PanelColors.Accent
 /**
  * The handles on a device whose visible bounds measure [visibleSize] pixels, centred in the parent.
  * A freeform window has edge handles too, and its corners show even when the pointer isn't on them.
+ *
+ * @param visibleSize The size of the device's visible bounds, in pixels, which the handles sit on.
+ * @param isFreeform Whether the device is a freeform window, which has edge handles as well.
+ * @param active The handle being dragged, drawn highlighted, or null when none is.
+ * @param onStart Called with the handle when a drag on it begins.
+ * @param onDrag Called with how far the pointer is from where it was pressed, in pixels, each time
+ * it moves during a drag.
+ * @param onEnd Called when the pointer is released at the end of a drag.
+ * @param onCancel Called when a drag ends without a release, because the gesture was cancelled.
  */
 @Composable
 internal fun BoxScope.ResizeHandles(
@@ -200,6 +222,9 @@ private fun DrawScope.drawHandle(handle: ResizeHandle, isHighlighted: Boolean) {
 /**
  * A dashed outline of a freeform window of [size] dp at [scale] pixels per dp, centred on the
  * parent, with its size written in it: where the device lands when the handle is let go.
+ *
+ * @param size The size of the window, in dp.
+ * @param scale The pixels per dp the outline is drawn at.
  */
 @Composable
 internal fun BoxScope.ResizeOutline(size: Size, scale: Float) {

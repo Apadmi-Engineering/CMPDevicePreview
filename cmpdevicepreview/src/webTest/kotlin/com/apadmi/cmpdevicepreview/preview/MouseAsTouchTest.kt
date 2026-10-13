@@ -10,7 +10,6 @@ import kotlin.test.assertNotNull
 
 /** Dispatches mouse events at a 200 × 100 canvas whose left half is the node. */
 class MouseAsTouchTest {
-
     private lateinit var canvas: JsAny
     private lateinit var received: JsAny
 
@@ -84,7 +83,12 @@ private fun recordPointerTypes(canvas: JsAny): JsAny = js(
     })()"""
 )
 
-private fun dispatchMouse(canvas: JsAny, type: String, x: Int, buttons: Int): Unit = js(
+private fun dispatchMouse(
+    canvas: JsAny,
+    type: String,
+    x: Int,
+    buttons: Int
+): Unit = js(
     """canvas.dispatchEvent(new PointerEvent(type, {
         bubbles: true, cancelable: true, composed: true, pointerId: 1, pointerType: 'mouse', isPrimary: true,
         clientX: x, clientY: 50, button: 0, buttons: buttons,

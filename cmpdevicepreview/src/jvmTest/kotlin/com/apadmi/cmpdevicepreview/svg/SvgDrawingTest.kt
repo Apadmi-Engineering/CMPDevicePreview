@@ -10,7 +10,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class SvgDrawingTest {
-
     @Test
     fun readsTheViewBox() {
         assertEquals(Rect(1f, 2f, 11f, 22f), SvgDrawing.parse("""<svg viewBox="1 2 10 20"/>""").viewBox)
@@ -34,7 +33,7 @@ class SvgDrawingTest {
             """.trimIndent()
         )
         assertEquals(
-            listOf(Color(0xFF7E7E7E), Color(0xFFAABBCC), Color.Red, Color(0xFF000080), Color(0x44112233)),
+            listOf(Color(0xFF_7E7_E7E), Color(0xFF_AAB_BCC), Color.Red, Color(0xFF_000_080), Color(0x44_112_233)),
             drawing.shapes.map { it.color },
         )
         assertEquals(Rect(40f, 40f, 60f, 60f), drawing.shapes[1].path.getBounds())

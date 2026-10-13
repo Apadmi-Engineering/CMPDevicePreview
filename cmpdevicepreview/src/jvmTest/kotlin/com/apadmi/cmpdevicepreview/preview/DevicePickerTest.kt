@@ -20,7 +20,6 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class DevicePickerTest {
-
     private val freeform = FreeformDevice(Size(400f, 800f))
 
     private fun ComposeUiTest.showPicker(selected: Device = DevicePresets.pixel9, onPick: (Device) -> Unit = {}) {

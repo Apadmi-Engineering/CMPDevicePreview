@@ -7,7 +7,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class DotGridTest {
-
     @Test
     fun theGridIsCentredAndCoversTheArea() {
         val points = dotGridPoints(Size(100f, 60f), spacing = 20f)

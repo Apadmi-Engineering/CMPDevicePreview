@@ -26,6 +26,9 @@ internal data class Affine(
     /**
      * The composition that applies [other] first, then this transform. This is how an SVG
      * `transform` list composes left to right, and how a child's transform nests in its parent's.
+     *
+     * @param other The transform to apply first.
+     * @return The combined transform.
      */
     operator fun times(other: Affine): Affine = Affine(
         a = a * other.a + c * other.b,

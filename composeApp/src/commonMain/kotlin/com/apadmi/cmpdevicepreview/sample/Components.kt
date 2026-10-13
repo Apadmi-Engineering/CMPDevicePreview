@@ -75,7 +75,12 @@ fun AppMark(modifier: Modifier = Modifier) {
     }
 }
 
-/** Which layout the app picked, and the window size that picked it. */
+/**
+ * Which layout the app picked, and the window size that picked it.
+ *
+ * @param layout The layout whose label the badge shows.
+ * @param modifier The modifier for the badge.
+ */
 @Composable
 fun BreakpointBadge(layout: AppLayout, modifier: Modifier = Modifier) {
     val size = currentWindowSize()
@@ -92,7 +97,11 @@ fun BreakpointBadge(layout: AppLayout, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun SearchField(query: String, onQueryChange: (String) -> Unit, modifier: Modifier = Modifier) {
+fun SearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     TextField(
         value = query,
         onValueChange = onQueryChange,
@@ -117,7 +126,15 @@ fun SearchField(query: String, onQueryChange: (String) -> Unit, modifier: Modifi
     )
 }
 
-/** "All" and each category; a scrolling row, or wrapped onto as many lines as it needs. */
+/**
+ * "All" and each category; a scrolling row, or wrapped onto as many lines as it needs.
+ *
+ * @param selected The selected category, or null when "All" is selected.
+ * @param onSelect Called with the category of the chip that is tapped, or null for "All".
+ * @param modifier The modifier for the row of chips.
+ * @param wrap Whether the chips wrap onto as many lines as they need, rather than scrolling
+ * sideways in a single row.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CategoryChips(
@@ -150,7 +167,12 @@ fun CategoryChips(
 }
 
 @Composable
-fun SaveButton(destination: Destination, state: WanderState, modifier: Modifier = Modifier, onArt: Boolean = false) {
+fun SaveButton(
+    destination: Destination,
+    state: WanderState,
+    modifier: Modifier = Modifier,
+    onArt: Boolean = false
+) {
     val isSaved = destination.id in state.saved
     IconButton(
         onClick = { state.toggleSaved(destination) },
@@ -164,13 +186,23 @@ fun SaveButton(destination: Destination, state: WanderState, modifier: Modifier 
         Icon(
             if (isSaved) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
             contentDescription = if (isSaved) "Remove from saved" else "Save",
-            tint = if (isSaved) Color(0xFFFF5A79) else if (onArt) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = if (isSaved) {
+                Color(0xFF_FF5_A79)
+            } else if (onArt) {
+                Color.White
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
         )
     }
 }
 
 @Composable
-fun RatingRow(destination: Destination, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+fun RatingRow(
+    destination: Destination,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant
+) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Rounded.Star, contentDescription = null, tint = RatingColor, modifier = Modifier.size(16.dp))
         Text(
@@ -184,9 +216,20 @@ fun RatingRow(destination: Destination, modifier: Modifier = Modifier, color: Co
     }
 }
 
-/** A large card with the destination's name over its illustration. */
+/**
+ * A large card with the destination's name over its illustration.
+ *
+ * @param destination The destination the card shows.
+ * @param state The app state that tapping the card opens the destination in, and that the card's
+ * save button updates.
+ * @param modifier The modifier for the card.
+ */
 @Composable
-fun FeaturedCard(destination: Destination, state: WanderState, modifier: Modifier = Modifier) {
+fun FeaturedCard(
+    destination: Destination,
+    state: WanderState,
+    modifier: Modifier = Modifier
+) {
     Box(modifier.clip(RoundedCornerShape(28.dp)).clickable { state.open(destination) }) {
         SceneryArt(destination, Modifier.matchParentSize())
         Box(
@@ -218,7 +261,16 @@ fun FeaturedCard(destination: Destination, state: WanderState, modifier: Modifie
     }
 }
 
-/** A card for a grid: the illustration above the name. */
+/**
+ * A card for a grid: the illustration above the name.
+ *
+ * @param destination The destination the card shows.
+ * @param state The app state that tapping the card opens the destination in, and that the card's
+ * save button updates.
+ * @param modifier The modifier for the card.
+ * @param isSelected Whether the card is highlighted as the destination shown in the detail pane.
+ * @param artAspectRatio The width-to-height ratio of the illustration.
+ */
 @Composable
 fun TileCard(
     destination: Destination,
@@ -247,9 +299,20 @@ fun TileCard(
     }
 }
 
-/** A card for a list: a thumbnail beside the name. */
+/**
+ * A card for a list: a thumbnail beside the name.
+ *
+ * @param destination The destination the card shows.
+ * @param state The app state that tapping the card opens the destination in, and that the card's
+ * save button updates.
+ * @param modifier The modifier for the card.
+ */
 @Composable
-fun ListCard(destination: Destination, state: WanderState, modifier: Modifier = Modifier) {
+fun ListCard(
+    destination: Destination,
+    state: WanderState,
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier
             .fillMaxWidth()
@@ -270,7 +333,12 @@ fun ListCard(destination: Destination, state: WanderState, modifier: Modifier = 
 }
 
 @Composable
-fun EmptyState(icon: ImageVector, title: String, message: String, modifier: Modifier = Modifier) {
+fun EmptyState(
+    icon: ImageVector,
+    title: String,
+    message: String,
+    modifier: Modifier = Modifier
+) {
     Column(modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(48.dp))
         Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))

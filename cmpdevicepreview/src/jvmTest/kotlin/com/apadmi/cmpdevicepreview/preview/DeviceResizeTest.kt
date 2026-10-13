@@ -7,7 +7,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class DeviceResizeTest {
-
     private val start = Size(400f, 600f)
     private val room = Size(2000f, 2000f)
     private val bottomRight = ResizeHandle(1, 1)

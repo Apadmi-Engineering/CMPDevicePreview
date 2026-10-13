@@ -25,7 +25,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class DeviceTurnTest {
-
     private val portrait = Size(100f, 200f)
 
     @Test

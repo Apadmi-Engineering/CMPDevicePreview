@@ -3,7 +3,12 @@ package com.apadmi.cmpdevicepreview.core
 import kotlin.math.abs
 import kotlin.math.min
 
-/** A value a device's settings offer, such as a text size, with the name the panel gives it. */
+/**
+ * A value a device's settings offer, such as a text size, with the name the panel gives it.
+ *
+ * @property label The name the panel shows for the step, e.g. `Default` or `150%`.
+ * @property scale The scale the step applies, where 1 is the default.
+ */
 internal class ScaleStep(val label: String, val scale: Float)
 
 /**
@@ -40,7 +45,12 @@ private const val MinDisplayScaleInterval = 0.09f
 private const val MinShorterSide = 320f
 private val LargerDisplayLabels = listOf("Large", "Larger", "Largest")
 
-/** The step nearest [scale], or of two as near, the one nearer the default. */
+/**
+ * The step nearest [scale], or of two as near, the one nearer the default.
+ *
+ * @param scale The scale to find the nearest step to, such as a saved font or display scale.
+ * @return The step whose scale is closest to [scale].
+ */
 internal fun List<ScaleStep>.nearest(scale: Float): ScaleStep {
     val distance = minOf { abs(it.scale - scale) }
     return filter { abs(it.scale - scale) <= distance + 0.001f }.minBy { abs(it.scale - 1f) }

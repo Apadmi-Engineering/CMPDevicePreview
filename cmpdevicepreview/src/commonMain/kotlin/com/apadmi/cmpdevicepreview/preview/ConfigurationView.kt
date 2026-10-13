@@ -121,6 +121,13 @@ private const val NotAvailable = "Not available for this frame"
 /**
  * The configuration panel, which picks the device and sets how it and the preview are shown.
  *
+ * @param simulatedDevice The device and configuration the panel shows the settings of.
+ * @param onSimulatedDeviceChange Called with the new device and configuration when the picker or a
+ * setting changes them, fitted to the device. Pass it back as [simulatedDevice] to apply it.
+ * @param previewSettings The settings of the preview around the device that the panel shows.
+ * @param onPreviewSettingsChange Called with the new settings when the backdrop, the dot grid or
+ * preview mode is changed. Pass them back as [previewSettings] to apply them.
+ * @param modifier The modifier for the panel.
  * @param panelItems Your own items, shown in order below the panel's settings, as wide as them and
  * inside the panel's dark Material theme.
  */

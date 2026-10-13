@@ -6,4 +6,5 @@ public enum class DeviceKind {
     TABLET,
     FOLDABLE,
     DESKTOP,
+    ;
 }

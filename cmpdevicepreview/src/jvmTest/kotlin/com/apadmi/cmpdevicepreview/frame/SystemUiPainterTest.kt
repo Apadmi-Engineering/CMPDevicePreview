@@ -15,17 +15,15 @@ import kotlin.test.assertEquals
 
 /** Ported from flutter_device_preview's "SystemUiPainter layout" tests. */
 class SystemUiPainterTest {
-
     private val screen = Size(400f, 800f)
     private val safeArea = DeviceInsets(top = 40f, bottom = 30f)
-
-    private fun block(width: Int, height: Int) =
-        """<svg viewBox="0 0 $width $height"><rect width="$width" height="$height" fill="currentColor"/></svg>"""
-
     private val systemUi = DeviceSystemUi(
         statusBar = SystemUiBar(leading = block(20, 10), trailing = block(30, 10), inset = 12f),
         navigationBar = SystemUiBar(center = block(100, 4), bottomInset = 6f),
     )
+
+    private fun block(width: Int, height: Int) =
+        """<svg viewBox="0 0 $width $height"><rect width="$width" height="$height" fill="currentColor"/></svg>"""
 
     private fun layout(
         systemUi: DeviceSystemUi = this.systemUi,

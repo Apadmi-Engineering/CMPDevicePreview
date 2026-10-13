@@ -14,7 +14,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SimulatedKeyboardPainterTest {
-
     private val screen = Size(400f, 800f)
 
     @Test

@@ -42,6 +42,13 @@ import androidx.compose.ui.unit.dp
 /**
  * A destination in full. On a phone it fills the screen, its illustration running up behind the
  * status bar; turned sideways, the illustration sits beside the text.
+ *
+ * @param destination The destination to show.
+ * @param state The app state that the save buttons toggle the destination's saved status in.
+ * @param layout The layout to arrange the detail for: [AppLayout.PhoneLandscape] puts the
+ * illustration beside the text, and [AppLayout.Phone] runs it edge to edge.
+ * @param onBack Called when the back button is pressed, or null to show no back button.
+ * @param modifier The modifier for the detail.
  */
 @Composable
 fun DestinationDetail(
@@ -53,13 +60,15 @@ fun DestinationDetail(
 ) {
     if (layout == AppLayout.PhoneLandscape) {
         Row(modifier.fillMaxSize()) {
-            Box(Modifier.weight(0.45f).fillMaxHeight().padding(12.dp).clip(RoundedCornerShape(24.dp))) {
+            Box(Modifier.weight(0.45f).fillMaxHeight().padding(12.dp)
+                .clip(RoundedCornerShape(24.dp))) {
                 SceneryArt(destination, Modifier.matchParentSize())
                 ArtButtons(destination, state, onBack)
             }
             DetailBody(
                 destination, state,
-                Modifier.weight(0.55f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(20.dp),
+                Modifier.weight(0.55f).fillMaxHeight().verticalScroll(rememberScrollState())
+                    .padding(20.dp),
             )
         }
     } else {
@@ -82,10 +91,32 @@ fun DestinationDetail(
     }
 }
 
+/**
+ * The detail beside the grid, on the layouts with room for both.
+ *
+ * @param state The app state, whose selected destination the pane shows.
+ * @param modifier The modifier for the pane.
+ */
 @Composable
-private fun ArtButtons(destination: Destination, state: WanderState, onBack: (() -> Unit)?, modifier: Modifier = Modifier) {
+fun DetailPane(state: WanderState, modifier: Modifier = Modifier) {
+    Surface(
+        modifier.fillMaxHeight().padding(top = 16.dp, end = 16.dp, bottom = 16.dp),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        DestinationDetail(state.selected, state, AppLayout.Desktop, onBack = null)
+    }
+}
+
+@Composable
+private fun ArtButtons(
+    destination: Destination,
+    state: WanderState,
+    onBack: (() -> Unit)?,
+    modifier: Modifier = Modifier
+) {
     Row(modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (onBack != null) {
+        onBack?.let {
             IconButton(
                 onClick = onBack,
                 colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.3f), contentColor = Color.White),
@@ -100,7 +131,11 @@ private fun ArtButtons(destination: Destination, state: WanderState, onBack: (()
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DetailBody(destination: Destination, state: WanderState, modifier: Modifier) {
+private fun DetailBody(
+    destination: Destination,
+    state: WanderState,
+    modifier: Modifier
+) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column {
             Text(destination.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
@@ -129,23 +164,15 @@ private fun DetailBody(destination: Destination, state: WanderState, modifier: M
 }
 
 @Composable
-private fun Fact(icon: ImageVector, text: String, iconTint: Color = MaterialTheme.colorScheme.primary) {
+private fun Fact(
+    icon: ImageVector,
+    text: String,
+    iconTint: Color = MaterialTheme.colorScheme.primary
+) {
     Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
             Text(text, modifier = Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelLarge)
         }
-    }
-}
-
-/** The detail beside the grid, on the layouts with room for both. */
-@Composable
-fun DetailPane(state: WanderState, modifier: Modifier = Modifier) {
-    Surface(
-        modifier.fillMaxHeight().padding(top = 16.dp, end = 16.dp, bottom = 16.dp),
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        DestinationDetail(state.selected, state, AppLayout.Desktop, onBack = null)
     }
 }

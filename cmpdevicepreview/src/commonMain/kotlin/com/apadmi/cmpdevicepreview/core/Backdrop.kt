@@ -7,4 +7,5 @@ public enum class Backdrop {
 
     /** Light or dark, as the simulated device's appearance is. */
     AUTO,
+    ;
 }

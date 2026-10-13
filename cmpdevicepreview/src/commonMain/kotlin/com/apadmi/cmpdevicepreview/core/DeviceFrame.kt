@@ -26,7 +26,6 @@ public data class DeviceFrame(
     val screenPath: String = "",
     val body: String = "",
 ) {
-
     /** Whether this frame carries no artwork at all. */
     public val isEmpty: Boolean
         get() = screenPath.isEmpty() && body.isEmpty()
@@ -34,10 +33,16 @@ public data class DeviceFrame(
     /**
      * The body's bounds in screen coordinates, for a screen of [screenSize] in the given
      * orientation. Landscape maps a portrait point `(x, y)` to `(y, portraitWidth − x)`.
+     *
+     * @param screenSize The size of the screen the body is drawn around, in dp.
+     * @param isPortrait Whether the screen is in portrait; otherwise the body is turned a quarter turn.
+     * @return The body's bounds, in the screen's coordinates.
      */
     public fun bodyBounds(screenSize: Size, isPortrait: Boolean): Rect {
         val portrait = Rect(Offset(-screenOffset.x, -screenOffset.y), size)
-        if (isPortrait) return portrait
+        if (isPortrait) {
+            return portrait
+        }
         val portraitWidth = screenSize.height
         return Rect(
             left = portrait.top,
@@ -49,5 +54,5 @@ public data class DeviceFrame(
 
     override fun toString(): String =
         "DeviceFrame(size=$size, screenOffset=$screenOffset, " +
-            "screenPath=${screenPath.length} chars, body=${body.length} chars)"
+                "screenPath=${screenPath.length} chars, body=${body.length} chars)"
 }

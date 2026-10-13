@@ -41,13 +41,37 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 
-enum class Tab(val label: String, val icon: ImageVector, val selectedIcon: ImageVector) {
-    Explore("Explore", Icons.Outlined.Explore, Icons.Rounded.Explore),
-    Saved("Saved", Icons.Outlined.FavoriteBorder, Icons.Rounded.Favorite),
-    Profile("Profile", Icons.Outlined.Person, Icons.Rounded.Person),
+/**
+ * A top-level destination of the sample app, shown as an item in its navigation bar or rail.
+ *
+ * @property label The text under the item's icon.
+ * @property icon The icon shown while the destination isn't selected.
+ * @property selectedIcon The icon shown while the destination is selected.
+ */
+enum class Tab(
+    val label: String,
+    val icon: ImageVector,
+    val selectedIcon: ImageVector
+) {
+    Explore(
+        "Explore",
+        Icons.Outlined.Explore,
+        Icons.Rounded.Explore
+    ),
+    Saved(
+        "Saved",
+        Icons.Outlined.FavoriteBorder,
+        Icons.Rounded.Favorite
+    ),
+    Profile(
+        "Profile",
+        Icons.Outlined.Person,
+        Icons.Rounded.Person
+    ),
+    ;
 }
 
 class WanderState {
@@ -65,14 +89,18 @@ class WanderState {
     val results: List<Destination>
         get() = destinations.filter { destination ->
             (category == null || destination.category == category) &&
-                (query.isBlank() || listOf(destination.name, destination.country).any { it.contains(query.trim(), ignoreCase = true) })
+                    (query.isBlank() || listOf(destination.name, destination.country).any { it.contains(query.trim(), ignoreCase = true) })
         }
 
     fun toggleSaved(destination: Destination) {
         saved = if (destination.id in saved) saved - destination.id else saved + destination.id
     }
 
-    /** Shows [destination]: in the detail pane, or, without one, in place of the tab. */
+    /**
+     * Shows [destination]: in the detail pane, or, without one, in place of the tab.
+     *
+     * @param destination The destination to show.
+     */
     fun open(destination: Destination) {
         selected = destination
         opened = destination
@@ -98,7 +126,11 @@ fun App() {
 }
 
 @Composable
-private fun TabContent(state: WanderState, layout: AppLayout, modifier: Modifier = Modifier) {
+private fun TabContent(
+    state: WanderState,
+    layout: AppLayout,
+    modifier: Modifier = Modifier
+) {
     when (state.tab) {
         Tab.Explore -> ExploreScreen(state, layout, modifier)
         Tab.Saved -> SavedScreen(state, layout, modifier)
@@ -108,7 +140,11 @@ private fun TabContent(state: WanderState, layout: AppLayout, modifier: Modifier
 
 /** The tab, with the layout's detail pane beside it when there's a destination to show. */
 @Composable
-private fun TabWithDetail(state: WanderState, layout: AppLayout, modifier: Modifier = Modifier) {
+private fun TabWithDetail(
+    state: WanderState,
+    layout: AppLayout,
+    modifier: Modifier = Modifier
+) {
     Row(modifier) {
         TabContent(state, layout, Modifier.weight(1f))
         val detailPaneWidth = layout.detailPaneWidth
@@ -122,7 +158,7 @@ private fun TabWithDetail(state: WanderState, layout: AppLayout, modifier: Modif
 @Composable
 private fun PhoneApp(state: WanderState) {
     val opened = state.opened
-    if (opened != null) {
+    opened?.let {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             DestinationDetail(opened, state, AppLayout.Phone, onBack = { state.opened = null })
         }

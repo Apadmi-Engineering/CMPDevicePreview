@@ -21,7 +21,6 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class DevicePresetsTest {
-
     @Test
     fun catalogHoldsEverySpec() {
         val specIds = File("device_specs").listFiles { file -> file.extension == "json" }.orEmpty().map { it.nameWithoutExtension }
@@ -133,7 +132,7 @@ class DevicePresetsTest {
                     val bar = if (inStatusBar) 0f..safeArea.top else (screen.height - safeArea.bottom)..screen.height
                     assertTrue(
                         bounds.left >= 0f && bounds.right <= screen.width &&
-                            bounds.top >= bar.start && bounds.bottom <= bar.endInclusive + 0.01f,
+                                bounds.top >= bar.start && bounds.bottom <= bar.endInclusive + 0.01f,
                         "${preset.id} (${if (isPortrait) "portrait" else "landscape"}): $bounds outside its bar",
                     )
                 }

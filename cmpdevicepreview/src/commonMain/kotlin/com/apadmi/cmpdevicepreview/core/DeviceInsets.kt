@@ -24,12 +24,20 @@ public data class DeviceInsets(
         /**
          * Derives landscape insets from portrait ones: the notch/status area is mirrored to both
          * sides and the home indicator is kept at the bottom.
+         *
+         * @param portrait The device's insets in portrait.
+         * @return The device's insets in landscape.
          */
         public fun rotateToLandscape(portrait: DeviceInsets): DeviceInsets =
             DeviceInsets(left = portrait.top, right = portrait.top, bottom = portrait.bottom)
     }
 }
 
-/** These insets, each divided by [scale]. */
+/**
+ * These insets, each divided by [scale].
+ *
+ * @param scale The display scale: how much larger the content is drawn than the screen's own dp.
+ * @return The insets in the dp the content sees at that display scale.
+ */
 internal operator fun DeviceInsets.div(scale: Float): DeviceInsets =
     DeviceInsets(left = left / scale, top = top / scale, right = right / scale, bottom = bottom / scale)

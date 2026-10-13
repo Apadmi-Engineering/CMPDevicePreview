@@ -18,6 +18,10 @@ import com.apadmi.cmpdevicepreview.devices.DevicePresets
  * Saves a [SimulatedDevice] as values a platform can keep, such as in an Android `Bundle`. Built-in
  * presets and freeform windows are restored as they were; any other device can only be
  * [initialDevice], so that is what it restores as.
+ *
+ * @param initialDevice The device the view starts with: what a saved device that isn't a built-in
+ * preset or a freeform window comes back as.
+ * @return The saver for a [SimulatedDevice].
  */
 internal fun simulatedDeviceSaver(initialDevice: Device): Saver<SimulatedDevice, Any> = mapSaver(
     save = { (device, configuration) ->

@@ -5,10 +5,8 @@ import com.apadmi.cmpdevicepreview.devices.DevicePresets
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
-import kotlin.test.assertTrue
 
 class ScaleStepsTest {
-
     @Test
     fun aScreen360DpAcrossHasRoomForOneLargerDisplaySize() {
         val galaxy = DevicePresets.galaxyS25.displayScaleSteps

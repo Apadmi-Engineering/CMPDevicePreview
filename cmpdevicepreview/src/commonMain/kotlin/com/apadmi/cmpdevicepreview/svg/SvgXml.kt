@@ -11,7 +11,12 @@ internal class XmlElement(
     val attributes: Map<String, String>,
     val children: List<XmlElement>,
 ) {
-    /** Returns the value of [name], or null when absent or empty. */
+    /**
+     * Returns the value of [name], or null when absent or empty.
+     *
+     * @param name The attribute's raw name, including any namespace prefix.
+     * @return The attribute's value, or null when it is absent or empty.
+     */
     fun attribute(name: String): String? = attributes[name]?.takeIf { it.isNotEmpty() }
 
     override fun toString(): String = "<$name ${attributes.keys.joinToString(" ")}>"
@@ -22,6 +27,8 @@ internal class XmlElement(
  * attribute values. Text, comments, CDATA, processing instructions and doctypes are skipped, as the
  * SVG subset this library renders is entirely attribute-driven. Namespaces are not resolved.
  *
+ * @param source The XML text to parse.
+ * @return The document's root element.
  * @throws IllegalArgumentException on malformed input.
  */
 internal fun parseXmlDocument(source: String): XmlElement = XmlParser(source).parseDocument()

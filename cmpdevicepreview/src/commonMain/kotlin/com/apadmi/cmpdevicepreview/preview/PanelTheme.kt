@@ -76,7 +76,11 @@ internal val PanelWidth = 300.dp
 
 private const val DisabledAlpha = 0.45f
 
-/** The panel's dark Material theme, so ripples, text fields and dialogs inside it match. */
+/**
+ * The panel's dark Material theme, so ripples, text fields and dialogs inside it match.
+ *
+ * @param content What is shown inside the theme.
+ */
 @Composable
 internal fun PanelTheme(content: @Composable () -> Unit) {
     MaterialTheme(
@@ -97,7 +101,12 @@ internal fun PanelTheme(content: @Composable () -> Unit) {
     )
 }
 
-/** A small capitalised heading above a group of controls. */
+/**
+ * A small capitalised heading above a group of controls.
+ *
+ * @param text The heading, shown in upper case.
+ * @param modifier The modifier for the heading.
+ */
 @Composable
 internal fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     Text(
@@ -110,7 +119,11 @@ internal fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** A short note below a control. */
+/**
+ * A short note below a control.
+ *
+ * @param text The note.
+ */
 @Composable
 internal fun PanelCaption(text: String) {
     Text(
@@ -123,7 +136,15 @@ internal fun PanelCaption(text: String) {
 
 internal class SegmentOption(val label: String, val icon: ImageVector)
 
-/** Equal-width options on a track, with an indicator that slides to the selected one. */
+/**
+ * Equal-width options on a track, with an indicator that slides to the selected one.
+ *
+ * @param options The options, in order, each with a label and an icon.
+ * @param selectedIndex The index in [options] of the selected option.
+ * @param onSelect Called with the index of the option that is pressed.
+ * @param modifier The modifier for the track.
+ * @param enabled Whether the options can be pressed. When false the control is dimmed.
+ */
 @Composable
 internal fun SegmentedControl(
     options: List<SegmentOption>,
@@ -184,7 +205,12 @@ internal fun SegmentedControl(
     }
 }
 
-/** A compact switch; the row around it handles the toggle. */
+/**
+ * A compact switch; the row around it handles the toggle.
+ *
+ * @param checked Whether the switch is on.
+ * @param modifier The modifier for the switch.
+ */
 @Composable
 internal fun PanelSwitch(checked: Boolean, modifier: Modifier = Modifier) {
     val track by animateColorAsState(if (checked) PanelColors.Accent else PanelColors.SwitchOff, label = "track")
@@ -205,7 +231,18 @@ internal fun PanelSwitch(checked: Boolean, modifier: Modifier = Modifier) {
     }
 }
 
-/** A setting that is on or off: an icon, a title, an optional note and badge, and a switch. */
+/**
+ * A setting that is on or off: an icon, a title, an optional note and badge, and a switch.
+ *
+ * @param icon The icon beside the title.
+ * @param title The name of the setting.
+ * @param checked Whether the setting is on.
+ * @param onCheckedChange Called with the new value when the row is toggled.
+ * @param modifier The modifier for the row.
+ * @param note A line below the title that says more about the setting, or null for none.
+ * @param badge A short label beside the title, or null for none.
+ * @param enabled Whether the row can be toggled. When false it is dimmed.
+ */
 @Composable
 internal fun ToggleRow(
     icon: ImageVector,
@@ -234,6 +271,14 @@ internal fun ToggleRow(
 /**
  * A setting with a few values in order, such as a text size: an icon, a title, an optional note,
  * the selected value's label as a badge, and a slider that stops at each of [labels].
+ *
+ * @param icon The icon beside the title.
+ * @param title The name of the setting.
+ * @param labels The label of each value, in order.
+ * @param selectedIndex The index in [labels] of the selected value.
+ * @param onSelect Called with the index of the value the slider moves to.
+ * @param modifier The modifier for the setting.
+ * @param note A line below the title that says more about the setting, or null for none.
  */
 @Composable
 internal fun StepSlider(
@@ -308,7 +353,15 @@ private fun RowScope.SettingLabel(icon: ImageVector, title: String, note: String
     }
 }
 
-/** An action in the panel: an icon and a label on a raised surface. */
+/**
+ * An action in the panel: an icon and a label on a raised surface.
+ *
+ * @param icon The icon before the label.
+ * @param label The text of the button.
+ * @param onClick Called when the button is pressed.
+ * @param modifier The modifier for the button.
+ * @param enabled Whether the button can be pressed. When false it is dimmed.
+ */
 @Composable
 internal fun PanelButton(
     icon: ImageVector,

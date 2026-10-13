@@ -106,6 +106,12 @@ private const val RowsAboveSelected = 2
 /**
  * A searchable list of the built-in devices, grouped by platform, with [selected] checked. The
  * Freeform row comes first, and picking it gives [freeform].
+ *
+ * @param selected The device that is checked, and in view when the list opens.
+ * @param freeform The window that picking the Freeform row gives.
+ * @param onPick Called with the device that was picked: a row, or the first match when a search is
+ * submitted.
+ * @param onDismiss Called when the dialog is closed, by its close button or by dismissing it.
  */
 @Composable
 internal fun DevicePickerDialog(
@@ -332,6 +338,11 @@ private fun DeviceRow(device: Device, details: String, isSelected: Boolean, onCl
 /**
  * The device's own frame in miniature, fitted inside the node, with its screen lit by a gradient;
  * a plain icon for a device without artwork.
+ *
+ * @param device The device to draw.
+ * @param modifier The modifier for the thumbnail, which also sets its size.
+ * @param isHighlighted Whether the thumbnail is drawn in the accent colour, as for the selected
+ * device, rather than muted.
  */
 @Composable
 internal fun DeviceThumbnail(device: Device, modifier: Modifier = Modifier, isHighlighted: Boolean = false) {

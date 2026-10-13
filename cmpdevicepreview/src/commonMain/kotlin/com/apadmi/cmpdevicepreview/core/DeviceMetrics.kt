@@ -17,6 +17,9 @@ internal val Device.isTouchscreen: Boolean
 /**
  * Whether the device is laid out in portrait when [isPortrait] is asked for. A device that can't
  * rotate always is, since its portrait size is its natural one.
+ *
+ * @param isPortrait Whether the device is asked to be shown in portrait.
+ * @return Whether the device is laid out in portrait.
  */
 internal fun Device.laidOutInPortrait(isPortrait: Boolean): Boolean = isPortrait || !isRotatable
 
@@ -29,6 +32,11 @@ internal fun Device.screenSizeIn(isPortrait: Boolean): Size =
 internal fun Device.safeAreaIn(isPortrait: Boolean): DeviceInsets =
     if (isPortrait) portraitSafeArea else landscapeSafeArea
 
-/** The keyboard height in the given orientation; the landscape one is not derived from portrait. */
+/**
+ * The keyboard height in the given orientation; the landscape one is not derived from portrait.
+ *
+ * @param isPortrait Whether to take the portrait keyboard height rather than the landscape one.
+ * @return The keyboard height in dp, or null when the device has no keyboard in that orientation.
+ */
 internal fun Device.keyboardHeightIn(isPortrait: Boolean): Float? =
     if (isPortrait) portraitKeyboardHeight else landscapeKeyboardHeight

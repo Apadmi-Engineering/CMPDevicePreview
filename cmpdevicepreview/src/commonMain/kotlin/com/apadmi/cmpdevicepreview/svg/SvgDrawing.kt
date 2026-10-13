@@ -53,6 +53,10 @@ internal class SvgDrawing(val viewBox: Rect, val shapes: List<SvgShape>) {
      * Paints the drawing in its own view box coordinates.
      *
      * [currentColor] tints every shape that inherited its fill, preserving the shape's own opacity.
+     *
+     * @param canvas The canvas to paint onto.
+     * @param currentColor The colour for shapes that follow `currentColor`, or null to paint them
+     * in their own colour.
      */
     fun paint(canvas: Canvas, currentColor: Color? = null) {
         for (shape in shapes) {
@@ -77,6 +81,11 @@ internal class SvgDrawing(val viewBox: Rect, val shapes: List<SvgShape>) {
      *
      * The aspect ratio isn't preserved. Device bodies declare a view box that already matches their
      * target, and an exact mapping keeps the screen cut-out aligned with the simulated screen.
+     *
+     * @param canvas The canvas to paint onto.
+     * @param destination The area of the canvas the view box is stretched to fill.
+     * @param currentColor The colour for shapes that follow `currentColor`, or null to paint them
+     * in their own colour.
      */
     fun paintInto(canvas: Canvas, destination: Rect, currentColor: Color? = null) {
         if (shapes.isEmpty() || viewBox.isEmpty || destination.isEmpty) return
@@ -92,6 +101,8 @@ internal class SvgDrawing(val viewBox: Rect, val shapes: List<SvgShape>) {
         /**
          * Parses an SVG document.
          *
+         * @param source The SVG document as XML text.
+         * @return The drawing, with its shapes flattened into view box coordinates.
          * @throws IllegalArgumentException when the document is not well-formed XML, is not
          * rooted at `<svg>`, or carries neither a `viewBox` nor `width`/`height`.
          */
@@ -143,11 +154,22 @@ internal class SvgDrawing(val viewBox: Rect, val shapes: List<SvgShape>) {
 /**
  * Parses SVG path data (the `d` attribute of `<path>`) into a [Path], using Compose's own parser:
  * the full command set, arcs included.
+ *
+ * @param data The path data, as in the `d` attribute.
+ * @param fillType How overlapping sub-paths are filled: non-zero by default, or even-odd.
+ * @return The parsed path, with [fillType] applied.
  */
 internal fun parseSvgPathData(data: String, fillType: PathFillType = PathFillType.NonZero): Path =
     PathParser().parsePathString(data).toPath().apply { this.fillType = fillType }
 
-/** Style inherited down the element tree while flattening. */
+/**
+ * Style inherited down the element tree while flattening.
+ *
+ * @property transform The `transform` of the element and its ancestors combined, mapping the
+ * element's own coordinates into view box coordinates.
+ * @property opacity The `opacity` of the element and its ancestors, multiplied together.
+ * @property clips The clip outlines in effect, in view box coordinates, outermost first.
+ */
 private class InheritedStyle(
     val transform: Affine,
     /** The inherited `fill`, or null for `fill="none"`. */
@@ -297,7 +319,12 @@ private class Flattener(
             "linearGradient", "radialGradient", "filter",
         )
 
-        /** Merges presentation attributes with the `style="…"` declarations, which win. */
+        /**
+         * Merges presentation attributes with the `style="…"` declarations, which win.
+         *
+         * @param element The element whose attributes are resolved.
+         * @return The element's attributes, with any `style` declarations applied over them.
+         */
         fun resolveAttributes(element: XmlElement): Map<String, String> {
             val style = element.attribute("style") ?: return element.attributes
             val merged = element.attributes.toMutableMap()

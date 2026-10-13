@@ -47,12 +47,14 @@ private val SidePanelMinWidth = 840.dp
  * Turning preview mode off in the panel shows just [content] until it is composed again, such as
  * by reloading the page.
  *
+ * @param modifier The modifier for the view as a whole, which holds the device and the panel.
  * @param initialDevice The device shown first: a built-in preset, or a [Device] of your own. The
  * panel's picker offers the built-in presets.
  * @param initialConfiguration How the device is shown at first.
  * @param initialPreviewSettings How the preview around the device is shown at first.
  * @param panelItems Your own items for the configuration panel, below its settings: see
  * [ConfigurationView].
+ * @param content What is shown inside the simulated device, or on its own when preview mode is off.
  */
 @Composable
 public fun DeviceWithConfigurationView(

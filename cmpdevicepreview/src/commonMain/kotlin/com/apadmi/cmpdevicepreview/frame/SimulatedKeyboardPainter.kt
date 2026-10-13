@@ -23,6 +23,10 @@ private const val HatchPitch: Float = 12f
 /**
  * The band a keyboard of [height] covers at the bottom of a screen of [screenSize], or null when
  * nothing is covered. A keyboard taller than the screen is clamped to it.
+ *
+ * @param screenSize The size of the screen the keyboard is raised on, in dp.
+ * @param height The height the keyboard covers, in dp.
+ * @return The covered band in the screen's coordinates, or null when nothing is covered.
  */
 internal fun keyboardBand(screenSize: Size, height: Float): Rect? {
     if (height <= 0f || screenSize.isEmpty()) return null
@@ -35,6 +39,9 @@ internal fun keyboardBand(screenSize: Size, height: Float): Rect? {
  *
  * Sized off the band so it stays proportionate from a landscape phone strip to an iPad's
  * half-screen keyboard.
+ *
+ * @param band The band the keyboard covers, in dp.
+ * @return The side of the square keyboard mark in dp, or null when the band is too small for one.
  */
 internal fun keyboardMarkSize(band: Rect): Float? =
     minOf(band.height * 0.30f, band.width * 0.20f, 56f).takeIf { it >= 16f }
@@ -43,6 +50,10 @@ internal fun keyboardMarkSize(band: Rect): Float? =
  * Paints the band a software keyboard of [height] covers at the bottom of the screen: translucent
  * and hatched, with a keyboard mark, so the content under it stays legible. The canvas origin must
  * be the screen's top-left corner, in dp.
+ *
+ * @param canvas The canvas to paint on.
+ * @param screenSize The size of the screen the keyboard is raised on, in dp.
+ * @param height The height the keyboard covers, in dp; nothing is painted when it is zero or less.
  */
 internal fun paintSimulatedKeyboard(canvas: Canvas, screenSize: Size, height: Float) {
     val band = keyboardBand(screenSize, height) ?: return

@@ -10,7 +10,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.window.core.layout.WindowSizeClass
 
-/** The app's layouts, one per Material window size class it handles, labelled with that class. */
+/**
+ * The app's layouts, one per Material window size class it handles, labelled with that class.
+ *
+ * @property label The name of the window size class, as shown in the breakpoint badge.
+ * @property detailPaneWidth The width of the detail pane beside the content, or null when the
+ * layout has no detail pane.
+ */
 enum class AppLayout(val label: String, val detailPaneWidth: Dp? = null) {
     /** Compact width: a single column and a bottom navigation bar. */
     Phone("Compact"),
@@ -25,7 +31,8 @@ enum class AppLayout(val label: String, val detailPaneWidth: Dp? = null) {
     Desktop("Expanded", detailPaneWidth = 360.dp),
 
     /** Large width: a navigation drawer, a grid and a wider detail pane. */
-    LargeDesktop("Large", detailPaneWidth = 440.dp);
+    LargeDesktop("Large", detailPaneWidth = 440.dp),
+    ;
 
     val hasDetailPane: Boolean
         get() = detailPaneWidth != null
@@ -43,8 +50,11 @@ fun currentAppLayout(): AppLayout {
     }
 }
 
-/** The window's size, for showing which breakpoint the app is at. */
+/** The window's size, for showing which breakpoint the app is at.
+ *
+ * @return*/
 @Composable
 fun currentWindowSize(): DpSize = with(LocalDensity.current) {
-    LocalWindowInfo.current.containerSize.toSize().toDpSize()
+    LocalWindowInfo.current.containerSize.toSize()
+        .toDpSize()
 }

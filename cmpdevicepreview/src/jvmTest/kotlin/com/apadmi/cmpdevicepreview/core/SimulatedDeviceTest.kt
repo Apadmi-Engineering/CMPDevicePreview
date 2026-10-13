@@ -9,14 +9,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SimulatedDeviceTest {
-
-    /** A device of your own, which only says what it has to. */
-    private class CustomDevice(override val type: DeviceType) : Device {
-        override val name: String = "Custom"
-        override val portraitSize: Size = Size(400f, 800f)
-        override val devicePixelRatio: Float = 2f
-    }
-
     @Test
     fun theKeyboardHeightFollowsTheOrientation() {
         val portrait = SimulatedDevice(DevicePresets.iPhone16Pro)
@@ -106,5 +98,11 @@ class SimulatedDeviceTest {
         assertFalse(freeform.adaptedToDevice().configuration.isKeyboardVisible)
         // Everything else about the configuration is kept.
         assertEquals(freeform.configuration.copy(isKeyboardVisible = false), freeform.adaptedToDevice().configuration)
+    }
+    /** A device of your own, which only says what it has to. */
+    private class CustomDevice(override val type: DeviceType) : Device {
+        override val name: String = "Custom"
+        override val portraitSize: Size = Size(400f, 800f)
+        override val devicePixelRatio: Float = 2f
     }
 }

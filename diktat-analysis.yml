@@ -21,11 +21,11 @@
   enabled: false
 # Checks that enum value is in upper SNAKE_CASE or in PascalCase depending on the config. UPPER_SNAKE_CASE is the default, but can be changed by 'enumStyle' config
 - name: ENUM_VALUE
-  enabled: true
+  # The library's enums are UPPER_SNAKE_CASE and the sample app's are PascalCase, so no single
+  # style fits. The autofix renames the entries without updating their usages, which breaks the build.
+  enabled: false
   configuration:
     # Two options: SNAKE_CASE (default), PascalCase
-    # The library's public enums are UPPER_SNAKE_CASE. The autofix renames the entries without
-    # updating their usages, so PascalCase here would break the build.
     enumStyle: SNAKE_CASE
 # Checks that class which extends any Exception class has Exception suffix
 - name: EXCEPTION_SUFFIX

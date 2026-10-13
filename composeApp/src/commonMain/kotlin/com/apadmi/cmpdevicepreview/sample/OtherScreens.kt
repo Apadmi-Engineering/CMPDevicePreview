@@ -46,9 +46,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-/** The saved destinations: a list on a phone, a grid with more room. */
+/**
+ * The saved destinations: a list on a phone, a grid with more room.
+ *
+ * @param state The app state whose saved destinations the screen shows.
+ * @param layout The layout to arrange the screen for: a list for [AppLayout.Phone], a grid for the
+ * others.
+ * @param modifier The modifier for the screen.
+ */
 @Composable
-fun SavedScreen(state: WanderState, layout: AppLayout, modifier: Modifier = Modifier) {
+fun SavedScreen(
+    state: WanderState,
+    layout: AppLayout,
+    modifier: Modifier = Modifier
+) {
     val saved = destinations.filter { it.id in state.saved }
     val title: @Composable () -> Unit = {
         Column {
@@ -68,7 +79,9 @@ fun SavedScreen(state: WanderState, layout: AppLayout, modifier: Modifier = Modi
     if (layout == AppLayout.Phone) {
         LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { title() }
-            if (saved.isEmpty()) item { empty() }
+            if (saved.isEmpty()) {
+                item { empty() }
+            }
             items(saved, key = { it.id }) { destination -> ListCard(destination, state) }
         }
     } else {
@@ -80,7 +93,9 @@ fun SavedScreen(state: WanderState, layout: AppLayout, modifier: Modifier = Modi
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) { title() }
-            if (saved.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { empty() }
+            if (saved.isEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) { empty() }
+            }
             items(saved, key = { it.id }) { destination ->
                 TileCard(
                     destination, state,
@@ -92,7 +107,12 @@ fun SavedScreen(state: WanderState, layout: AppLayout, modifier: Modifier = Modi
     }
 }
 
-/** A profile and a few settings, in a column that stops growing on wide screens. */
+/**
+ * A profile and a few settings, in a column that stops growing on wide screens.
+ *
+ * @param state The app state that supplies the number of saved destinations in the profile stats.
+ * @param modifier The modifier for the screen.
+ */
 @Composable
 fun ProfileScreen(state: WanderState, modifier: Modifier = Modifier) {
     var reminders by remember { mutableStateOf(true) }
@@ -139,7 +159,11 @@ fun ProfileScreen(state: WanderState, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Stat(value: String, label: String, modifier: Modifier = Modifier) {
+private fun Stat(
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier
+) {
     Surface(modifier, shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.primaryContainer) {
         Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -149,7 +173,11 @@ private fun Stat(value: String, label: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun SettingRow(icon: ImageVector, title: String, trailing: @Composable () -> Unit) {
+private fun SettingRow(
+    icon: ImageVector,
+    title: String,
+    trailing: @Composable () -> Unit
+) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         Text(title, modifier = Modifier.weight(1f).padding(horizontal = 16.dp), style = MaterialTheme.typography.bodyLarge)

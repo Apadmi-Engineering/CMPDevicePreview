@@ -43,5 +43,9 @@ private class MouseAsTouchNode : Modifier.Node(), GlobalPositionAwareModifierNod
 /**
  * Starts relabelling presses whose window position, in pixels, [startsOnNode] accepts. Returns a
  * function that stops it, or null where the platform can't relabel pointers.
+ *
+ * @param startsOnNode Called with the window position of a press, in pixels, and returns whether it
+ * is on the node, in which case the press is relabelled as a touch.
+ * @return A function that stops the relabelling, or null where the platform can't relabel pointers.
  */
 internal expect fun relabelMouseAsTouch(startsOnNode: (x: Float, y: Float) -> Boolean): (() -> Unit)?

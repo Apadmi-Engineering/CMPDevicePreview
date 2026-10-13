@@ -24,9 +24,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-/** Explore, arranged for each layout. */
+/**
+ * Explore, arranged for each layout.
+ *
+ * @param state The app state that supplies the search query, category filter and results.
+ * @param layout The layout to arrange the screen for.
+ * @param modifier The modifier for the screen.
+ */
 @Composable
-fun ExploreScreen(state: WanderState, layout: AppLayout, modifier: Modifier = Modifier) {
+fun ExploreScreen(
+    state: WanderState,
+    layout: AppLayout,
+    modifier: Modifier = Modifier
+) {
     when (layout) {
         AppLayout.Phone -> PhoneExplore(state, modifier)
         AppLayout.PhoneLandscape -> LandscapeExplore(state, modifier)
@@ -35,7 +45,11 @@ fun ExploreScreen(state: WanderState, layout: AppLayout, modifier: Modifier = Mo
 }
 
 @Composable
-private fun ExploreHeader(state: WanderState, layout: AppLayout, modifier: Modifier = Modifier) {
+private fun ExploreHeader(
+    state: WanderState,
+    layout: AppLayout,
+    modifier: Modifier = Modifier
+) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         BreakpointBadge(layout)
         Column {
@@ -72,11 +86,9 @@ private fun PhoneExplore(state: WanderState, modifier: Modifier) {
         item { ExploreHeader(state, AppLayout.Phone) }
         item { CategoryChips(state.category, { state.category = it }) }
         val featured = results.firstOrNull()
-        if (featured == null) {
-            item { NoResults(state, Modifier.fillMaxWidth()) }
-        } else {
+        featured?.let {
             item { FeaturedCard(featured, state, Modifier.fillMaxWidth().height(300.dp)) }
-        }
+        } ?: item { NoResults(state, Modifier.fillMaxWidth()) }
         if (results.size > 1) {
             item { Text("Popular", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold) }
         }
@@ -95,11 +107,9 @@ private fun LandscapeExplore(state: WanderState, modifier: Modifier) {
         ) {
             SearchField(state.query, { state.query = it })
             val featured = results.firstOrNull()
-            if (featured == null) {
-                NoResults(state, Modifier.fillMaxWidth())
-            } else {
+            featured?.let {
                 FeaturedCard(featured, state, Modifier.weight(1f).fillMaxWidth())
-            }
+            } ?: NoResults(state, Modifier.fillMaxWidth())
         }
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
@@ -126,7 +136,11 @@ private fun LandscapeExplore(state: WanderState, modifier: Modifier) {
  * with one, which shows the selection, every result is a card.
  */
 @Composable
-private fun GridExplore(state: WanderState, layout: AppLayout, modifier: Modifier) {
+private fun GridExplore(
+    state: WanderState,
+    layout: AppLayout,
+    modifier: Modifier
+) {
     val results = state.results
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 200.dp),
@@ -141,12 +155,14 @@ private fun GridExplore(state: WanderState, layout: AppLayout, modifier: Modifie
             item(span = { GridItemSpan(maxLineSpan) }) { NoResults(state) }
         }
         val featured = results.firstOrNull().takeUnless { layout.hasDetailPane }
-        if (featured != null) {
+        featured?.let {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 FeaturedCard(featured, state, Modifier.fillMaxWidth().height(280.dp))
             }
         }
-        items(if (featured != null) results.drop(1) else results, key = { it.id }) { destination ->
+        items(featured?.let {
+            results.drop(1)
+        } ?: results, key = { it.id }) { destination ->
             TileCard(destination, state, isSelected = layout.hasDetailPane && destination == state.selected)
         }
     }

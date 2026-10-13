@@ -2,7 +2,12 @@ package com.apadmi.cmpdevicepreview.core
 
 import androidx.compose.ui.geometry.Size
 
-/** A [device] and how it is shown. */
+/**
+ * A [device] and how it is shown.
+ *
+ * @property device The device being shown.
+ * @property configuration How the device is shown, such as its orientation, theme and display size.
+ */
 public data class SimulatedDevice(
     val device: Device,
     val configuration: DeviceConfiguration = DeviceConfiguration(),

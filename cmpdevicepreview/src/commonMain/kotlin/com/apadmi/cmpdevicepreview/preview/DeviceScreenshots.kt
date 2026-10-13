@@ -24,7 +24,12 @@ import androidx.compose.ui.unit.toSize
  */
 internal class DeviceScreenshots {
 
-    /** What the view last drew into [layer], and the [size] a screenshot of it is, in pixels. */
+    /**
+     * What the view last drew into [layer], and the [size] a screenshot of it is, in pixels.
+     *
+     * @property layer The graphics layer the view draws into.
+     * @property size The size of a screenshot of the layer, in pixels.
+     */
     class Recording(val layer: GraphicsLayer, val size: IntSize)
 
     private var screen by mutableStateOf<Recording?>(null)
@@ -48,6 +53,10 @@ internal class DeviceScreenshots {
      * The screen as the device shows it, status bar and keyboard included, at the device's own
      * resolution; or with [includeFrame], the whole device on a transparent background. Null when
      * no device is shown.
+     *
+     * @param includeFrame Whether to capture the whole device in its frame, rather than only the
+     * screen.
+     * @return The screenshot, or null when there is no device to capture or it has no size yet.
      */
     fun capture(includeFrame: Boolean): ImageBitmap? {
         val recording = (if (includeFrame) device else screen) ?: return null
@@ -65,7 +74,12 @@ internal class DeviceScreenshots {
     }
 }
 
-/** Draws the node's content through [layer], so it can be drawn again for a screenshot. */
+/**
+ * Draws the node's content through [layer], so it can be drawn again for a screenshot.
+ *
+ * @param layer The graphics layer to record the node's content into.
+ * @return This modifier, followed by one that records the content into [layer] as it is drawn.
+ */
 internal fun Modifier.recordInto(layer: GraphicsLayer): Modifier = drawWithContent {
     layer.record { this@drawWithContent.drawContent() }
     drawLayer(layer)

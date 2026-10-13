@@ -14,6 +14,9 @@ import kotlin.random.Random
 /**
  * A landscape drawn from the destination's colours: a sky, a sun and three layers of land, fading
  * into the distance. The same destination always draws the same landscape.
+ *
+ * @param destination The destination whose sky, land, sun and scene the landscape is drawn from.
+ * @param modifier The modifier for the illustration, which sets the size it is drawn at.
  */
 @Composable
 fun SceneryArt(destination: Destination, modifier: Modifier = Modifier) {

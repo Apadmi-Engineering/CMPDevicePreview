@@ -7,7 +7,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class FormattingTest {
-
     @Test
     fun dimensionsAreInWholeDp() {
         assertEquals("402 × 874", Size(402f, 874f).dimensionsLabel())

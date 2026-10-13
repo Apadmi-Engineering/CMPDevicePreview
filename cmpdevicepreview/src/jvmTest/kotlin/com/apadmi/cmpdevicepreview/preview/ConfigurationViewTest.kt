@@ -34,7 +34,6 @@ import kotlin.test.assertNull
 
 @OptIn(ExperimentalTestApi::class)
 class ConfigurationViewTest {
-
     @Test
     fun yourOwnItemsAreShownInOrderAsWideAsTheSettings() {
         val shown = mutableListOf<String>()
@@ -47,12 +46,11 @@ class ConfigurationViewTest {
                 previewSettings = PreviewSettings(),
                 onPreviewSettingsChange = {},
                 modifier = Modifier.width(300.dp).fillMaxSize(),
-                panelItems = listOf(
-                    {
-                        shown += "first"
-                        primary = MaterialTheme.colorScheme.primary
-                        Box(Modifier.fillMaxWidth().onSizeChanged { width = it.width })
-                    },
+                panelItems = listOf({
+                    shown += "first"
+                    primary = MaterialTheme.colorScheme.primary
+                    Box(Modifier.fillMaxWidth().onSizeChanged { width = it.width })
+                },
                     { shown += "second" },
                 ),
             )
