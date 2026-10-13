@@ -9,22 +9,22 @@
   "semanticCommits": "enabled",
   "packageRules": [
     {
-      "description": "The JDK in the setup-java steps is a toolchain choice made together with AGP and Kotlin, not a routine bump, so Renovate leaves it alone.",
+      "description": "The CI JDK is chosen together with AGP and Kotlin, so Renovate leaves it alone.",
       "matchDatasources": ["java-version"],
       "enabled": false
     },
     {
-      "description": "One PR a month for every non-breaking update (minor, patch, pin, digest) across libraries, plugins, the Gradle wrapper and GitHub Actions. Major updates are never in it, so a breaking change always gets its own PR.",
+      "description": "One monthly PR for all non-breaking updates; majors always get their own PR.",
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "groupName": "non-breaking updates"
     },
     {
-      "description": "All Compose dependencies together: Compose Multiplatform, Material 3, adaptive, icons and the androidx *-compose artifacts. Material 3 is versioned apart from Compose Multiplatform but pinned to the one it ships with, so they move in one PR and CI checks the pair.",
+      "description": "Compose dependencies move together, since Material 3 is pinned to the version Compose Multiplatform ships with.",
       "matchPackageNames": ["/compose/"],
       "groupName": "Compose"
     },
     {
-      "description": "All other Kotlin dependencies together: the compiler, its Gradle plugins and kotlinx. Keep this after the Compose rule, because the Compose compiler plugin shares the kotlin version key and belongs here.",
+      "description": "Kotlin dependencies move together; keep this after the Compose rule so the Compose compiler plugin, which shares the kotlin version, lands here.",
       "matchPackageNames": ["/^org\\.jetbrains\\.kotlin/"],
       "groupName": "Kotlin"
     }

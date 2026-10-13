@@ -1,15 +1,15 @@
 package com.apadmi.cmpdevicepreview.core
 
-public enum class DeviceType(public val displayName: String, internal val order: Int) {
-    ANDROID("Android", 0),
-    IOS("iOS", 1),
-    OTHER("Other", 2);
+/**
+ * The platform a device runs, in the order the device picker lists them.
+ *
+ * @property displayName The platform's name as the device picker shows it.
+ */
+public enum class DeviceType(public val displayName: String) {
+    ANDROID("Android"),
+    IOS("iOS"),
+    OTHER("Other"),
+    ;
 
-
-    /**
-     * Returns a human-readable name for the device type.
-     */
-    override fun toString(): String {
-        return displayName
-    }
+    override fun toString(): String = displayName
 }

@@ -20,7 +20,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class DeviceFramePainterTest {
-
     private val iPhone = DevicePresets.iPhone16Pro
     private val frame = iPhone.frame!!
     private val portrait = iPhone.portraitSize

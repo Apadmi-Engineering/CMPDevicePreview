@@ -10,9 +10,12 @@ plugins {
 
 }
 
-// Registers generateDevicePresets: device_specs/*.json -> DevicePresets.kt.
-apply(from = "device-presets.gradle.kts")
-val generateDevicePresets = tasks.named("generateDevicePresets")
+val generateDevicePresets = tasks.register<GenerateDevicePresetsTask>("generateDevicePresets") {
+    group = "build"
+    description = "Generates the DevicePresets catalog from device_specs/*.json."
+    specFiles.from(fileTree("device_specs") { include("*.json") })
+    outputDirectory.set(layout.buildDirectory.dir("generated/devicePresets/kotlin"))
+}
 
 kotlin {
     explicitApi()
@@ -26,14 +29,19 @@ kotlin {
         minSdk = libs.versions.android.minSdk.get().toInt()
     }
 
+    // The browser tests need an executable binary, so webpack bundles the Skiko runtime (CMP-4906).
     js {
-        nodejs()
-        browser()
-        binaries.library()
+        browser {
+            testTask { useKarma { useChromeHeadless() } }
+        }
+        binaries.executable()
     }
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        browser()
+        browser {
+            testTask { useKarma { useChromeHeadless() } }
+        }
+        binaries.executable()
     }
     jvm()
 
@@ -61,6 +69,9 @@ kotlin {
             implementation(libs.compose.material3)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.compose.ui)
+        }
+        webTest.dependencies {
+            implementation(kotlin("test"))
         }
         jvmTest.dependencies {
             implementation(kotlin("test"))
@@ -92,7 +103,7 @@ mavenPublishing {
     coordinates("com.apadmi", "cmpdevicepreview", libraryVersion.get())
     pom {
         name = "CmpDevicePreview"
-        description = "Kotlin & Compose Multiplatform library to simulate any device from any platform, supporting Android, iOS, JVM, JS, and WebAssembly."
+        description = "Compose Multiplatform library that previews your app inside device frames and settings, on Android, iOS, desktop and the web."
         inceptionYear = "2026"
         url = "https://github.com/Apadmi-Engineering/CMPDevicePreview/"
         licenses {
@@ -124,7 +135,7 @@ mavenPublishing {
             url.set("https://github.com/Apadmi-Engineering/CMPDevicePreview")
         }
         issueManagement {
-            system.set("Github")
+            system.set("GitHub")
             url.set("https://github.com/Apadmi-Engineering/CMPDevicePreview/issues")
         }
     }

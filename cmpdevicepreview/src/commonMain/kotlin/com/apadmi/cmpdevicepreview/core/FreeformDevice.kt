@@ -9,7 +9,6 @@ import androidx.compose.ui.geometry.Size
  * @property size The window's size, in dp.
  */
 public data class FreeformDevice(val size: Size) : Device {
-
     override val name: String
         get() = "Freeform"
 

@@ -9,14 +9,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SimulatedDeviceTest {
-
-    /** A device of your own, which only says what it has to. */
-    private class CustomDevice(override val type: DeviceType) : Device {
-        override val name: String = "Custom"
-        override val portraitSize: Size = Size(400f, 800f)
-        override val devicePixelRatio: Float = 2f
-    }
-
     @Test
     fun theKeyboardHeightFollowsTheOrientation() {
         val portrait = SimulatedDevice(DevicePresets.iPhone16Pro)
@@ -30,22 +22,27 @@ class SimulatedDeviceTest {
     fun aDesktopWindowCannotBeTurned() {
         val desktop = DevicePresets.largeDesktopWindow
         assertFalse(desktop.isRotatable)
-        assertTrue(desktop.laidOutInPortrait(isPortrait = false))
+        assertTrue(desktop.isLaidOutInPortrait(isPortrait = false))
 
         // Asking for landscape changes nothing: the window keeps its natural, wide shape.
         val natural = SimulatedDevice(desktop).currentSize
         val asked = SimulatedDevice(desktop, DeviceConfiguration(isPortrait = false)).currentSize
         assertEquals(natural, asked)
         assertTrue(asked.width > asked.height, "a desktop window is wider than tall")
+    }
 
-        // Everything else still turns.
+    @Test
+    fun phonesTabletsAndFoldablesTurn() {
         for (device in listOf(DevicePresets.pixel9, DevicePresets.galaxyTabS11, DevicePresets.pixel10ProFold)) {
             assertTrue(device.isRotatable, device.name)
             val upright = SimulatedDevice(device).currentSize
             val turned = SimulatedDevice(device, DeviceConfiguration(isPortrait = false)).currentSize
             assertEquals(Size(upright.height, upright.width), turned, device.name)
         }
-        // A device that doesn't give its kind is a phone, so it can be turned.
+    }
+
+    @Test
+    fun aDeviceThatDoesNotGiveItsKindCanBeTurned() {
         assertTrue(CustomDevice(DeviceType.OTHER).isRotatable)
     }
 
@@ -101,5 +98,11 @@ class SimulatedDeviceTest {
         assertFalse(freeform.adaptedToDevice().configuration.isKeyboardVisible)
         // Everything else about the configuration is kept.
         assertEquals(freeform.configuration.copy(isKeyboardVisible = false), freeform.adaptedToDevice().configuration)
+    }
+    /** A device of your own, which only says what it has to. */
+    private class CustomDevice(override val type: DeviceType) : Device {
+        override val name: String = "Custom"
+        override val portraitSize: Size = Size(400f, 800f)
+        override val devicePixelRatio: Float = 2f
     }
 }

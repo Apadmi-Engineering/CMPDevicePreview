@@ -8,25 +8,32 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.renderComposeScene
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelectable
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
+import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
+import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
+@OptIn(ExperimentalTestApi::class)
 class ConfigurationViewTest {
-
     @Test
     fun yourOwnItemsAreShownInOrderAsWideAsTheSettings() {
         val shown = mutableListOf<String>()
@@ -34,15 +41,16 @@ class ConfigurationViewTest {
         var primary = Color.Unspecified
         renderComposeScene(300, 4000) {
             ConfigurationView(
-                modifier = Modifier.width(300.dp).fillMaxSize(),
                 simulatedDevice = SimulatedDevice(DevicePresets.pixel9),
-                onChangeConfiguration = {},
-                panelItems = listOf(
-                    {
-                        shown += "first"
-                        primary = MaterialTheme.colorScheme.primary
-                        Box(Modifier.fillMaxWidth().onSizeChanged { width = it.width })
-                    },
+                onSimulatedDeviceChange = {},
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+                panelItems = listOf({
+                    shown += "first"
+                    primary = MaterialTheme.colorScheme.primary
+                    Box(Modifier.fillMaxWidth().onSizeChanged { width = it.width })
+                },
                     { shown += "second" },
                 ),
             )
@@ -53,15 +61,16 @@ class ConfigurationViewTest {
         assertEquals(PanelColors.Accent, primary, "inside the panel's theme")
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun aTypedSizeIsFittedToTheDevice() = runComposeUiTest {
         var changed: SimulatedDevice? = null
         setContent {
             ConfigurationView(
-                modifier = Modifier.width(300.dp).fillMaxSize(),
                 simulatedDevice = SimulatedDevice(FreeformDevice(Size(800f, 800f)), DeviceConfiguration(displayScale = 1.5f)),
-                onChangeConfiguration = { changed = it },
+                onSimulatedDeviceChange = { changed = it },
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
             )
         }
         val width = onAllNodes(hasSetTextAction())[0]
@@ -75,17 +84,23 @@ class ConfigurationViewTest {
     }
 
     @Test
-    fun screenshotNamesAreSafeFileNames() {
-        val image = ImageBitmap(2064, 2752)
-        assertEquals("iPad Pro 13 (M5) 2064x2752.png", screenshotName(DevicePresets.iPadPro13M5, image, includesFrame = false))
-        assertEquals("iPad Pro 13 (M5) with frame.png", screenshotName(DevicePresets.iPadPro13M5, image, includesFrame = true))
-    }
+    fun theBackdropChangesThePreviewSettingsNotTheDevice() = runComposeUiTest {
+        var device: SimulatedDevice? = null
+        var settings: PreviewSettings? = null
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9),
+                onSimulatedDeviceChange = { device = it },
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = { settings = it },
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+            )
+        }
+        onNode(hasText("Auto") and isSelectable()).performScrollTo().performClick()
+        assertEquals(PreviewSettings(backdrop = Backdrop.AUTO), settings)
 
-    @Test
-    fun pixelRatiosDropTrailingZeros() {
-        assertEquals("3x", formatPixelRatio(3f))
-        assertEquals("2.625x", formatPixelRatio(2.625f))
-        assertEquals("2.75x", formatPixelRatio(2.75f))
-        assertEquals("1.5x", formatPixelRatio(1.5f))
+        onNodeWithText("Dot grid").performScrollTo().performClick()
+        assertEquals(PreviewSettings(isDotGridVisible = false), settings)
+        assertNull(device)
     }
 }

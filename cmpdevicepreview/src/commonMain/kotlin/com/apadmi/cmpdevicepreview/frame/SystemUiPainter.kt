@@ -13,18 +13,30 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Parses a [DeviceSystemUi] once, then lays out and paints its bars as [DeviceSystemUi] describes.
- * Malformed artwork is reported once and skipped.
+ * Lays out a [DeviceSystemUi]'s bars, parsing each piece of artwork once. Malformed artwork is
+ * skipped.
+ *
+ * @property systemUi The status bar and navigation bar artwork to lay out.
  */
 internal class SystemUiPainter(val systemUi: DeviceSystemUi) {
-
     private val parsed = mutableMapOf<String, SvgDrawing?>()
 
     /**
      * Where each piece of artwork lands on a screen of [screenSize] whose safe area is [safeArea],
      * in paint order. Bars whose safe area is zero are skipped.
+     *
+     * @param screenSize The size of the screen, in dp.
+     * @param safeArea The screen's safe area, whose top and bottom give the heights of the status
+     * bar and navigation bar.
+     * @param layoutDirection The device's layout direction; leading and trailing artwork swap sides
+     * in right-to-left.
+     * @return The placed artwork, in paint order.
      */
-    fun layout(screenSize: Size, safeArea: DeviceInsets, layoutDirection: LayoutDirection): List<PlacedArtwork> {
+    fun layout(
+        screenSize: Size,
+        safeArea: DeviceInsets,
+        layoutDirection: LayoutDirection
+    ): List<PlacedArtwork> {
         val placed = mutableListOf<PlacedArtwork>()
         val statusBar = systemUi.statusBar
         if (statusBar != null && safeArea.top > 0f) {
@@ -38,29 +50,31 @@ internal class SystemUiPainter(val systemUi: DeviceSystemUi) {
         return placed
     }
 
-    /**
-     * Paints the bars of a screen of [screenSize] whose safe area is [safeArea], tinting artwork
-     * that follows `currentColor` with [tint].
-     *
-     * The canvas origin must be the screen's top-left corner, in logical pixels.
-     */
-    fun paint(canvas: Canvas, screenSize: Size, safeArea: DeviceInsets, tint: Color, layoutDirection: LayoutDirection) {
-        for (artwork in layout(screenSize, safeArea, layoutDirection)) {
-            artwork.drawing.paintInto(canvas, artwork.bounds, currentColor = tint)
-        }
-    }
-
-    private fun placeBar(bar: SystemUiBar, region: Rect, layoutDirection: LayoutDirection, into: MutableList<PlacedArtwork>) {
+    private fun placeBar(
+        bar: SystemUiBar,
+        region: Rect,
+        layoutDirection: LayoutDirection,
+        into: MutableList<PlacedArtwork>
+    ) {
         val rtl = layoutDirection == LayoutDirection.Rtl
         place(if (rtl) bar.trailing else bar.leading, region, bar, Anchor.Start)?.let(into::add)
         place(bar.center, region, bar, Anchor.Center)?.let(into::add)
         place(if (rtl) bar.leading else bar.trailing, region, bar, Anchor.End)?.let(into::add)
     }
 
-    private fun place(source: String, region: Rect, bar: SystemUiBar, anchor: Anchor): PlacedArtwork? {
-        if (source.isEmpty()) return null
+    private fun place(
+        source: String,
+        region: Rect,
+        bar: SystemUiBar,
+        anchor: Anchor
+    ): PlacedArtwork? {
+        if (source.isEmpty()) {
+            return null
+        }
         val drawing = drawing(source) ?: return null
-        if (drawing.isEmpty || drawing.size.isEmpty()) return null
+        if (drawing.isEmpty || drawing.size.isEmpty()) {
+            return null
+        }
         val size = drawing.size
         val left = when (anchor) {
             Anchor.Start -> region.left + bar.inset
@@ -75,14 +89,23 @@ internal class SystemUiPainter(val systemUi: DeviceSystemUi) {
 
     private fun drawing(source: String): SvgDrawing? {
         // Cache failures too, so malformed artwork is reported once.
-        if (source in parsed) return parsed[source]
+        if (source in parsed) {
+            return parsed[source]
+        }
         return reportingParseFailure("system UI artwork") { SvgDrawing.parse(source) }.also { parsed[source] = it }
     }
 
-    private enum class Anchor { Start, Center, End }
+    private enum class Anchor {
+        Start, Center, End
+    }
 }
 
-/** A piece of system UI artwork and where it is drawn, in screen coordinates. */
+/**
+ * A piece of system UI artwork and where it is drawn, in screen coordinates.
+ *
+ * @property drawing The parsed artwork.
+ * @property bounds Where the artwork is drawn, in the screen's coordinates.
+ */
 internal class PlacedArtwork(val drawing: SvgDrawing, val bounds: Rect)
 
 /** The tints system UI artwork is painted with. */
@@ -90,6 +113,30 @@ internal object SystemUiColors {
     val LightIcons: Color = Color(0xFFFFFFFF)
     val DarkIcons: Color = Color(0xFF16181C)
 
-    /** Icons that contrast with the simulated theme: light icons in dark mode, dark ones otherwise. */
+    /**
+     * Icons that contrast with the simulated theme: light icons in dark mode, dark ones otherwise.
+     *
+     * @param isDarkMode Whether the simulated device is in dark mode.
+     * @return The colour to tint the system UI artwork with.
+     */
     fun icons(isDarkMode: Boolean): Color = if (isDarkMode) LightIcons else DarkIcons
+}
+
+/**
+ * Paints system UI artwork laid out by [SystemUiPainter.layout], tinting what follows
+ * `currentColor` with [tint]. The canvas origin must be the screen's top-left corner, in logical
+ * pixels.
+ *
+ * @param canvas The canvas to paint on.
+ * @param placed The artwork to paint, as laid out by [SystemUiPainter.layout].
+ * @param tint The colour for shapes filled with `currentColor`.
+ */
+internal fun paintSystemUi(
+    canvas: Canvas,
+    placed: List<PlacedArtwork>,
+    tint: Color
+) {
+    for (artwork in placed) {
+        artwork.drawing.paintInto(canvas, artwork.bounds, currentColor = tint)
+    }
 }

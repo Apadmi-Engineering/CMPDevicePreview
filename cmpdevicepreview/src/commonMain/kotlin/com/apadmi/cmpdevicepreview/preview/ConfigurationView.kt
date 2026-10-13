@@ -58,7 +58,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
@@ -77,20 +76,25 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
 import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.Device
+import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.FontScaleSteps
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
+import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
-import com.apadmi.cmpdevicepreview.core.adaptedToDevice
 import com.apadmi.cmpdevicepreview.core.currentContentSize
 import com.apadmi.cmpdevicepreview.core.displayScaleSteps
-import com.apadmi.cmpdevicepreview.core.isRotatable
-import com.apadmi.cmpdevicepreview.core.laidOutInPortrait
-import com.apadmi.cmpdevicepreview.core.nearest
 import com.apadmi.cmpdevicepreview.core.hasFrameArtwork
+import com.apadmi.cmpdevicepreview.core.isLaidOutInPortrait
+import com.apadmi.cmpdevicepreview.core.isRotatable
+import com.apadmi.cmpdevicepreview.core.nearest
+
 import kotlin.math.roundToInt
+
+private const val NotAvailable = "Not available for this frame"
 
 private val OrientationOptions = listOf(
     SegmentOption("Portrait", Icons.Outlined.StayCurrentPortrait),
@@ -107,41 +111,43 @@ private val DirectionOptions = listOf(
     SegmentOption("Right to left", Icons.AutoMirrored.Outlined.FormatTextdirectionRToL),
 )
 
-// In the order of Backdrop's entries.
-private val BackdropOptions = listOf(
-    SegmentOption("Light", Icons.Outlined.LightMode),
-    SegmentOption("Dark", Icons.Outlined.DarkMode),
-    SegmentOption("Auto", Icons.Outlined.BrightnessAuto),
-)
-
-private const val NotAvailable = "Not available for this frame"
-
-/**
- * E.g. "Galaxy S25 1080x2340.png", or "Galaxy S25 with frame.png". Characters that aren't allowed
- * in file names, such as the inch mark in `iPad Pro 13" (M5)`, are left out.
- */
-internal fun screenshotName(device: Device, image: ImageBitmap, includesFrame: Boolean): String {
-    val name = device.name.filterNot { it in "\\/:*?\"<>|" }
-    return if (includesFrame) "$name with frame.png" else "$name ${image.width}x${image.height}.png"
+private val BackdropOptions = Backdrop.entries.map { backdrop ->
+    when (backdrop) {
+        Backdrop.LIGHT -> SegmentOption("Light", Icons.Outlined.LightMode)
+        Backdrop.DARK -> SegmentOption("Dark", Icons.Outlined.DarkMode)
+        Backdrop.AUTO -> SegmentOption("Auto", Icons.Outlined.BrightnessAuto)
+    }
 }
 
+private val MinFreeformSizeDp = MinFreeformSize.roundToInt()
+private val MaxFreeformSizeDp = MaxFreeformSize.roundToInt()
+
 /**
- * The configuration panel, which picks the device and sets how it is shown.
+ * The configuration panel, which picks the device and sets how it and the preview are shown.
  *
+ * @param simulatedDevice The device and configuration the panel shows the settings of.
+ * @param onSimulatedDeviceChange Called with the new device and configuration when the picker or a
+ * setting changes them, fitted to the device. Pass it back as [simulatedDevice] to apply it.
+ * @param previewSettings The settings of the preview around the device that the panel shows.
+ * @param onPreviewSettingsChange Called with the new settings when the backdrop, the dot grid or
+ * preview mode is changed. Pass them back as [previewSettings] to apply them.
+ * @param modifier The modifier for the panel.
  * @param panelItems Your own items, shown in order below the panel's settings, as wide as them and
  * inside the panel's dark Material theme.
  */
 @Composable
 public fun ConfigurationView(
-    modifier: Modifier = Modifier,
     simulatedDevice: SimulatedDevice,
-    onChangeConfiguration: (SimulatedDevice) -> Unit,
+    onSimulatedDeviceChange: (SimulatedDevice) -> Unit,
+    previewSettings: PreviewSettings,
+    onPreviewSettingsChange: (PreviewSettings) -> Unit,
+    modifier: Modifier = Modifier,
     panelItems: List<@Composable () -> Unit> = emptyList(),
 ) {
-    val configuration = simulatedDevice.configuration
     val device = simulatedDevice.device
     // Every change is fitted to the device, whichever setting it comes from.
-    fun update(change: SimulatedDevice.() -> SimulatedDevice) = onChangeConfiguration(simulatedDevice.change().adaptedToDevice())
+    val update = { changed: SimulatedDevice -> onSimulatedDeviceChange(changed.adaptedToDevice()) }
+    val updateConfiguration = { changed: DeviceConfiguration -> update(simulatedDevice.copy(configuration = changed)) }
 
     PanelTheme {
         var isPickerShown by remember { mutableStateOf(false) }
@@ -151,7 +157,7 @@ public fun ConfigurationView(
                 // Freeform starts as the device is now, turned as it is.
                 freeform = device as? FreeformDevice ?: FreeformDevice(simulatedDevice.currentSize),
                 onPick = {
-                    update { copy(device = it) }
+                    update(simulatedDevice.copy(device = it))
                     isPickerShown = false
                 },
                 onDismiss = { isPickerShown = false },
@@ -172,152 +178,24 @@ public fun ConfigurationView(
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp)
             ) {
-                SectionLabel("Frame")
-                DeviceCard(device, isPortrait = device.laidOutInPortrait(configuration.isPortrait)) { isPickerShown = true }
-                FrameDisclaimer()
-
+                FrameSection(simulatedDevice, onChangeFrame = { isPickerShown = true })
                 Spacer(Modifier.height(24.dp))
                 if (device is FreeformDevice) {
-                    SectionLabel("Size")
-                    SizeFields(device.size) { size -> update { copy(device = FreeformDevice(size)) } }
+                    SizeSection(device.size) { size -> update(simulatedDevice.copy(device = FreeformDevice(size))) }
                 } else {
-                    SectionLabel("Orientation")
-                    // A desktop window can't turn, so it shows as landscape.
-                    SegmentedControl(
-                        options = OrientationOptions,
-                        selectedIndex = if (device.isRotatable && configuration.isPortrait) 0 else 1,
-                        onSelect = { index ->
-                            update {
-                                copy(configuration = configuration.copy(isPortrait = index == 0))
-                            }
-                        },
-                        enabled = device.isRotatable,
-                    )
-                    if (!device.isRotatable) {
-                        Text(
-                            "Desktop windows are landscape only",
-                            modifier = Modifier.padding(start = 4.dp, top = 8.dp),
-                            color = PanelColors.TextTertiary,
-                            fontSize = 12.sp,
-                        )
-                    }
+                    OrientationSection(device, simulatedDevice.configuration, updateConfiguration)
                 }
-
                 Spacer(Modifier.height(20.dp))
-                SectionLabel("Appearance")
-                SegmentedControl(
-                    options = AppearanceOptions,
-                    selectedIndex = if (configuration.isDarkMode) 1 else 0,
-                    onSelect = { index -> update { copy(configuration = configuration.copy(isDarkMode = index == 1)) } },
-                )
-
+                AppearanceSection(simulatedDevice.configuration, updateConfiguration)
                 Spacer(Modifier.height(20.dp))
-                SectionLabel("Text & display")
-                StepSlider(
-                    icon = Icons.Outlined.FormatSize,
-                    title = "Text size",
-                    note = "Real device scaling options may vary",
-                    labels = FontScaleSteps.map { it.label },
-                    selectedIndex = FontScaleSteps.indexOf(FontScaleSteps.nearest(configuration.fontScale)),
-                    onSelect = { index -> update { copy(configuration = configuration.copy(fontScale = FontScaleSteps[index].scale)) } },
-                )
-                val displaySteps = device.displayScaleSteps
-                val contentSize = simulatedDevice.currentContentSize
-                StepSlider(
-                    icon = Icons.Outlined.ZoomIn,
-                    title = "Display size",
-                    note = "App sees ${contentSize.width.roundToInt()} × ${contentSize.height.roundToInt()} dp",
-                    labels = displaySteps.map { it.label },
-                    selectedIndex = displaySteps.indexOf(displaySteps.nearest(configuration.displayScale)),
-                    onSelect = { index ->
-                        update { copy(configuration = configuration.copy(displayScale = displaySteps[index].scale)) }
-                    },
-                )
-
+                TextAndDisplaySection(simulatedDevice, updateConfiguration)
                 Spacer(Modifier.height(20.dp))
-                SectionLabel("Layout direction")
-                SegmentedControl(
-                    options = DirectionOptions,
-                    selectedIndex = if ((configuration.layoutDirection ?: LocalLayoutDirection.current) == LayoutDirection.Rtl) 1 else 0,
-                    onSelect = { index ->
-                        val direction = if (index == 1) LayoutDirection.Rtl else LayoutDirection.Ltr
-                        update { copy(configuration = configuration.copy(layoutDirection = direction)) }
-                    },
-                )
-
+                LayoutDirectionSection(simulatedDevice.configuration, updateConfiguration)
                 Spacer(Modifier.height(20.dp))
-                SectionLabel("Display")
-                ToggleRow(
-                    icon = Icons.Outlined.Smartphone,
-                    title = if (device.hasFrameArtwork) "Bezel" else "Border",
-                    note = if (device.hasFrameArtwork) "Body and screen corners" else "Window border and shadow",
-                    checked = configuration.isFrameVisible,
-                    onCheckedChange = { update { copy(configuration = configuration.copy(isFrameVisible = it)) } },
-                )
-                val hasSystemUi = device.systemUi?.isEmpty == false
-                ToggleRow(
-                    icon = Icons.Outlined.SignalCellularAlt,
-                    title = "System UI",
-                    note = if (hasSystemUi) "A static status bar and gesture bar" else NotAvailable,
-                    checked = hasSystemUi && configuration.isSystemUiVisible,
-                    enabled = hasSystemUi,
-                    onCheckedChange = { update { copy(configuration = configuration.copy(isSystemUiVisible = it)) } },
-                )
-                val keyboardHeight = simulatedDevice.currentKeyboardHeight
-                val isKeyboardShown = keyboardHeight != null && configuration.isKeyboardVisible
-                ToggleRow(
-                    icon = Icons.Outlined.Keyboard,
-                    title = "Keyboard",
-                    note = if (keyboardHeight == null) NotAvailable else "The space a keyboard covers",
-                    badge = keyboardHeight?.takeIf { isKeyboardShown }?.let { "${it.roundToInt()} dp" },
-                    checked = isKeyboardShown,
-                    enabled = keyboardHeight != null,
-                    onCheckedChange = { update { copy(configuration = configuration.copy(isKeyboardVisible = it)) } },
-                )
-
+                DisplaySection(simulatedDevice, updateConfiguration)
                 Spacer(Modifier.height(20.dp))
-                SectionLabel("Backdrop")
-                SegmentedControl(
-                    options = BackdropOptions,
-                    selectedIndex = configuration.backdrop.ordinal,
-                    onSelect = { index -> update { copy(configuration = configuration.copy(backdrop = Backdrop.entries[index])) } },
-                )
-                Spacer(Modifier.height(8.dp))
-                ToggleRow(
-                    icon = Icons.Outlined.GridOn,
-                    title = "Dot grid",
-                    note = "Dots behind the frame",
-                    checked = configuration.isDotGridVisible,
-                    onCheckedChange = { update { copy(configuration = configuration.copy(isDotGridVisible = it)) } },
-                )
-
-                val screenshots = LocalDeviceScreenshots.current
-                val download = pngDownloader
-                if (screenshots != null && download != null) {
-                    Spacer(Modifier.height(20.dp))
-                    SectionLabel("Screenshot")
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for (includeFrame in listOf(false, true)) {
-                            PanelButton(
-                                icon = if (includeFrame) Icons.Outlined.PhoneAndroid else Icons.Outlined.Screenshot,
-                                label = if (includeFrame) "With frame" else "Screen",
-                                enabled = screenshots.canCapture,
-                                modifier = Modifier.weight(1f),
-                                onClick = {
-                                    screenshots.capture(includeFrame)?.let { image ->
-                                        download(image, screenshotName(device, image, includeFrame))
-                                    }
-                                },
-                            )
-                        }
-                    }
-                    Text(
-                        "PNGs at the device's own resolution",
-                        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
-                        color = PanelColors.TextTertiary,
-                        fontSize = 12.sp,
-                    )
-                }
+                BackdropSection(previewSettings, onPreviewSettingsChange)
+                ScreenshotSection(device)
 
                 if (panelItems.isNotEmpty()) {
                     Spacer(Modifier.height(20.dp))
@@ -330,8 +208,8 @@ public fun ConfigurationView(
                 icon = Icons.Outlined.Visibility,
                 title = "Preview mode",
                 note = "Off shows just the app, until it is reloaded",
-                checked = configuration.isPreviewModeEnabled,
-                onCheckedChange = { update { copy(configuration = configuration.copy(isPreviewModeEnabled = it)) } },
+                checked = previewSettings.isPreviewModeEnabled,
+                onCheckedChange = { onPreviewSettingsChange(previewSettings.copy(isPreviewModeEnabled = it)) },
                 modifier = Modifier.padding(8.dp),
             )
         }
@@ -347,7 +225,7 @@ private fun PanelHeader() {
         Box(
             Modifier
                 .size(28.dp)
-                .background(Brush.linearGradient(listOf(PanelColors.Accent, Color(0xFF4FA3FF))), RoundedCornerShape(8.dp)),
+                .background(Brush.linearGradient(listOf(PanelColors.Accent, PanelColors.AccentBlue)), RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(Icons.Outlined.CropFree, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
@@ -362,9 +240,172 @@ private fun PanelHeader() {
     }
 }
 
+@Composable
+private fun FrameSection(simulatedDevice: SimulatedDevice, onChangeFrame: () -> Unit) {
+    val device = simulatedDevice.device
+    SectionLabel("Frame")
+    DeviceCard(device, isPortrait = device.isLaidOutInPortrait(simulatedDevice.configuration.isPortrait), onChangeFrame)
+    FrameDisclaimer()
+}
+
+@Composable
+private fun SizeSection(size: Size, onChange: (Size) -> Unit) {
+    SectionLabel("Size")
+    SizeFields(size, onChange)
+}
+
+@Composable
+private fun OrientationSection(
+    device: Device,
+    configuration: DeviceConfiguration,
+    onChange: (DeviceConfiguration) -> Unit
+) {
+    SectionLabel("Orientation")
+    // A desktop window can't turn, so it shows as landscape.
+    SegmentedControl(
+        options = OrientationOptions,
+        selectedIndex = if (device.isRotatable && configuration.isPortrait) 0 else 1,
+        onSelect = { index -> onChange(configuration.copy(isPortrait = index == 0)) },
+        enabled = device.isRotatable,
+    )
+    if (!device.isRotatable) {
+        PanelCaption("Desktop windows are landscape only")
+    }
+}
+
+@Composable
+private fun AppearanceSection(configuration: DeviceConfiguration, onChange: (DeviceConfiguration) -> Unit) {
+    SectionLabel("Appearance")
+    SegmentedControl(
+        options = AppearanceOptions,
+        selectedIndex = if (configuration.isDarkMode) 1 else 0,
+        onSelect = { index -> onChange(configuration.copy(isDarkMode = index == 1)) },
+    )
+}
+
+@Composable
+private fun TextAndDisplaySection(simulatedDevice: SimulatedDevice, onChange: (DeviceConfiguration) -> Unit) {
+    val configuration = simulatedDevice.configuration
+    SectionLabel("Text & display")
+    StepSlider(
+        icon = Icons.Outlined.FormatSize,
+        title = "Text size",
+        note = "Real device scaling options may vary",
+        labels = FontScaleSteps.map { it.label },
+        selectedIndex = FontScaleSteps.indexOf(FontScaleSteps.nearest(configuration.fontScale)),
+        onSelect = { index -> onChange(configuration.copy(fontScale = FontScaleSteps[index].scale)) },
+    )
+    val displaySteps = simulatedDevice.device.displayScaleSteps
+    StepSlider(
+        icon = Icons.Outlined.ZoomIn,
+        title = "Display size",
+        note = "App sees ${simulatedDevice.currentContentSize.dimensionsLabel()} dp",
+        labels = displaySteps.map { it.label },
+        selectedIndex = displaySteps.indexOf(displaySteps.nearest(configuration.displayScale)),
+        onSelect = { index -> onChange(configuration.copy(displayScale = displaySteps[index].scale)) },
+    )
+}
+
+@Composable
+private fun LayoutDirectionSection(configuration: DeviceConfiguration, onChange: (DeviceConfiguration) -> Unit) {
+    SectionLabel("Layout direction")
+    val direction = configuration.layoutDirection ?: LocalLayoutDirection.current
+    SegmentedControl(
+        options = DirectionOptions,
+        selectedIndex = if (direction == LayoutDirection.Rtl) 1 else 0,
+        onSelect = { index ->
+            onChange(configuration.copy(layoutDirection = if (index == 1) LayoutDirection.Rtl else LayoutDirection.Ltr))
+        },
+    )
+}
+
+@Composable
+private fun DisplaySection(simulatedDevice: SimulatedDevice, onChange: (DeviceConfiguration) -> Unit) {
+    val device = simulatedDevice.device
+    val configuration = simulatedDevice.configuration
+    SectionLabel("Display")
+    ToggleRow(
+        icon = Icons.Outlined.Smartphone,
+        title = if (device.hasFrameArtwork) "Bezel" else "Border",
+        note = if (device.hasFrameArtwork) "Body and screen corners" else "Window border and shadow",
+        checked = configuration.isFrameVisible,
+        onCheckedChange = { onChange(configuration.copy(isFrameVisible = it)) },
+    )
+    val hasSystemUi = device.systemUi?.isEmpty == false
+    ToggleRow(
+        icon = Icons.Outlined.SignalCellularAlt,
+        title = "System UI",
+        note = if (hasSystemUi) "A static status bar and gesture bar" else NotAvailable,
+        checked = hasSystemUi && configuration.isSystemUiVisible,
+        enabled = hasSystemUi,
+        onCheckedChange = { onChange(configuration.copy(isSystemUiVisible = it)) },
+    )
+    val keyboardHeight = simulatedDevice.currentKeyboardHeight
+    val isKeyboardShown = keyboardHeight != null && configuration.isKeyboardVisible
+    ToggleRow(
+        icon = Icons.Outlined.Keyboard,
+        title = "Keyboard",
+        note = if (keyboardHeight == null) NotAvailable else "The space a keyboard covers",
+        badge = keyboardHeight?.takeIf { isKeyboardShown }?.let { "${it.roundToInt()} dp" },
+        checked = isKeyboardShown,
+        enabled = keyboardHeight != null,
+        onCheckedChange = { onChange(configuration.copy(isKeyboardVisible = it)) },
+    )
+}
+
+@Composable
+private fun BackdropSection(previewSettings: PreviewSettings, onChange: (PreviewSettings) -> Unit) {
+    SectionLabel("Backdrop")
+    SegmentedControl(
+        options = BackdropOptions,
+        selectedIndex = previewSettings.backdrop.ordinal,
+        onSelect = { index -> onChange(previewSettings.copy(backdrop = Backdrop.entries[index])) },
+    )
+    Spacer(Modifier.height(8.dp))
+    ToggleRow(
+        icon = Icons.Outlined.GridOn,
+        title = "Dot grid",
+        note = "Dots behind the frame",
+        checked = previewSettings.isDotGridVisible,
+        onCheckedChange = { onChange(previewSettings.copy(isDotGridVisible = it)) },
+    )
+}
+
+/** Buttons that save the screen, or the whole device, as a PNG, where the platform can. */
+@Composable
+private fun ScreenshotSection(device: Device) {
+    val screenshots = LocalDeviceScreenshots.current
+    val download = pngDownloader
+    if (screenshots == null || download == null) {
+        return
+    }
+    Spacer(Modifier.height(20.dp))
+    SectionLabel("Screenshot")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (includeFrame in listOf(false, true)) {
+            PanelButton(
+                icon = if (includeFrame) Icons.Outlined.PhoneAndroid else Icons.Outlined.Screenshot,
+                label = if (includeFrame) "With frame" else "Screen",
+                enabled = screenshots.canCapture,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    screenshots.capture(includeFrame)?.let { image ->
+                        download(image, screenshotName(device, image, includeFrame))
+                    }
+                },
+            )
+        }
+    }
+    PanelCaption("PNGs at the device's own resolution")
+}
+
 /** The current frame, which opens the picker. Its thumbnail turns with the frame. */
 @Composable
-private fun DeviceCard(device: Device, isPortrait: Boolean, onClick: () -> Unit) {
+private fun DeviceCard(
+    device: Device,
+    isPortrait: Boolean,
+    onClick: () -> Unit
+) {
     val shape = RoundedCornerShape(14.dp)
     val turn by animateFloatAsState(if (isPortrait) 0f else -90f, label = "thumbnailTurn")
     Row(
@@ -393,8 +434,7 @@ private fun DeviceCard(device: Device, isPortrait: Boolean, onClick: () -> Unit)
                     .ifEmpty { listOf(device.type.displayName) }
                     .joinToString(" · ")
             }
-            val size = device.portraitSize
-            val dimensions = "${size.width.roundToInt()} × ${size.height.roundToInt()}"
+            val dimensions = device.portraitSize.dimensionsLabel()
             Text(device.name, color = PanelColors.TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             Text(origin, color = PanelColors.TextSecondary, fontSize = 12.sp)
             Text(
@@ -419,23 +459,12 @@ private fun FrameDisclaimer() {
         )
         Text(
             "Frames give a feel for a device's size and shape. They don't simulate the device: your " +
-                "app runs here, in a window that size.",
+                    "app runs here, in a window that size.",
             modifier = Modifier.padding(start = 6.dp),
             color = PanelColors.TextTertiary,
             fontSize = 12.sp,
             lineHeight = 16.sp,
         )
-    }
-}
-
-/** E.g. "3x" or "2.625x". */
-internal fun formatPixelRatio(ratio: Float): String {
-    val thousandths = (ratio * 1000).roundToInt()
-    val fraction = thousandths % 1000
-    return if (fraction == 0) {
-        "${thousandths / 1000}x"
-    } else {
-        "${thousandths / 1000}.${fraction.toString().padStart(3, '0').trimEnd('0')}x"
     }
 }
 
@@ -458,36 +487,35 @@ private fun SizeFields(size: Size, onChange: (Size) -> Unit) {
             Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap width and height", tint = PanelColors.TextSecondary)
         }
     }
-    Text(
-        "$MinFreeformSizeDp–$MaxFreeformSizeDp dp",
-        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
-        color = PanelColors.TextTertiary,
-        fontSize = 12.sp,
-    )
+    PanelCaption("$MinFreeformSizeDp–$MaxFreeformSizeDp dp")
 }
-
-private val MinFreeformSizeDp = MinFreeformSize.roundToInt()
-private val MaxFreeformSizeDp = MaxFreeformSize.roundToInt()
 
 /**
  * A side of a freeform window, in dp. What is typed is applied on Enter or when the field loses
  * focus, kept between [MinFreeformSize] and [MaxFreeformSize]; what isn't a number is dropped.
  */
 @Composable
-private fun SizeField(label: String, value: Float, modifier: Modifier = Modifier, onCommit: (Float) -> Unit) {
+private fun SizeField(
+    label: String,
+    value: Float,
+    modifier: Modifier = Modifier,
+    onCommit: (Float) -> Unit
+) {
     val shown = value.roundToInt().toString()
     // Starts over whenever the size changes from elsewhere, such as by dragging a corner.
     var text by remember(shown) { mutableStateOf(shown) }
     var isFocused by remember { mutableStateOf(false) }
-    fun commit() {
+    val commit: () -> Unit = {
         val typed = text.toIntOrNull()
         if (typed == null) {
             text = shown
-            return
+        } else {
+            val size = typed.coerceIn(MinFreeformSizeDp, MaxFreeformSizeDp)
+            text = size.toString()
+            if (size != value.roundToInt()) {
+                onCommit(size.toFloat())
+            }
         }
-        val size = typed.coerceIn(MinFreeformSizeDp, MaxFreeformSizeDp)
-        text = size.toString()
-        if (size != value.roundToInt()) onCommit(size.toFloat())
     }
     val shape = RoundedCornerShape(10.dp)
     BasicTextField(
@@ -495,12 +523,16 @@ private fun SizeField(label: String, value: Float, modifier: Modifier = Modifier
         onValueChange = { text = it.filter(Char::isDigit).take(MaxFreeformSizeDp.toString().length) },
         modifier = modifier
             .onFocusChanged {
-                if (isFocused && !it.isFocused) commit()
+                if (isFocused && !it.isFocused) {
+                    commit()
+                }
                 isFocused = it.isFocused
             }
             .onPreviewKeyEvent { event ->
                 val isEnter = event.key == Key.Enter || event.key == Key.NumPadEnter
-                if (isEnter && event.type == KeyEventType.KeyDown) commit()
+                if (isEnter && event.type == KeyEventType.KeyDown) {
+                    commit()
+                }
                 isEnter
             },
         singleLine = true,

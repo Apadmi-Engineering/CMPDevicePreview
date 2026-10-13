@@ -13,7 +13,15 @@ import kotlin.math.tan
  * x' = a·x + c·y + e
  * y' = b·x + d·y + f
  * ```
+ *
+ * @property a How much x adds to x'.
+ * @property b How much x adds to y'.
+ * @property c How much y adds to x'.
+ * @property d How much y adds to y'.
+ * @property e How far x' is translated.
+ * @property f How far y' is translated.
  */
+@Suppress("IDENTIFIER_LENGTH")  // The components are named as in SVG's matrix(a b c d e f).
 internal data class Affine(
     val a: Float,
     val b: Float,
@@ -22,10 +30,14 @@ internal data class Affine(
     val e: Float,
     val f: Float,
 ) {
-
+    val isIdentity: Boolean
+        get() = this == Identity
     /**
      * The composition that applies [other] first, then this transform. This is how an SVG
      * `transform` list composes left to right, and how a child's transform nests in its parent's.
+     *
+     * @param other The transform to apply first.
+     * @return The combined transform.
      */
     operator fun times(other: Affine): Affine = Affine(
         a = a * other.a + c * other.b,
@@ -35,9 +47,6 @@ internal data class Affine(
         e = a * other.e + c * other.f + e,
         f = b * other.e + d * other.f + f,
     )
-
-    val isIdentity: Boolean
-        get() = this == Identity
 
     fun toMatrix(): Matrix = Matrix(
         floatArrayOf(

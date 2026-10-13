@@ -1,9 +1,16 @@
 package com.apadmi.cmpdevicepreview.frame
 
-/** Runs [parse], or reports the failure and returns null, so malformed artwork is left undrawn. */
+/**
+ * Runs [parse], or reports the failure and returns null, so malformed artwork is left undrawn.
+ *
+ * @param what What is being parsed, named in the failure report, e.g. `device frame body artwork`.
+ * @param parse Parses the artwork; an exception it throws counts as a failure.
+ * @return The result of [parse], or null when it failed.
+ */
+@Suppress("DEBUG_PRINT")  // The library has no logging dependency, and println works on every target.
 internal fun <T : Any> reportingParseFailure(what: String, parse: () -> T): T? = try {
     parse()
 } catch (error: Exception) {
-    println("DevicePreview: could not parse the $what, it will not be drawn: $error")
+    println("CmpDevicePreview: could not parse the $what, it will not be drawn: $error")
     null
 }

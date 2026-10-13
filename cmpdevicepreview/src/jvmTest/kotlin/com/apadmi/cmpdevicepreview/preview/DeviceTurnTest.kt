@@ -25,7 +25,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class DeviceTurnTest {
-
     private val portrait = Size(100f, 200f)
 
     @Test
@@ -64,12 +63,12 @@ class DeviceTurnTest {
             isPortrait = false
             scene.frame(0)
             scene.frame(16)
-            val halfway = scene.frame(16 + 225)
+            val halfway = scene.frame(16L + TurnMillis / 2)
             assertTrue(contentSize.height > contentSize.width, "mid-turn, the content is still portrait")
             assertTrue(deviceBox(halfway).width > uprightBox.width * 2, "mid-turn, the device is diagonal")
 
-            scene.frame(16 + 500)
-            val turned = scene.frame(16 + 516)
+            scene.frame(16L + TurnMillis + 50)
+            val turned = scene.frame(16L + TurnMillis + 66)
             assertTrue(contentSize.width > contentSize.height, "after the turn, the content is landscape")
             // The space is wide enough for either orientation, so the device keeps its size.
             val turnedBox = deviceBox(turned)
@@ -97,9 +96,10 @@ class DeviceTurnTest {
             assertTrue(contentSize.width > contentSize.height, "a desktop window is wide")
             val upright = deviceBox(scene.frame(16))
 
-            // Asking for portrait neither turns the window nor lays it out tall, not even mid-turn.
+            // Asking for landscape neither turns the window nor changes its shape, not even mid-turn.
             isPortrait = false
-            for (millis in listOf(32L, 32L + 225, 32L + 500, 32L + 516)) {
+            val settled = 32L + TurnMillis + 66
+            for (millis in listOf(32L, 32L + TurnMillis / 2, 32L + TurnMillis + 50, settled)) {
                 val pixels = scene.frame(millis)
                 assertTrue(contentSize.width > contentSize.height, "still wide at ${millis}ms")
                 assertEquals(upright, deviceBox(pixels), "the window doesn't move at ${millis}ms")
@@ -107,13 +107,13 @@ class DeviceTurnTest {
 
             // Swapping to a phone that is asked to be in landscape shows it in landscape, not turning.
             device = DevicePresets.pixel9
-            scene.frame(600)
+            scene.frame(settled + 52)
             assertTrue(contentSize.width > contentSize.height, "the phone is in landscape")
             // And back: a desktop window straight away, without turning from the phone's orientation.
             device = DevicePresets.largeDesktopWindow
-            scene.frame(616)
+            scene.frame(settled + 68)
             assertTrue(contentSize.width > contentSize.height, "the window is wide at once")
-            assertEquals(upright, deviceBox(scene.frame(632)))
+            assertEquals(upright, deviceBox(scene.frame(settled + 84)))
         } finally {
             scene.close()
         }

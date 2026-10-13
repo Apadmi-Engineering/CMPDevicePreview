@@ -7,7 +7,7 @@ the frame artwork (screen outline and body), the status bar and gesture pill
 artwork and the keyboard heights are all Aloïs Deniel's work, and they are the
 source of the library's built-in catalog, `DevicePresets`.
 
-The `generateDevicePresets` Gradle task (`../device-presets.gradle.kts`) turns
+The `generateDevicePresets` Gradle task (`GenerateDevicePresetsTask` in the root `buildSrc/`) turns
 them into `DevicePresets.kt` under `build/generated/` on every build, so the
 JSON is the only thing to edit. To update the catalog from Flutter, with both
 repositories checked out side by side:

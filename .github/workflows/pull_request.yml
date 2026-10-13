@@ -12,6 +12,24 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    name: Lint
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      - name: Check code style
+        run: ./gradlew spotlessCheck
+
   build:
     strategy:
       fail-fast: false
@@ -19,7 +37,7 @@ jobs:
         config:
           - { target: jvm, os: ubuntu-latest, tasks: ":cmpdevicepreview:jvmTest :composeApp:compileKotlinJvm :desktopApp:compileKotlin" }
           - { target: android, os: ubuntu-latest, tasks: ":cmpdevicepreview:compileAndroidMain :androidApp:assembleDebug" }
-          - { target: web, os: ubuntu-latest, tasks: ":cmpdevicepreview:compileKotlinJs :composeApp:wasmJsBrowserDevelopmentExecutableDistribution" }
+          - { target: web, os: ubuntu-latest, tasks: ":cmpdevicepreview:jsBrowserTest :cmpdevicepreview:wasmJsBrowserTest :composeApp:wasmJsBrowserDevelopmentExecutableDistribution" }
           # Kotlin/Native only builds the iOS targets on macOS.
           - { target: ios, os: macos-latest, tasks: ":cmpdevicepreview:compileKotlinIosSimulatorArm64 :composeApp:compileKotlinIosSimulatorArm64" }
     runs-on: ${{ matrix.config.os }}

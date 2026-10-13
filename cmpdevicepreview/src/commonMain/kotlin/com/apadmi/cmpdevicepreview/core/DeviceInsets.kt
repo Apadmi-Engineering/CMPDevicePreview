@@ -6,6 +6,11 @@ import androidx.compose.ui.unit.dp
 /**
  * Insets from each edge of a simulated screen, in logical pixels (the dp the previewed content
  * sees), e.g. the safe area around a notch, a Dynamic Island or a home indicator.
+ *
+ * @property left The inset from the left edge.
+ * @property top The inset from the top edge.
+ * @property right The inset from the right edge.
+ * @property bottom The inset from the bottom edge.
  */
 public data class DeviceInsets(
     val left: Float = 0f,
@@ -13,10 +18,20 @@ public data class DeviceInsets(
     val right: Float = 0f,
     val bottom: Float = 0f,
 ) {
-
-    /** These insets as [WindowInsets], for `Modifier.windowInsetsPadding` or a `Scaffold`. */
+    /** These insets as [WindowInsets], for `Modifier.windowInsetsPadding` or a `Scaffold`.
+     *
+     * @return*/
     public fun toWindowInsets(): WindowInsets =
         WindowInsets(left = left.dp, top = top.dp, right = right.dp, bottom = bottom.dp)
+
+    /**
+     * These insets, each divided by [scale].
+     *
+     * @param scale The display scale: how much larger the content is drawn than the screen's own dp.
+     * @return The insets in the dp the content sees at that display scale.
+     */
+    internal operator fun div(scale: Float): DeviceInsets =
+        DeviceInsets(left = left / scale, top = top / scale, right = right / scale, bottom = bottom / scale)
 
     public companion object {
         public val Zero: DeviceInsets = DeviceInsets()
@@ -24,12 +39,11 @@ public data class DeviceInsets(
         /**
          * Derives landscape insets from portrait ones: the notch/status area is mirrored to both
          * sides and the home indicator is kept at the bottom.
+         *
+         * @param portrait The device's insets in portrait.
+         * @return The device's insets in landscape.
          */
         public fun rotateToLandscape(portrait: DeviceInsets): DeviceInsets =
             DeviceInsets(left = portrait.top, right = portrait.top, bottom = portrait.bottom)
     }
 }
-
-/** These insets, each divided by [scale]. */
-internal operator fun DeviceInsets.div(scale: Float): DeviceInsets =
-    DeviceInsets(left = left / scale, top = top / scale, right = right / scale, bottom = bottom / scale)

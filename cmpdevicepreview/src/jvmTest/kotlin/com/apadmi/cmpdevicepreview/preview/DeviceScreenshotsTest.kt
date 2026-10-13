@@ -16,7 +16,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class DeviceScreenshotsTest {
-
     @Test
     fun screenshotsAreAtTheDevicesOwnResolution() {
         val screenshots = DeviceScreenshots()

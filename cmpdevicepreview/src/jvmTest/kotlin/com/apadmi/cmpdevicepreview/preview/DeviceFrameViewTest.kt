@@ -40,24 +40,9 @@ import kotlin.test.assertTrue
  * screen, so one scene pixel is one logical pixel of the device.
  */
 class DeviceFrameViewTest {
-
     private val iPhone = DevicePresets.iPhone16Pro
 
-    /** What the content sees, through Compose's own APIs. */
-    private class Captured(
-        var safeAreaBottom: Int = -1,
-        var keyboardBottom: Int = -1,
-        var statusBarTop: Int = -1,
-        var isDark: Boolean? = null,
-        var paddedHeight: Int = -1,
-        var windowSize: DpSize = DpSize.Unspecified,
-        var density: Float = Float.NaN,
-        var fontScale: Float = Float.NaN,
-        var textSizes: Map<Int, Float> = emptyMap(),
-        var textHeight: Int = -1,
-        var layoutDirection: LayoutDirection? = null,
-    )
-
+    @Suppress("TOO_MANY_PARAMETERS")  // Each test names only the few settings it changes.
     private fun render(
         device: Device = iPhone,
         isSystemUiVisible: Boolean = true,
@@ -106,12 +91,17 @@ class DeviceFrameViewTest {
         val raised = Captured().also { render(isKeyboardVisible = true, captured = it) }
         assertEquals(335, raised.safeAreaBottom)
         assertEquals(335, raised.keyboardBottom)
+    }
 
+    @Test
+    fun withoutAKeyboardTheSafeAreaIsTheDevicesOwn() {
         val hidden = Captured().also { render(captured = it) }
         assertEquals(34, hidden.safeAreaBottom)
         assertEquals(0, hidden.keyboardBottom)
+    }
 
-        // A desktop window has no software keyboard to raise.
+    @Test
+    fun aDesktopWindowHasNoKeyboardToRaise() {
         val desktop = Captured().also {
             render(device = DevicePresets.largeDesktopWindow, isKeyboardVisible = true, captured = it)
         }
@@ -227,6 +217,8 @@ class DeviceFrameViewTest {
             override val name = "Window"
             override val type = DeviceType.OTHER
             override val portraitSize = Size(200f, 100f)
+
+            @Suppress("NULLABLE_PROPERTY_TYPE")  // Null means the host's density; the autofix would make it 0.
             override val devicePixelRatio: Float? = null
         }
         // Fitted at a scale of 1.2: 240 x 120, from y = 10.
@@ -241,9 +233,32 @@ class DeviceFrameViewTest {
         assertEquals(Color.White, pixels[120, 70], "the content")
     }
 
-    private fun lightPixels(pixels: PixelMap, xs: IntRange, ys: IntRange): Int =
+    private fun lightPixels(
+        pixels: PixelMap,
+        xs: IntRange,
+        ys: IntRange
+    ): Int =
         xs.sumOf { x -> ys.count { y -> pixels[x, y].red > 0.5f } }
 
-    private fun darkPixels(pixels: PixelMap, xs: IntRange, ys: IntRange): Int =
+    private fun darkPixels(
+        pixels: PixelMap,
+        xs: IntRange,
+        ys: IntRange
+    ): Int =
         xs.sumOf { x -> ys.count { y -> pixels[x, y].red < 0.5f } }
+
+    /** What the content sees, through Compose's own APIs. */
+    private class Captured(
+        var safeAreaBottom: Int = -1,
+        var keyboardBottom: Int = -1,
+        var statusBarTop: Int = -1,
+        var isDark: Boolean? = null,
+        var paddedHeight: Int = -1,
+        var windowSize: DpSize = DpSize.Unspecified,
+        var density: Float = Float.NaN,
+        var fontScale: Float = Float.NaN,
+        var textSizes: Map<Int, Float> = emptyMap(),
+        var textHeight: Int = -1,
+        var layoutDirection: LayoutDirection? = null,
+    )
 }

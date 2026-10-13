@@ -5,25 +5,29 @@ import com.apadmi.cmpdevicepreview.devices.DevicePresets
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
-import kotlin.test.assertTrue
 
 class ScaleStepsTest {
-
     @Test
-    fun displaySizesStopWhereTheShorterSideIs320Dp() {
-        // 360 dp wide: room for one larger size.
+    fun aScreen360DpAcrossHasRoomForOneLargerDisplaySize() {
         val galaxy = DevicePresets.galaxyS25.displayScaleSteps
         assertEquals(listOf("Small", "Default", "Large"), galaxy.map { it.label })
         assertEquals(listOf(0.85f, 1f, 1.125f), galaxy.map { it.scale })
+    }
 
-        // 411 dp wide: three, the largest leaving 320 dp.
+    @Test
+    fun theLargestDisplaySizeLeavesTheShorterSide320Dp() {
         val pixel = DevicePresets.pixel9.displayScaleSteps
         assertEquals(listOf("Small", "Default", "Large", "Larger", "Largest"), pixel.map { it.label })
         assertEquals(320f, DevicePresets.pixel9.portraitSize.width / pixel.last().scale, 0.01f)
+    }
 
-        // Never more than half as large again, however wide the screen.
+    @Test
+    fun displaySizesAreNeverMoreThanHalfAsLargeAgain() {
         assertEquals(1.5f, DevicePresets.largeDesktopWindow.displayScaleSteps.last().scale, 0.001f)
-        // A window narrower than 320 dp can only get smaller.
+    }
+
+    @Test
+    fun aWindowNarrowerThan320DpCanOnlyGetSmaller() {
         assertEquals(listOf(0.85f, 1f), FreeformDevice(Size(300f, 600f)).displayScaleSteps.map { it.scale })
     }
 

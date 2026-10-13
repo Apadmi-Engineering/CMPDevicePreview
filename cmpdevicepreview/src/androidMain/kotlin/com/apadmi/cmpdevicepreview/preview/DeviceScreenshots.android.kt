@@ -1,5 +1,4 @@
 package com.apadmi.cmpdevicepreview.preview
 
-import androidx.compose.ui.graphics.ImageBitmap
-
-internal actual val pngDownloader: ((image: ImageBitmap, fileName: String) -> Unit)? = null
+@Suppress("NULLABLE_PROPERTY_TYPE")  // Null means this platform can't download, and the panel then has no screenshot buttons.
+internal actual val pngDownloader: PngDownloader? = null

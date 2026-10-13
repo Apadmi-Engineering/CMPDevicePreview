@@ -13,6 +13,6 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "com.apadmi.sample.MainKt"
+        mainClass = "com.apadmi.cmpdevicepreview.sample.MainKt"
     }
 }

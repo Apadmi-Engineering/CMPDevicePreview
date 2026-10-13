@@ -1,35 +1,40 @@
 package com.apadmi.cmpdevicepreview.devices
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.LayoutDirection
+import com.apadmi.cmpdevicepreview.assertRectEquals
 import com.apadmi.cmpdevicepreview.core.DeviceInsets
 import com.apadmi.cmpdevicepreview.core.DeviceKind
 import com.apadmi.cmpdevicepreview.core.DeviceType
 import com.apadmi.cmpdevicepreview.frame.DeviceFramePainter
 import com.apadmi.cmpdevicepreview.frame.SystemUiPainter
 import com.apadmi.cmpdevicepreview.svg.SvgDrawing
-import kotlin.math.abs
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
-import kotlin.test.fail
 
 class DevicePresetsTest {
-
     @Test
     fun catalogHoldsEverySpec() {
-        assertEquals(33, DevicePresets.all.size)
-        assertEquals(DevicePresets.all.size, DevicePresets.all.map { it.id }.toSet().size)
+        val specIds = File("device_specs").listFiles { file -> file.extension == "json" }.orEmpty().map { it.nameWithoutExtension }
+        assertEquals(specIds.sorted(), DevicePresets.all.map { it.id })
+    }
+
+    @Test
+    fun presetsAreFoundById() {
         assertSame(DevicePresets.iPhone16Pro, DevicePresets.byId("apple-iphone-16-pro"))
         assertNull(DevicePresets.byId("nokia-3310"))
     }
 
     @Test
-    fun specValuesAreCarriedOver() {
+    fun anIPhoneSpecIsCarriedOver() {
         val iPhone = DevicePresets.iPhone16Pro
         assertEquals("iPhone 16 Pro", iPhone.name)
         assertEquals(DeviceType.IOS, iPhone.type)
@@ -39,7 +44,10 @@ class DevicePresetsTest {
         assertEquals(3f, iPhone.devicePixelRatio)
         assertEquals(DeviceInsets(top = 62f, bottom = 34f), iPhone.portraitSafeArea)
         assertEquals(DeviceInsets(left = 62f, right = 62f, bottom = 20f), iPhone.landscapeSafeArea)
+    }
 
+    @Test
+    fun platformsKindsAndPixelRatiosAreCarriedOver() {
         assertEquals(DeviceType.ANDROID, DevicePresets.galaxyZFold8.type)
         assertEquals(DeviceKind.FOLDABLE, DevicePresets.galaxyZFold8.kind)
         assertEquals(2.625f, DevicePresets.pixel9.devicePixelRatio)
@@ -54,7 +62,7 @@ class DevicePresetsTest {
             val painter = DeviceFramePainter(frame)
 
             val body = assertNotNull(painter.body, "${preset.id}: body artwork")
-            assertTrue(!body.isEmpty, "${preset.id}: body artwork is empty")
+            assertFalse(body.isEmpty, "${preset.id}: body artwork is empty")
             assertEquals(frame.size, body.size, "${preset.id}: body view box")
 
             // The body surrounds the screen.
@@ -67,10 +75,10 @@ class DevicePresetsTest {
 
             // The screen outline covers the screen, in portrait and in landscape.
             val portrait = assertNotNull(painter.screenClip(preset.portraitSize, isPortrait = true), preset.id)
-            assertRoughly(Rect(0f, 0f, preset.portraitSize.width, preset.portraitSize.height), portrait.getBounds(), preset.id)
+            assertRectEquals(Rect(Offset.Zero, preset.portraitSize), portrait.getBounds(), tolerance = 1f, preset.id)
             val landscapeSize = Size(preset.portraitSize.height, preset.portraitSize.width)
             val landscape = assertNotNull(painter.screenClip(landscapeSize, isPortrait = false), preset.id)
-            assertRoughly(Rect(0f, 0f, landscapeSize.width, landscapeSize.height), landscape.getBounds(), preset.id)
+            assertRectEquals(Rect(Offset.Zero, landscapeSize), landscape.getBounds(), tolerance = 1f, preset.id)
         }
     }
 
@@ -97,7 +105,13 @@ class DevicePresetsTest {
         assertNull(desktop.systemUi)
         assertNull(desktop.portraitKeyboardHeight)
         assertNull(desktop.landscapeKeyboardHeight)
-        assertEquals(31, DevicePresets.all.count { it.systemUi != null })
+    }
+
+    @Test
+    fun everyDeviceButADesktopWindowHasSystemUi() {
+        for (preset in DevicePresets.all) {
+            assertEquals(preset.kind != DeviceKind.DESKTOP, preset.systemUi != null, preset.id)
+        }
     }
 
     @Test
@@ -107,7 +121,7 @@ class DevicePresetsTest {
             val bars = listOfNotNull(systemUi.statusBar, systemUi.navigationBar)
             for (artwork in bars.flatMap { listOf(it.leading, it.center, it.trailing) }.filter { it.isNotEmpty() }) {
                 val drawing = SvgDrawing.parse(artwork)
-                assertTrue(!drawing.isEmpty && !drawing.size.isEmpty(), "${preset.id}: empty system UI artwork")
+                assertFalse(drawing.isEmpty || drawing.size.isEmpty(), "${preset.id}: empty system UI artwork")
             }
             for (isPortrait in listOf(true, false)) {
                 val screen = if (isPortrait) preset.portraitSize else Size(preset.portraitSize.height, preset.portraitSize.width)
@@ -118,20 +132,11 @@ class DevicePresetsTest {
                     val bar = if (inStatusBar) 0f..safeArea.top else (screen.height - safeArea.bottom)..screen.height
                     assertTrue(
                         bounds.left >= 0f && bounds.right <= screen.width &&
-                            bounds.top >= bar.start && bounds.bottom <= bar.endInclusive + 0.01f,
+                                bounds.top >= bar.start && bounds.bottom <= bar.endInclusive + 0.01f,
                         "${preset.id} (${if (isPortrait) "portrait" else "landscape"}): $bounds outside its bar",
                     )
                 }
             }
-        }
-    }
-
-    private fun assertRoughly(expected: Rect, actual: Rect, message: String) {
-        val tolerance = 1f
-        if (abs(expected.left - actual.left) > tolerance || abs(expected.top - actual.top) > tolerance ||
-            abs(expected.right - actual.right) > tolerance || abs(expected.bottom - actual.bottom) > tolerance
-        ) {
-            fail("$message: expected screen outline bounds $expected, got $actual")
         }
     }
 }

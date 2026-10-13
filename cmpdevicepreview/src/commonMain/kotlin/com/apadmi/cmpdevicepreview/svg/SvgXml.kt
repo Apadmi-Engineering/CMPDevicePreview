@@ -3,47 +3,42 @@ package com.apadmi.cmpdevicepreview.svg
 /**
  * A parsed XML element: a name, its attributes, and its element children.
  *
- * Text content, comments, processing instructions and doctypes are dropped, as the SVG subset this
- * library renders is entirely attribute-driven.
- *
  * @property name The local element name, with any namespace prefix stripped (`svg:path` → `path`).
  * @property attributes The element's attributes, keyed by their raw (prefixed) name.
+ * @property children The element's child elements, in document order.
  */
 internal class XmlElement(
     val name: String,
     val attributes: Map<String, String>,
     val children: List<XmlElement>,
 ) {
-    /** Returns the value of [name], or null when absent or empty. */
+    /**
+     * Returns the value of [name], or null when absent or empty.
+     *
+     * @param name The attribute's raw name, including any namespace prefix.
+     * @return The attribute's value, or null when it is absent or empty.
+     */
     fun attribute(name: String): String? = attributes[name]?.takeIf { it.isNotEmpty() }
 
     override fun toString(): String = "<$name ${attributes.keys.joinToString(" ")}>"
 }
 
-/**
- * Parses [source] into its root [XmlElement].
- *
- * A deliberately small, dependency-free reader: elements, attributes, self-closing tags, entity
- * references in attribute values, and the usual prologue noise (`<?xml …?>`, comments,
- * `<!DOCTYPE …>`, CDATA). Namespaces are not resolved; prefixes are stripped from element names.
- *
- * @throws IllegalArgumentException on malformed input.
- */
-internal fun parseXmlDocument(source: String): XmlElement = XmlParser(source).parseDocument()
-
 private class XmlParser(private val source: String) {
-
     private var index = 0
 
     fun parseDocument(): XmlElement {
         while (true) {
             skipWhitespace()
-            if (index >= source.length) fail("No XML element found")
-            if (!startsWith("<")) fail("Expected an element")
+            if (index >= source.length) {
+                fail("No XML element found")
+            }
+            if (!isAt("<")) {
+                fail("Expected an element")
+            }
             when {
-                startsWith("<?") -> skipUntil("?>")
-                startsWith("<!--") -> skipUntil("-->")
-                startsWith("<!") -> skipDeclaration()
+                isAt("<?") -> skipUntil("?>")
+                isAt("<!--") -> skipUntil("-->")
+                isAt("<!") -> skipDeclaration()
                 else -> return parseElement()
             }
         }
@@ -52,16 +47,20 @@ private class XmlParser(private val source: String) {
     private fun parseElement(): XmlElement {
         expect("<")
         val name = readName()
+        val attributes = readAttributes()
+        val isEmpty = isAt("/>")
+        index += if (isEmpty) 2 else 1
+        val children = if (isEmpty) emptyList() else parseChildren(name)
+        return XmlElement(localName(name), attributes, children)
+    }
+
+    /** Reads the attributes of a start tag, up to its closing `>` or `/>`. */
+    private fun readAttributes(): Map<String, String> {
         val attributes = mutableMapOf<String, String>()
         while (true) {
             skipWhitespace()
-            if (startsWith("/>")) {
-                index += 2
-                return XmlElement(localName(name), attributes, emptyList())
-            }
-            if (startsWith(">")) {
-                index++
-                break
+            if (isAt("/>") || isAt(">")) {
+                return attributes
             }
             val attributeName = readName()
             skipWhitespace()
@@ -69,59 +68,72 @@ private class XmlParser(private val source: String) {
             skipWhitespace()
             attributes[attributeName] = readAttributeValue()
         }
+    }
 
+    /** Reads the children of the element called [name], through its closing tag. */
+    private fun parseChildren(name: String): List<XmlElement> {
         val children = mutableListOf<XmlElement>()
         while (true) {
             val textStart = index
-            while (index < source.length && source[index] != '<') index++
-            if (index >= source.length) fail("Unterminated element \"<$name>\"", textStart)
+            while (index < source.length && source[index] != '<') {
+                index++
+            }
+            if (index >= source.length) {
+                fail("Unterminated element \"<$name>\"", textStart)
+            }
             when {
-                startsWith("</") -> {
-                    index += 2
-                    val closing = readName()
-                    skipWhitespace()
-                    expect(">")
-                    if (closing != name) fail("Closing tag \"</$closing>\" does not match \"<$name>\"")
-                    return XmlElement(localName(name), attributes, children)
+                isAt("</") -> {
+                    expectClosingTag(name)
+                    return children
                 }
-                startsWith("<!--") -> skipUntil("-->")
-                startsWith("<![CDATA[") -> skipUntil("]]>")
-                startsWith("<?") -> skipUntil("?>")
-                startsWith("<!") -> skipDeclaration()
+                isAt("<!--") -> skipUntil("-->")
+                isAt("<![CDATA[") -> skipUntil("]]>")
+                isAt("<?") -> skipUntil("?>")
+                isAt("<!") -> skipDeclaration()
                 else -> children += parseElement()
             }
         }
     }
 
+    private fun expectClosingTag(name: String) {
+        index += 2
+        val closing = readName()
+        skipWhitespace()
+        expect(">")
+        if (closing != name) {
+            fail("Closing tag \"</$closing>\" does not match \"<$name>\"")
+        }
+    }
+
     private fun localName(name: String): String = name.substringAfter(':')
 
-    private fun startsWith(pattern: String): Boolean = source.startsWith(pattern, index)
+    private fun isAt(pattern: String): Boolean = source.startsWith(pattern, index)
 
     private fun expect(pattern: String) {
-        if (!startsWith(pattern)) fail("Expected \"$pattern\"")
+        if (!isAt(pattern)) {
+            fail("Expected \"$pattern\"")
+        }
         index += pattern.length
     }
 
     private fun skipUntil(pattern: String) {
         val end = source.indexOf(pattern, index)
-        if (end == -1) fail("Expected \"$pattern\"")
+        if (end == -1) {
+            fail("Expected \"$pattern\"")
+        }
         index = end + pattern.length
     }
 
     /** Skips `<!DOCTYPE …>`, including a bracketed internal subset. */
     private fun skipDeclaration() {
         index += 2
-        var depth = 1
-        while (index < source.length && depth > 0) {
-            val char = source[index]
-            if (char == '[') {
-                skipUntil("]")
-                continue
-            }
-            if (char == '>') depth--
-            index++
+        while (index < source.length && source[index] != '>') {
+            if (source[index] == '[') skipUntil("]") else index++
         }
-        if (depth > 0) fail("Unterminated declaration")
+        if (index >= source.length) {
+            fail("Unterminated declaration")
+        }
+        index++
     }
 
     private fun skipWhitespace() {
@@ -132,8 +144,12 @@ private class XmlParser(private val source: String) {
 
     private fun readName(): String {
         val start = index
-        while (index < source.length && source[index].isNameChar()) index++
-        if (index == start) fail("Expected a name", start)
+        while (index < source.length && source[index].isNameChar()) {
+            index++
+        }
+        if (index == start) {
+            fail("Expected a name", start)
+        }
         return source.substring(start, index)
     }
 
@@ -141,13 +157,21 @@ private class XmlParser(private val source: String) {
         this in 'A'..'Z' || this in 'a'..'z' || this in '0'..'9' || this == '-' || this == '_' || this == '.' || this == ':'
 
     private fun readAttributeValue(): String {
-        if (index >= source.length) fail("Expected an attribute value")
+        if (index >= source.length) {
+            fail("Expected an attribute value")
+        }
         val quote = source[index]
-        if (quote != '"' && quote != '\'') fail("Attribute values must be quoted")
+        if (quote != '"' && quote != '\'') {
+            fail("Attribute values must be quoted")
+        }
         index++
         val start = index
-        while (index < source.length && source[index] != quote) index++
-        if (index >= source.length) fail("Unterminated attribute value", start)
+        while (index < source.length && source[index] != quote) {
+            index++
+        }
+        if (index >= source.length) {
+            fail("Unterminated attribute value", start)
+        }
         val raw = source.substring(start, index)
         index++
         return decodeEntities(raw)
@@ -160,7 +184,9 @@ private class XmlParser(private val source: String) {
         val entityPattern = Regex("&([a-zA-Z]+|#[xX]?[0-9a-fA-F]+);")
 
         fun decodeEntities(value: String): String {
-            if ('&' !in value) return value
+            if ('&' !in value) {
+                return value
+            }
             return entityPattern.replace(value) { match ->
                 val entity = match.groupValues[1]
                 when {
@@ -191,3 +217,14 @@ private class XmlParser(private val source: String) {
         }
     }
 }
+
+/**
+ * Parses [source] into its root [XmlElement]: elements, attributes and entity references in
+ * attribute values. Text, comments, CDATA, processing instructions and doctypes are skipped, as the
+ * SVG subset this library renders is entirely attribute-driven. Namespaces are not resolved.
+ *
+ * @param source The XML text to parse.
+ * @return The document's root element.
+ * @throws IllegalArgumentException on malformed input.
+ */
+internal fun parseXmlDocument(source: String): XmlElement = XmlParser(source).parseDocument()

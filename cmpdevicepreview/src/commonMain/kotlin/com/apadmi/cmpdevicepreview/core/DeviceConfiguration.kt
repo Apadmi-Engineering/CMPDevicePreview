@@ -9,8 +9,6 @@ import androidx.compose.ui.unit.LayoutDirection
  * windows, ignore it.
  * @property isDarkMode What `isSystemInDarkTheme()` returns inside the device. It also sets the
  * colour of the status bar's icons.
- * @property isPreviewModeEnabled Whether `DeviceWithConfigurationView` shows the device and its
- * panel. When false it shows just the content.
  * @property isFrameVisible Whether the device's body is drawn. The content is clipped to the
  * screen outline either way.
  * @property isSystemUiVisible Whether the status bar and gesture pill are drawn. The safe area is
@@ -24,19 +22,14 @@ import androidx.compose.ui.unit.LayoutDirection
  * bar and keyboard band don't change.
  * @property layoutDirection The layout direction inside the device, which also mirrors its status
  * bar, or null for the host's.
- * @property backdrop The colour behind the device.
- * @property isDotGridVisible Whether the backdrop has a grid of dots.
  */
 public data class DeviceConfiguration(
     val isPortrait: Boolean = true,
     val isDarkMode: Boolean = false,
-    val isPreviewModeEnabled: Boolean = true,
     val isFrameVisible: Boolean = true,
     val isSystemUiVisible: Boolean = true,
     val isKeyboardVisible: Boolean = false,
     val fontScale: Float = 1f,
     val displayScale: Float = 1f,
     val layoutDirection: LayoutDirection? = null,
-    val backdrop: Backdrop = Backdrop.LIGHT,
-    val isDotGridVisible: Boolean = true,
 )

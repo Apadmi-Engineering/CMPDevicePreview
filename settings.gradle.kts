@@ -1,5 +1,4 @@
-rootProject.name = "Apadmi-CmpDevicePreview"
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+rootProject.name = "CmpDevicePreview"
 
 pluginManagement {
     repositories {
