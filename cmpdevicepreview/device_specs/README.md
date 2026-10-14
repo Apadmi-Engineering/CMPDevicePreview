@@ -1,20 +1,13 @@
 # Device specs
 
-One JSON file per device, `<id>.json`. These are copied unchanged from
+One JSON file per device, `<id>.json`, copied from
 [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview)'s
-`device_specs/` (MIT, © Aloïs Deniel; see the repository's `LICENSE`). The metrics,
-the frame artwork (screen outline and body), the status bar and gesture pill
-artwork and the keyboard heights are all Aloïs Deniel's work, and they are the
-source of the library's built-in catalog, `DevicePresets`.
+`device_specs/` (MIT, © Aloïs Deniel; see the repository's `LICENSE`), with minor
+modifications. They are the source of the library's built-in catalogue, `DevicePresets`.
 
 The `generateDevicePresets` Gradle task (`GenerateDevicePresetsTask` in the root `buildSrc/`) turns
-them into `DevicePresets.kt` under `build/generated/` on every build, so the
-JSON is the only thing to edit. To update the catalog from Flutter, with both
-repositories checked out side by side:
-
-```console
-cp ../../../flutter_device_preview/device_specs/*.json .
-```
+them into `DevicePresets.kt` on every build, so to add a device, add its JSON here and
+it works automatically.
 
 ## What is used
 
@@ -27,12 +20,12 @@ cp ../../../flutter_device_preview/device_specs/*.json .
 | `portraitPadding`, `landscapePadding` | `portraitSafeArea`, `landscapeSafeArea` (landscape defaults to the rotation rule) |
 | `frame` | `DeviceFrame`: `size`, `screenOffset`, `screenPath`, `body` |
 | `systemUi` | `DevicePreset.systemUi`: the status bar and gesture pill artwork (its `platform` is ignored) |
-| `portraitKeyboardHeight`, `landscapeKeyboardHeight` | The same names on `DevicePreset`, in logical pixels; no rotation rule between them |
+| `portraitKeyboardHeight`, `landscapeKeyboardHeight` | The same names on `DevicePreset`, in dp; no rotation rule between them |
 
 `displayFeatures` (fold lines) are accepted and ignored: this library does not
 simulate folds yet.
 
-All lengths are logical pixels, described in portrait. The frame is drawn
+All lengths are in dp (Flutter's logical pixels), described in portrait. The frame is drawn
 rotated a quarter turn in landscape.
 
 ## `frame`
@@ -40,7 +33,7 @@ rotated a quarter turn in landscape.
 - `size` — the body, portrait.
 - `screenOffset` — the screen's top-left corner inside the body.
 - `screenPath` — SVG path data for the screen outline, in screen coordinates.
-  The content is clipped to it with the non-zero fill rule, so cutouts are part
+  The content is clipped to it with the non-zero fill rule, so cut-outs are part
   of it: a notch indents the top edge, and a Dynamic Island or punch-hole is a
   second subpath wound against the outline.
 - `body` — an SVG document drawn behind the screen, whose view box covers
@@ -78,6 +71,5 @@ detail.
 2. Fix the metrics and redraw the body around the screen cut-out.
 3. Build: the preset appears as `DevicePresets.<name>`, named from the id
    without its brand (`samsung-galaxy-s25` → `galaxyS25`).
-4. Run `./gradlew :cmpdevicepreview:jvmTest`, which checks that every frame
-   and status bar parses, that the screen outline matches the screen size, and
-   that the status bar artwork fits its bars.
+4. Run `./gradlew :cmpdevicepreview:jvmTest`, which validates every spec's frame,
+   screen outline and status bar artwork.
