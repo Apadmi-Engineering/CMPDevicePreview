@@ -504,6 +504,7 @@ internal fun PanelIconButton(
     modifier: Modifier = Modifier,
     size: Dp = 32.dp,
     tint: Color = PanelColors.TextSecondary,
+    hoverTint: Color = PanelColors.TextPrimary,
     isShown: Boolean = true,
     enabled: Boolean = true,
 ) {
@@ -535,7 +536,7 @@ internal fun PanelIconButton(
             Icon(
                 icon,
                 contentDescription = description,
-                tint = if (isHovered && enabled) PanelColors.TextPrimary else tint,
+                tint = if (isHovered && enabled) hoverTint else tint,
                 modifier = Modifier.size(size * 0.65f),
             )
         }

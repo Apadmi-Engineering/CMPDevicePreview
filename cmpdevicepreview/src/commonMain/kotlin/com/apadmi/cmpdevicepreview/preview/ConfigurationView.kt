@@ -29,9 +29,7 @@ import androidx.compose.material.icons.outlined.GridOn
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.LightMode
-import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.RestartAlt
-import androidx.compose.material.icons.outlined.Screenshot
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.StayCurrentLandscape
@@ -196,7 +194,6 @@ public fun ConfigurationView(
             PanelHeader(
                 title = panelTitle,
                 icon = panelIcon,
-                device = device,
                 isModified = simulatedDevice.configuration != DeviceConfiguration(),
                 onResetAll = { updateConfiguration(DeviceConfiguration()) },
             )
@@ -254,7 +251,6 @@ public fun ConfigurationView(
 private fun PanelHeader(
     title: String,
     icon: @Composable () -> Unit,
-    device: Device,
     isModified: Boolean,
     onResetAll: () -> Unit
 ) {
@@ -277,29 +273,6 @@ private fun PanelHeader(
             tooltip = "Reset all settings",
             onClick = onResetAll,
             isShown = isModified,
-        )
-        ScreenshotButtons(device)
-    }
-}
-
-@Composable
-private fun ScreenshotButtons(device: Device) {
-    val screenshots = LocalDeviceScreenshots.current
-    val download = pngDownloader
-    if (screenshots == null || download == null) {
-        return
-    }
-    for (includeFrame in listOf(false, true)) {
-        PanelIconButton(
-            icon = if (includeFrame) Icons.Outlined.PhoneAndroid else Icons.Outlined.Screenshot,
-            description = if (includeFrame) "Screenshot with frame" else "Screenshot of screen",
-            tooltip = if (includeFrame) "Save the device in its frame as a PNG" else "Save the screen as a PNG at the device's resolution",
-            onClick = {
-                screenshots.capture(includeFrame)?.let { image ->
-                    download(image, screenshotName(device, image, includeFrame))
-                }
-            },
-            enabled = screenshots.canCapture,
         )
     }
 }

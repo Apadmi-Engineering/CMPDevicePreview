@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -258,6 +259,18 @@ public fun DeviceFrameView(
     onResize: ((FreeformDevice) -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
+    DeviceFrame(device, modifier, configuration, onResize, onLayoutScale = null, content)
+}
+
+@Composable
+internal fun DeviceFrame(
+    device: Device,
+    modifier: Modifier,
+    configuration: DeviceConfiguration,
+    onResize: ((FreeformDevice) -> Unit)?,
+    onLayoutScale: ((Float) -> Unit)?,
+    content: @Composable () -> Unit,
+) {
     val wantsPortrait = device.isLaidOutInPortrait(configuration.isPortrait)
     val turn = rememberDeviceTurn(device, wantsPortrait)
     val isPortrait = turn.isLayoutPortrait
@@ -300,6 +313,7 @@ public fun DeviceFrameView(
         // Pixels per dp of the simulated device. A pin for another device is ignored until the effect
         // above clears it.
         val scale = pinned?.takeIf { it.device == device }?.let { min(it.scale, fitAtRest) } ?: fitAtRest
+        SideEffect { onLayoutScale?.invoke(scale) }
         // Mid-turn the device shrinks a little to stay inside the space. Only the layer is scaled,
         // so the content isn't laid out again on every frame of the turn.
         val turnModifier = Modifier.graphicsLayer {
