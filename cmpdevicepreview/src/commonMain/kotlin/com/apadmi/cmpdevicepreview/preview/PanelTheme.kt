@@ -7,9 +7,12 @@ package com.apadmi.cmpdevicepreview.preview
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -30,14 +33,25 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.ripple.RippleAlpha
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -48,15 +62,26 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
 import kotlin.math.roundToInt
 
 private const val DisabledAlpha = 0.45f
 
 private const val MaxTicks = 12
+
+private val PanelRippleAlpha = RippleAlpha(
+    draggedAlpha = 0.16f,
+    focusedAlpha = 0.2f,
+    hoveredAlpha = 0.14f,
+    pressedAlpha = 0.16f,
+)
 
 internal val PanelWidth = 300.dp
 
@@ -67,7 +92,7 @@ internal object PanelColors {
     val SurfaceRaised = Color(0xFF26262D)
     val Border = Color(0xFF2A2A31)
     val TextPrimary = Color(0xFFF4F4F6)
-    val TextSecondary = Color(0xFF9D9DA8)
+    val TextSecondary = Color(0xFFB0B0BA)
     val TextTertiary = Color(0xFF8A8A94)
     val Accent = Color(0xFF7C6CFF)
     val AccentBright = Color(0xFF9F94FF)
@@ -146,6 +171,7 @@ private fun RowScope.SettingLabel(
  *
  * @param content What is shown inside the theme.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PanelTheme(content: @Composable () -> Unit) {
     MaterialTheme(
@@ -162,7 +188,12 @@ internal fun PanelTheme(content: @Composable () -> Unit) {
             outlineVariant = PanelColors.Border,
             surfaceContainerHigh = PanelColors.Surface,
         ),
-        content = content,
+        content = {
+            CompositionLocalProvider(
+                LocalRippleConfiguration provides RippleConfiguration(PanelColors.TextPrimary, PanelRippleAlpha),
+                content = content,
+            )
+        },
     )
 }
 
@@ -171,17 +202,24 @@ internal fun PanelTheme(content: @Composable () -> Unit) {
  *
  * @param text The heading, shown in upper case.
  * @param modifier The modifier for the heading.
+ * @param trailing Shown after the heading, such as a reset button.
  */
 @Composable
-internal fun SectionLabel(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text.uppercase(),
-        modifier = modifier.padding(start = 4.dp, bottom = 8.dp),
-        color = PanelColors.TextTertiary,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.SemiBold,
-        letterSpacing = 0.9.sp,
-    )
+internal fun SectionLabel(
+    text: String,
+    modifier: Modifier = Modifier,
+    trailing: (@Composable () -> Unit)? = null
+) {
+    Row(modifier.padding(start = 4.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = text.uppercase(),
+            color = PanelColors.TextTertiary,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.9.sp,
+        )
+        trailing?.invoke()
+    }
 }
 
 /**
@@ -376,7 +414,13 @@ internal fun StepSlider(
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth().pointerHoverIcon(PointerIcon.Hand),
+            modifier = Modifier
+                .fillMaxWidth()
+                .pointerHoverIcon(PointerIcon.Hand)
+                .semantics {
+                    contentDescription = title
+                    labels.getOrNull(selectedIndex)?.let { stateDescription = it }
+                },
             enabled = labels.size > 1,
             valueRange = 0f..(labels.size - 1).coerceAtLeast(1).toFloat(),
             steps = (labels.size - 2).coerceAtLeast(0),
@@ -435,29 +479,48 @@ internal fun PanelButton(
     }
 }
 
-/** Hidden, but keeping its place, while [isShown] is false. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ResetButton(
+internal fun ResetButton(
     title: String,
     isShown: Boolean,
     onClick: () -> Unit
 ) {
     val alpha by animateFloatAsState(if (isShown) 1f else 0f, label = "resetAlpha")
-    Box(
-        Modifier
-            .padding(start = 4.dp)
-            .size(22.dp)
-            .alpha(alpha)
-            .clip(CircleShape)
-            .clickable(enabled = isShown, role = Role.Button, onClick = onClick)
-            .pointerHoverIcon(PointerIcon.Hand),
-        contentAlignment = Alignment.Center,
+    val interactions = remember { MutableInteractionSource() }
+    val isHovered by interactions.collectIsHoveredAsState()
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+        tooltip = {
+            PlainTooltip(containerColor = PanelColors.SurfaceRaised, contentColor = PanelColors.TextPrimary) {
+                Text("Reset to default")
+            }
+        },
+        state = rememberTooltipState(),
+        enableUserInput = isShown,
     ) {
-        Icon(
-            Icons.Outlined.RestartAlt,
-            contentDescription = "Reset $title",
-            tint = PanelColors.TextTertiary,
-            modifier = Modifier.size(14.dp),
-        )
+        Box(
+            Modifier
+                .padding(start = 4.dp)
+                .size(18.dp)
+                .alpha(alpha)
+                .clip(CircleShape)
+                .clickable(
+                    interactionSource = interactions,
+                    indication = LocalIndication.current,
+                    enabled = isShown,
+                    role = Role.Button,
+                    onClick = onClick,
+                )
+                .pointerHoverIcon(PointerIcon.Hand),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Outlined.RestartAlt,
+                contentDescription = "Reset $title",
+                tint = if (isHovered) PanelColors.TextPrimary else PanelColors.TextTertiary,
+                modifier = Modifier.size(12.dp),
+            )
+        }
     }
 }
