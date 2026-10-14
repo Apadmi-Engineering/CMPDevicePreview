@@ -19,9 +19,9 @@ Write self-documenting code: names and structure say what it does, comments are 
 
 ## The panel
 
-- It is dark and styled by hand, not by Material's defaults. Take colours from `PanelColors` and reuse the components in `PanelTheme.kt` (`SegmentedControl`, `ToggleRow`, `StepSlider`, `PanelButton`, `SectionLabel`) rather than adding new ones. `ConfigurationView.kt` composes them.
+- It is dark and styled by hand, not by Material's defaults. Take colours from `PanelColors` and reuse the components in `PanelTheme.kt` (`SegmentedControl`, `ToggleRow`, `StepSlider`, `PanelIconButton`, `PanelTooltip`, `SectionLabel`) rather than adding new ones. `ConfigurationView.kt` composes them.
 - Every change to the device goes through `ConfigurationView`'s `update`, which fits it to the device with `adaptedToDevice()`.
-- A setting with a default that the user can move away from shows a `ResetButton`, only while it differs from the default. The text and display size sliders and the layout direction do.
+- A setting with a default that the user can move away from shows a `ResetButton`, only while it differs from the default. The text and display size sliders and the layout direction do. The header's reset-all button does the same for the whole device configuration.
 - Keep text at 4.5:1 contrast or better against the panel, and controls and their state at 3:1. Borders and the dot grid are decorative and exempt. Hover, focus and press feedback comes from the ripple set in `PanelTheme`.
 
 ## Tests

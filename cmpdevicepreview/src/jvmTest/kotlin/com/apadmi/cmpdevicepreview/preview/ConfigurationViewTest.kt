@@ -241,6 +241,33 @@ class ConfigurationViewTest {
         onNodeWithContentDescription("Reset Text size").assertIsNotEnabled()
         onNodeWithContentDescription("Reset Display size").assertIsNotEnabled()
         onNodeWithContentDescription("Reset Layout direction").assertIsNotEnabled()
+        onNodeWithContentDescription("Reset all settings").assertIsNotEnabled()
+    }
+
+    @Test
+    fun resetAllReturnsEveryDeviceSettingToItsDefaultAndKeepsTheDevice() = runComposeUiTest {
+        var changed: SimulatedDevice? = null
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(
+                    DevicePresets.pixel9,
+                    DeviceConfiguration(
+                        isPortrait = false,
+                        isDarkMode = true,
+                        isFrameVisible = false,
+                        fontScale = 1.5f,
+                        displayScale = 0.85f,
+                        layoutDirection = LayoutDirection.Rtl,
+                    ),
+                ),
+                onSimulatedDeviceChange = { changed = it },
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+            )
+        }
+        onNodeWithContentDescription("Reset all settings").assertIsEnabled().performClick()
+        assertEquals(SimulatedDevice(DevicePresets.pixel9), changed)
     }
 
     @Test
