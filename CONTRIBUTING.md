@@ -11,9 +11,11 @@
 | Module | What it is |
 | --- | --- |
 | `cmpdevicepreview` | The library, published to Maven Central |
-| `composeApp` | The sample app's shared UI, and its web, iOS and macOS entry points |
-| `androidApp`, `desktopApp` | The sample's Android and desktop entry points |
-| `iosApp` | The Xcode project that hosts the iOS entry point |
+| `sample/composeApp` | The sample app's shared UI, and its web, iOS and macOS entry points |
+| `sample/androidApp`, `sample/desktopApp` | The sample's Android and desktop entry points |
+| `sample/iosApp` | The Xcode project that hosts the iOS entry point |
+
+Everything under `sample/` is the sample app, and none of it is published.
 
 In the library, platform code sits beside `commonMain`. Everything but Android draws with Skia, so JVM, iOS, macOS, JS and Wasm share `skikoMain`, iOS and macOS share `appleMain`, and JS and Wasm share `webMain`. `SimulatedPlatform` in `skikoMain` is the only file that uses Compose's internal hooks for window insets and the system theme, so that a Compose update that changes them only breaks that file. Keep it that way.
 
@@ -21,17 +23,18 @@ The library builds with `explicitApi()`, so every public declaration needs an ex
 
 ## The sample app
 
-`composeApp` is a responsive sample app, and every platform's entry point shows it inside the preview, to prove the library runs on all of them:
+`sample/composeApp` is a responsive sample app, and every platform's entry point shows it inside the preview, to prove the library runs on all of them:
 
 | Platform | Entry point | Run it with |
 | --- | --- | --- |
-| Web | `composeApp` (`wasmJsMain`) | `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`, or the [live demo](https://apadmi-engineering.github.io/CMPDevicePreview/) |
-| Desktop (JVM) | `desktopApp` | `./gradlew :desktopApp:run` |
-| Android | `androidApp` | `./gradlew :androidApp:installDebug` |
-| iOS | `composeApp` (`iosMain`), hosted by `iosApp` | open `iosApp/iosApp.xcodeproj` in Xcode and run it |
-| macOS (Apple silicon) | `composeApp` (`macosMain`) | `./gradlew :composeApp:runDebugExecutableMacosArm64` |
+| Web (Wasm) | `sample/composeApp` (`webMain`) | `./gradlew :sample:composeApp:wasmJsBrowserDevelopmentRun`, or the [live demo](https://apadmi-engineering.github.io/CMPDevicePreview/) |
+| Web (JS) | `sample/composeApp` (`webMain`) | `./gradlew :sample:composeApp:jsBrowserDevelopmentRun` |
+| Desktop (JVM) | `sample/desktopApp` | `./gradlew :sample:desktopApp:run` |
+| Android | `sample/androidApp` | `./gradlew :sample:androidApp:installDebug` |
+| iOS | `sample/composeApp` (`iosMain`), hosted by `sample/iosApp` | open `sample/iosApp/iosApp.xcodeproj` in Xcode and run it |
+| macOS (Apple silicon) | `sample/composeApp` (`macosMain`) | `./gradlew :sample:composeApp:runDebugExecutableMacosArm64` |
 
-The desktop sample is also the quickest way to work on the sample app, or on the library, because it supports [Compose Hot Reload](https://github.com/JetBrains/compose-hot-reload): `./gradlew :desktopApp:hotRun --auto` recompiles and reloads the running window as you edit, in `composeApp` or `cmpdevicepreview`. Hot Reload runs on a JetBrains Runtime, which Gradle downloads the first time if there isn't one installed.
+The desktop sample is also the quickest way to work on the sample app, or on the library, because it supports [Compose Hot Reload](https://github.com/JetBrains/compose-hot-reload): `./gradlew :sample:desktopApp:hotRun --auto` recompiles and reloads the running window as you edit, in `sample/composeApp` or `cmpdevicepreview`. Hot Reload runs on a JetBrains Runtime, which Gradle downloads the first time if there isn't one installed.
 
 ### What differs by platform
 

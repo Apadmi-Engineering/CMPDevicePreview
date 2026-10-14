@@ -22,7 +22,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":composeApp"))
+    implementation(project(":sample:composeApp"))
     implementation(project(":cmpdevicepreview"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.compose.foundation)

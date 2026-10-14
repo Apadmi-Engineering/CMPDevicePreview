@@ -35,12 +35,13 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { target: jvm, os: ubuntu-latest, tasks: ":cmpdevicepreview:jvmTest :composeApp:compileKotlinJvm :desktopApp:compileKotlin" }
-          - { target: android, os: ubuntu-latest, tasks: ":cmpdevicepreview:compileAndroidMain :androidApp:assembleDebug" }
-          - { target: web, os: ubuntu-latest, tasks: ":cmpdevicepreview:jsBrowserTest :cmpdevicepreview:wasmJsBrowserTest :composeApp:wasmJsBrowserDevelopmentExecutableDistribution" }
+          - { target: jvm, os: ubuntu-latest, tasks: ":cmpdevicepreview:jvmTest :sample:composeApp:compileKotlinJvm :sample:desktopApp:compileKotlin" }
+          - { target: android, os: ubuntu-latest, tasks: ":cmpdevicepreview:compileAndroidMain :sample:androidApp:assembleDebug" }
+          - { target: web, os: ubuntu-latest, tasks: ":cmpdevicepreview:jsBrowserTest :cmpdevicepreview:wasmJsBrowserTest :sample:composeApp:wasmJsBrowserDevelopmentExecutableDistribution" }
+          - { target: web-js, os: ubuntu-latest, tasks: ":sample:composeApp:jsBrowserDevelopmentExecutableDistribution" }
           # Kotlin/Native only builds the Apple targets on macOS.
-          - { target: ios, os: macos-latest, tasks: ":cmpdevicepreview:compileKotlinIosSimulatorArm64 :composeApp:compileKotlinIosSimulatorArm64" }
-          - { target: macos, os: macos-latest, tasks: ":cmpdevicepreview:compileKotlinMacosArm64 :composeApp:compileKotlinMacosArm64" }
+          - { target: ios, os: macos-latest, tasks: ":cmpdevicepreview:compileKotlinIosSimulatorArm64 :sample:composeApp:compileKotlinIosSimulatorArm64" }
+          - { target: macos, os: macos-latest, tasks: ":cmpdevicepreview:compileKotlinMacosArm64 :sample:composeApp:compileKotlinMacosArm64" }
     runs-on: ${{ matrix.config.os }}
     name: Build ${{ matrix.config.target }}
     steps:

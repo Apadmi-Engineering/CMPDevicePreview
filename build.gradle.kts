@@ -16,9 +16,7 @@ spotless {
         // add a package to it, which breaks the references to it from the build scripts.
         target(
             "cmpdevicepreview/src/**/*.kt",
-            "composeApp/src/**/*.kt",
-            "androidApp/src/**/*.kt",
-            "desktopApp/src/**/*.kt",
+            "sample/*/src/**/*.kt",
         )
         targetExclude("**/build/**")
 

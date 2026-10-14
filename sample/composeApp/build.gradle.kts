@@ -1,3 +1,4 @@
+import org.gradle.api.Action
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -22,7 +23,7 @@ kotlin {
         }
     }
 
-    // The desktop app that runs this is in :desktopApp.
+    // The desktop app that runs this is in :sample:desktopApp.
     jvm()
 
     listOf(
@@ -41,18 +42,27 @@ kotlin {
         }
     }
 
+    val rootDirPath = project.rootDir.path
+    val projectDirPath = project.projectDir.path
+    val siteWebpackConfig = Action<KotlinWebpackConfig> {
+        outputFileName = "composeApp.js"
+        devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
+            static(rootDirPath)
+            static(projectDirPath)
+        }
+    }
+
+    js {
+        browser {
+            commonWebpackConfig(siteWebpackConfig)
+        }
+        binaries.executable()
+    }
+
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser {
-            val rootDirPath = project.rootDir.path
-            val projectDirPath = project.projectDir.path
-            commonWebpackConfig {
-                outputFileName = "composeApp.js"
-                devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
-                    static(rootDirPath)
-                    static(projectDirPath)
-                }
-            }
+            commonWebpackConfig(siteWebpackConfig)
         }
         binaries.executable()
     }
@@ -67,14 +77,14 @@ kotlin {
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.jetbrains.material3.adaptive)
         }
-        // The entry points wrap the app in the preview (Android and desktop (JVM): :androidApp, :desktopApp).
+        // The entry points wrap the app in the preview (Android and desktop (JVM): :sample:androidApp, :sample:desktopApp).
         iosMain.dependencies {
             implementation(project(":cmpdevicepreview"))
         }
         macosMain.dependencies {
             implementation(project(":cmpdevicepreview"))
         }
-        wasmJsMain.dependencies {
+        webMain.dependencies {
             implementation(project(":cmpdevicepreview"))
         }
     }

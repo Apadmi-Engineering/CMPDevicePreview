@@ -15,7 +15,7 @@ pluginManagement {
 }
 
 plugins {
-    // Compose Hot Reload (:desktopApp:hotRun) runs on a JetBrains Runtime. This downloads one when
+    // Compose Hot Reload (:sample:desktopApp:hotRun) runs on a JetBrains Runtime. This downloads one when
     // there isn't one installed.
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
@@ -33,7 +33,7 @@ dependencyResolutionManagement {
     }
 }
 
-include(":composeApp")
-include(":androidApp")
-include(":desktopApp")
 include(":cmpdevicepreview")
+include(":sample:composeApp")
+include(":sample:androidApp")
+include(":sample:desktopApp")
