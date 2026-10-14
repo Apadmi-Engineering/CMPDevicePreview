@@ -10,7 +10,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.renderComposeScene
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
@@ -23,13 +26,16 @@ import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+
 import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -142,5 +148,38 @@ class ConfigurationViewTest {
         }
         onNodeWithContentDescription("Reset Text size").assertIsNotEnabled()
         onNodeWithContentDescription("Reset Display size").assertIsNotEnabled()
+        onNodeWithContentDescription("Reset Layout direction").assertIsNotEnabled()
+    }
+
+    @Test
+    fun theLayoutDirectionResetFollowsTheHostAgain() = runComposeUiTest {
+        var changed: SimulatedDevice? = null
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9, DeviceConfiguration(layoutDirection = LayoutDirection.Rtl)),
+                onSimulatedDeviceChange = { changed = it },
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+            )
+        }
+        onNodeWithContentDescription("Reset Layout direction").performScrollTo().assertIsEnabled().performClick()
+        assertNull(assertNotNull(changed).configuration.layoutDirection)
+    }
+
+    @Test
+    fun theSlidersAreNamedAndAnnounceTheirValue() = runComposeUiTest {
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9, DeviceConfiguration(fontScale = 1.5f)),
+                onSimulatedDeviceChange = {},
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+            )
+        }
+        val value = { text: String -> SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, text) }
+        onNodeWithContentDescription("Text size").performScrollTo().assert(value("150%"))
+        onNodeWithContentDescription("Display size").performScrollTo().assert(value("Default"))
     }
 }

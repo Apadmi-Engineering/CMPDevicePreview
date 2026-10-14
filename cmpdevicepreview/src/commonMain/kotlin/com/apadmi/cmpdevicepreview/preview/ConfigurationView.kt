@@ -312,7 +312,13 @@ private fun TextAndDisplaySection(simulatedDevice: SimulatedDevice, onChange: (D
 
 @Composable
 private fun LayoutDirectionSection(configuration: DeviceConfiguration, onChange: (DeviceConfiguration) -> Unit) {
-    SectionLabel("Layout direction")
+    SectionLabel("Layout direction") {
+        ResetButton(
+            title = "Layout direction",
+            isShown = configuration.layoutDirection != null,
+            onClick = { onChange(configuration.copy(layoutDirection = null)) },
+        )
+    }
     val direction = configuration.layoutDirection ?: LocalLayoutDirection.current
     SegmentedControl(
         options = DirectionOptions,
