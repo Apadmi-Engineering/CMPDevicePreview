@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":composeApp"))
+    implementation(project(":sample:composeApp"))
     implementation(project(":cmpdevicepreview"))
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)

@@ -22,7 +22,7 @@ kotlin {
         }
     }
 
-    // The desktop app that runs this is in :desktopApp.
+    // The desktop app that runs this is in :sample:desktopApp.
     jvm()
 
     listOf(
@@ -67,7 +67,7 @@ kotlin {
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.jetbrains.material3.adaptive)
         }
-        // The entry points wrap the app in the preview (Android and desktop (JVM): :androidApp, :desktopApp).
+        // The entry points wrap the app in the preview (Android and desktop (JVM): :sample:androidApp, :sample:desktopApp).
         iosMain.dependencies {
             implementation(project(":cmpdevicepreview"))
         }
