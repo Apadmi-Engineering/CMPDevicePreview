@@ -1,10 +1,8 @@
 # CmpDevicePreview - Compose Multiplatform Device Preview Library
 
-CmpDevicePreview is a Compose Multiplatform library for previewing your app on different devices. It draws your app inside a device frame and lets you change the device, orientation, dark mode, text size, display size, layout direction and keyboard from a panel, so you can see how it adapts without a real device or an emulator. It works on Android, iOS, macOS (Apple silicon), desktop (JVM), JS and Wasm, and you can use it to put a web demo of your app online.
+CmpDevicePreview is a Compose Multiplatform library that draws your app inside a device frame, with a panel to change the device, orientation, dark mode, text size, display size, layout direction and keyboard. It runs on Android, iOS, macOS (Apple silicon), desktop (JVM), JS and Wasm, so you can put a web demo of your app online.
 
 **[Try the live demo](https://apadmi-engineering.github.io/CMPDevicePreview/)**: the sample app running in the preview, in your browser.
-
-The device catalogue, frames included, comes from [Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview). See [Credits](#credits).
 
 [Demo-CMPDevicePreview.webm](https://github.com/user-attachments/assets/002719e9-7886-4bf6-b982-a2e65f1c7589)
 
@@ -16,31 +14,24 @@ Latest version: [![Maven Central](https://img.shields.io/maven-central/v/com.apa
 implementation("com.apadmi:cmpdevicepreview:<version>")
 ```
 
-Wrap your root App composable, or any view, in `DeviceWithConfigurationView`. Your app needs nothing else from the library, so you can wrap it in the entry point of just one platform, such as the web one, and leave the rest of your code untouched:
+Wrap your root composable in `DeviceWithConfigurationView`. You can do this in a single platform's entry point, such as the web one, and leave the rest of your code untouched:
 ```kotlin
-// wasmJsMain
-fun main() {
-    ComposeViewport(document.body!!) {
-        DeviceWithConfigurationView {
-            App()
-        }
-    }
+DeviceWithConfigurationView {
+    App()
 }
 ```
 
-Inside the device, Compose's own APIs report the simulated device, so your app doesn't need to know it is being previewed: window insets, `isSystemInDarkTheme()`, font scale, layout direction and window size classes all follow it.
+Inside the device, Compose's own APIs report the simulated device, so your app doesn't need to know it is being previewed: window insets, `isSystemInDarkTheme()`, font scale, layout direction and window size classes all follow it, except window insets and dark mode on Android (see [Platform differences](#platform-differences)).
 
 ## Developing with Hot Reload
 
-The desktop (JVM) target is the quickest way to work on your UI. Wrap your desktop entry point in `DeviceWithConfigurationView` and run it with [Compose Hot Reload](https://github.com/JetBrains/compose-hot-reload), and every edit shows up in the running device frame without a restart. You can switch device, orientation, dark mode or text size from the panel while you edit, so you can check how a change looks across them as you make it.
+The desktop (JVM) target is the quickest way to work on your UI: run it with [Compose Hot Reload](https://github.com/JetBrains/compose-hot-reload) and edits show up in the running device frame without a restart. Make the window wide enough to show the panel beside the device:
 
 ```kotlin
 // desktopMain
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "My app",
-        // Wide enough to show the configuration panel beside the device.
         state = rememberWindowState(size = DpSize(1280.dp, 900.dp)),
     ) {
         DeviceWithConfigurationView {
@@ -78,24 +69,28 @@ SimulatedDevicePreview(
 
 To use your own device, implement the `Device` interface (or create a `DevicePreset`) and pass it as `initialDevice`, or to `SimulatedDevicePreview` or `DeviceFrameView`. The panel's picker lists the built-in devices.
 
-To add your own controls to the configuration panel, such as a button that resets your app's state or signs in a test user, pass `panelItems`. They are shown in order below the panel's settings:
+To add your own controls to the configuration panel, pass `panelItems`. They are shown in order below the panel's settings:
 ```kotlin
 DeviceWithConfigurationView(
     panelItems = listOf(
         { Button(onClick = { viewModel.reset() }) { Text("Reset app") } },
-        { Button(onClick = { viewModel.signInTestUser() }) { Text("Sign in test user") } },
     ),
 ) {
     App()
 }
 ```
 
+## Platform differences
+
+- **Android** can't override the window insets or the dark mode its host reports, so the app inside the device sees the real ones.
+- **Screenshots** of the device are saved from the web build only.
+
 ## Credits
 
-**[Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview)** by Aloïs Deniel (MIT). The device frames, and the catalogue devices behind them, are his work: the specs in [`cmpdevicepreview/device_specs`](cmpdevicepreview/device_specs) are copied unchanged and carry each device's screen size, safe areas, frame artwork, status bar artwork and keyboard heights. The SVG renderer that draws that artwork is ported from it.
+**[Flutter Device Preview](https://github.com/aloisdeniel/flutter_device_preview)** by Aloïs Deniel (MIT). The device frames and the catalogue devices behind them are his work, copied into [`cmpdevicepreview/device_specs`](cmpdevicepreview/device_specs) with minor modifications. The SVG renderer that draws them is ported from it.
 
-**[KMPDevicePreview](https://github.com/KAppMaker/KMPDevicePreview)** by KAppMaker (Mirzamehdi Karimov, MIT), which CmpDevicePreview is forked from. It was featured in [Android Weekly #650](https://androidweekly.net/issues/issue-650).
+**[KMPDevicePreview](https://github.com/KAppMaker/KMPDevicePreview)** by KAppMaker (Mirzamehdi Karimov, MIT), which CmpDevicePreview is forked from.
 
-## License
+## Licence
 
 [MIT](LICENSE). It keeps the copyright notices of Apadmi Ltd, KAppMaker and Aloïs Deniel.
