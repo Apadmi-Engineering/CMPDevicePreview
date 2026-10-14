@@ -103,6 +103,8 @@ private const val RepositoryUrl = "https://github.com/Apadmi-Engineering/CMPDevi
 /** The title [ConfigurationView] shows unless it is given one. */
 internal const val DefaultPanelTitle = "Device Preview"
 
+private const val DefaultScale = 1f
+
 private val OrientationOptions = listOf(
     SegmentOption("Portrait", Icons.Outlined.StayCurrentPortrait),
     SegmentOption("Landscape", Icons.Outlined.StayCurrentLandscape),
@@ -343,6 +345,7 @@ private fun TextAndDisplaySection(simulatedDevice: SimulatedDevice, onChange: (D
         labels = FontScaleSteps.map { it.label },
         selectedIndex = FontScaleSteps.indexOf(FontScaleSteps.nearest(configuration.fontScale)),
         onSelect = { index -> onChange(configuration.copy(fontScale = FontScaleSteps[index].scale)) },
+        defaultIndex = FontScaleSteps.indexOf(FontScaleSteps.nearest(DefaultScale)),
     )
     val displaySteps = simulatedDevice.device.displayScaleSteps
     StepSlider(
@@ -352,6 +355,7 @@ private fun TextAndDisplaySection(simulatedDevice: SimulatedDevice, onChange: (D
         labels = displaySteps.map { it.label },
         selectedIndex = displaySteps.indexOf(displaySteps.nearest(configuration.displayScale)),
         onSelect = { index -> onChange(configuration.copy(displayScale = displaySteps[index].scale)) },
+        defaultIndex = displaySteps.indexOf(displaySteps.nearest(DefaultScale)),
     )
 }
 
