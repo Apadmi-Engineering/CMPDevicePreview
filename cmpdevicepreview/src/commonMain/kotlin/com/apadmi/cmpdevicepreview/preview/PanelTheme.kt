@@ -6,6 +6,7 @@ package com.apadmi.cmpdevicepreview.preview
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +28,8 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -96,7 +99,8 @@ private fun RowScope.SettingLabel(
     icon: ImageVector,
     title: String,
     note: String?,
-    badge: String?
+    badge: String?,
+    titleEnd: (@Composable () -> Unit)? = null,
 ) {
     Box(
         Modifier.size(32.dp).background(PanelColors.Surface, RoundedCornerShape(8.dp)),
@@ -119,6 +123,7 @@ private fun RowScope.SettingLabel(
                     fontWeight = FontWeight.SemiBold,
                 )
             }
+            titleEnd?.invoke()
         }
         if (note != null) {
             Text(
@@ -334,6 +339,7 @@ internal fun ToggleRow(
  * @param onSelect Called with the index of the value the slider moves to.
  * @param modifier The modifier for the setting.
  * @param note A line below the title that says more about the setting, or null for none.
+ * @param defaultIndex The index in [labels] a reset button returns to, or null for no button.
  */
 @Composable
 internal fun StepSlider(
@@ -344,10 +350,19 @@ internal fun StepSlider(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     note: String? = null,
+    defaultIndex: Int? = null,
 ) {
     Column(modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(top = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SettingLabel(icon, title, note, badge = labels.getOrNull(selectedIndex))
+            SettingLabel(
+                icon,
+                title,
+                note,
+                badge = labels.getOrNull(selectedIndex),
+                titleEnd = defaultIndex?.let {
+                    { ResetButton(title, isShown = selectedIndex != it, onClick = { onSelect(it) }) }
+                },
+            )
         }
         Slider(
             value = selectedIndex.toFloat(),
@@ -413,6 +428,33 @@ internal fun PanelButton(
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
+        )
+    }
+}
+
+/** Hidden, but keeping its place, while [isShown] is false. */
+@Composable
+private fun ResetButton(
+    title: String,
+    isShown: Boolean,
+    onClick: () -> Unit
+) {
+    val alpha by animateFloatAsState(if (isShown) 1f else 0f, label = "resetAlpha")
+    Box(
+        Modifier
+            .padding(start = 4.dp)
+            .size(22.dp)
+            .alpha(alpha)
+            .clip(CircleShape)
+            .clickable(enabled = isShown, role = Role.Button, onClick = onClick)
+            .pointerHoverIcon(PointerIcon.Hand),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.Outlined.RestartAlt,
+            contentDescription = "Reset $title",
+            tint = PanelColors.TextTertiary,
+            modifier = Modifier.size(14.dp),
         )
     }
 }

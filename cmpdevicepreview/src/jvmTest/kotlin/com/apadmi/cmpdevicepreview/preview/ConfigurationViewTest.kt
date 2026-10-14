@@ -11,9 +11,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.renderComposeScene
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
@@ -102,5 +105,42 @@ class ConfigurationViewTest {
         onNodeWithText("Dot grid").performScrollTo().performClick()
         assertEquals(PreviewSettings(isDotGridVisible = false), settings)
         assertNull(device)
+    }
+
+    @Test
+    fun theResetButtonsReturnTheTextAndDisplaySizesToTheirDefaults() = runComposeUiTest {
+        var changed: SimulatedDevice? = null
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(
+                    DevicePresets.pixel9,
+                    DeviceConfiguration(fontScale = 1.5f, displayScale = 0.85f),
+                ),
+                onSimulatedDeviceChange = { changed = it },
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+            )
+        }
+        onNodeWithContentDescription("Reset Text size").performScrollTo().assertIsEnabled().performClick()
+        assertEquals(DeviceConfiguration(fontScale = 1f, displayScale = 0.85f), assertNotNull(changed).configuration)
+
+        onNodeWithContentDescription("Reset Display size").performScrollTo().assertIsEnabled().performClick()
+        assertEquals(DeviceConfiguration(fontScale = 1.5f, displayScale = 1f), assertNotNull(changed).configuration)
+    }
+
+    @Test
+    fun theResetButtonsAreOutOfTheWayWhileTheSizesAreTheDefaults() = runComposeUiTest {
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9),
+                onSimulatedDeviceChange = {},
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+            )
+        }
+        onNodeWithContentDescription("Reset Text size").assertIsNotEnabled()
+        onNodeWithContentDescription("Reset Display size").assertIsNotEnabled()
     }
 }
