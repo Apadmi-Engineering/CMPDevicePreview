@@ -65,6 +65,11 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.semantics.Role
@@ -150,6 +155,22 @@ internal fun DevicePickerDialog(
                     listState.scrollToItem(0)
                 }
             }
+            // The rows in the order they are listed, which the arrow keys move through.
+            val shown: List<Device> = buildList {
+                if (showFreeform) {
+                    add(freeform)
+                }
+                groups.values.forEach(::addAll)
+            }
+            var activeIndex by remember(query, kind) { mutableStateOf<Int?>(if (query.isBlank()) null else 0) }
+            val active = activeIndex?.let(shown::getOrNull)
+            LaunchedEffect(activeIndex) {
+                val position = activeIndex?.let { rowPosition(it, showFreeform, groups) } ?: return@LaunchedEffect
+                val inView = listState.layoutInfo.visibleItemsInfo
+                if (inView.isEmpty() || position <= inView.first().index + 1 || position >= inView.last().index) {
+                    listState.animateScrollToItem((position - RowsAboveSelected).coerceAtLeast(0))
+                }
+            }
 
             val shape = RoundedCornerShape(16.dp)
             Column(
@@ -178,7 +199,8 @@ internal fun DevicePickerDialog(
                 SearchField(
                     query = query,
                     onQueryChange = { query = it },
-                    onSubmit = { (results.firstOrNull() ?: freeform.takeIf { showFreeform })?.let(onPick) },
+                    onSubmit = { active?.let(onPick) },
+                    onMove = { step -> activeIndex = ((activeIndex ?: -1) + step).coerceIn(0, maxOf(shown.lastIndex, 0)) },
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
                 Row(
@@ -211,6 +233,7 @@ internal fun DevicePickerDialog(
                                     device = freeform,
                                     details = "Any size · drag a corner to resize",
                                     isSelected = selected is FreeformDevice,
+                                    isActive = active == freeform,
                                 ) { onPick(freeform) }
                             }
                         }
@@ -229,7 +252,12 @@ internal fun DevicePickerDialog(
                                 )
                             }
                             items(devices, key = { it.id }) { device ->
-                                DeviceRow(device, deviceDetails(device), isSelected = device == selected) { onPick(device) }
+                                DeviceRow(
+                                    device,
+                                    deviceDetails(device),
+                                    isSelected = device == selected,
+                                    isActive = device == active,
+                                ) { onPick(device) }
                             }
                         }
                     }
@@ -317,11 +345,37 @@ private fun indexInList(device: Device): Int {
     return 0
 }
 
+private fun rowPosition(
+    index: Int,
+    hasFreeform: Boolean,
+    groups: Map<DeviceType, List<DevicePreset>>
+): Int {
+    var remaining = index
+    var position = 0
+    if (hasFreeform) {
+        if (remaining == 0) {
+            return 0
+        }
+        remaining--
+        position++
+    }
+    for (devices in groups.values) {
+        position++
+        if (remaining < devices.size) {
+            return position + remaining
+        }
+        remaining -= devices.size
+        position += devices.size
+    }
+    return position
+}
+
 @Composable
 private fun SearchField(
     query: String,
     onQueryChange: (String) -> Unit,
     onSubmit: () -> Unit,
+    onMove: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -336,7 +390,20 @@ private fun SearchField(
     BasicTextField(
         value = query,
         onValueChange = onQueryChange,
-        modifier = modifier.fillMaxWidth().focusRequester(focusRequester),
+        modifier = modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester)
+            .onPreviewKeyEvent { event ->
+                val step = when (event.key) {
+                    Key.DirectionDown -> 1
+                    Key.DirectionUp -> -1
+                    else -> 0
+                }
+                if (step != 0 && event.type == KeyEventType.KeyDown) {
+                    onMove(step)
+                }
+                step != 0
+            },
         singleLine = true,
         textStyle = TextStyle(color = PanelColors.TextPrimary, fontSize = 14.sp),
         cursorBrush = SolidColor(PanelColors.Accent),
@@ -390,13 +457,16 @@ private fun DeviceRow(
     device: Device,
     details: String,
     isSelected: Boolean,
+    isActive: Boolean,
     onClick: () -> Unit
 ) {
+    val shape = RoundedCornerShape(10.dp)
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(shape)
             .background(if (isSelected) PanelColors.AccentSoft else Color.Transparent)
+            .border(1.dp, if (isActive) PanelColors.Accent.copy(alpha = 0.5f) else Color.Transparent, shape)
             .selectable(selected = isSelected, role = Role.RadioButton, onClick = onClick)
             .pointerHoverIcon(PointerIcon.Hand)
             .padding(horizontal = 10.dp, vertical = 8.dp),

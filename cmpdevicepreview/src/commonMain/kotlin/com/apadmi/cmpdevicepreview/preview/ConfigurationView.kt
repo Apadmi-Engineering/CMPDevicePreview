@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Screenshot
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Smartphone
@@ -78,6 +79,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.apadmi.cmpdevicepreview.core.Backdrop
+import com.apadmi.cmpdevicepreview.core.CommonFontScales
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.DevicePreset
@@ -97,6 +99,8 @@ import kotlin.math.roundToInt
 private const val NotAvailable = "Not available for this frame"
 
 private const val DefaultScale = 1f
+
+private val CommonTextSizeIndices = CommonFontScales.map { FontScaleSteps.indexOf(FontScaleSteps.nearest(it)) }.toSet()
 
 private val OrientationOptions = listOf(
     SegmentOption("Portrait", Icons.Outlined.StayCurrentPortrait),
@@ -171,7 +175,11 @@ public fun ConfigurationView(
                 .background(PanelColors.Background)
                 .drawBehind { drawLine(PanelColors.Border, Offset.Zero, Offset(0f, size.height), 1.dp.toPx()) }
         ) {
-            PanelHeader()
+            PanelHeader(
+                device = device,
+                isModified = simulatedDevice.configuration != DeviceConfiguration(),
+                onResetAll = { updateConfiguration(DeviceConfiguration()) },
+            )
 
             Column(
                 Modifier
@@ -197,7 +205,6 @@ public fun ConfigurationView(
                 DisplaySection(simulatedDevice, updateConfiguration)
                 Spacer(Modifier.height(20.dp))
                 BackdropSection(previewSettings, onPreviewSettingsChange)
-                ScreenshotSection(device)
 
                 if (panelItems.isNotEmpty()) {
                     Spacer(Modifier.height(20.dp))
@@ -219,9 +226,13 @@ public fun ConfigurationView(
 }
 
 @Composable
-private fun PanelHeader() {
+private fun PanelHeader(
+    device: Device,
+    isModified: Boolean,
+    onResetAll: () -> Unit
+) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
+        Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 16.dp, bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -234,10 +245,40 @@ private fun PanelHeader() {
         }
         Text(
             "Device Preview",
-            modifier = Modifier.padding(start = 12.dp),
+            modifier = Modifier.padding(start = 12.dp).weight(1f),
             color = PanelColors.TextPrimary,
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
+        )
+        PanelIconButton(
+            icon = Icons.Outlined.RestartAlt,
+            description = "Reset all settings",
+            tooltip = "Reset all settings",
+            onClick = onResetAll,
+            isShown = isModified,
+        )
+        ScreenshotButtons(device)
+    }
+}
+
+@Composable
+private fun ScreenshotButtons(device: Device) {
+    val screenshots = LocalDeviceScreenshots.current
+    val download = pngDownloader
+    if (screenshots == null || download == null) {
+        return
+    }
+    for (includeFrame in listOf(false, true)) {
+        PanelIconButton(
+            icon = if (includeFrame) Icons.Outlined.PhoneAndroid else Icons.Outlined.Screenshot,
+            description = if (includeFrame) "Screenshot with frame" else "Screenshot of screen",
+            tooltip = if (includeFrame) "Save the device in its frame as a PNG" else "Save the screen as a PNG at the device's resolution",
+            onClick = {
+                screenshots.capture(includeFrame)?.let { image ->
+                    download(image, screenshotName(device, image, includeFrame))
+                }
+            },
+            enabled = screenshots.canCapture,
         )
     }
 }
@@ -292,11 +333,12 @@ private fun TextAndDisplaySection(simulatedDevice: SimulatedDevice, onChange: (D
     StepSlider(
         icon = Icons.Outlined.FormatSize,
         title = "Text size",
-        note = "Real device scaling options may vary",
+        note = "Ticks mark common device sizes",
         labels = FontScaleSteps.map { it.label },
         selectedIndex = FontScaleSteps.indexOf(FontScaleSteps.nearest(configuration.fontScale)),
         onSelect = { index -> onChange(configuration.copy(fontScale = FontScaleSteps[index].scale)) },
         defaultIndex = FontScaleSteps.indexOf(FontScaleSteps.nearest(DefaultScale)),
+        markedIndices = CommonTextSizeIndices,
     )
     val displaySteps = simulatedDevice.device.displayScaleSteps
     StepSlider(
@@ -381,34 +423,6 @@ private fun BackdropSection(previewSettings: PreviewSettings, onChange: (Preview
     )
 }
 
-/** Buttons that save the screen, or the whole device, as a PNG, where the platform can. */
-@Composable
-private fun ScreenshotSection(device: Device) {
-    val screenshots = LocalDeviceScreenshots.current
-    val download = pngDownloader
-    if (screenshots == null || download == null) {
-        return
-    }
-    Spacer(Modifier.height(20.dp))
-    SectionLabel("Screenshot")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        for (includeFrame in listOf(false, true)) {
-            PanelButton(
-                icon = if (includeFrame) Icons.Outlined.PhoneAndroid else Icons.Outlined.Screenshot,
-                label = if (includeFrame) "With frame" else "Screen",
-                enabled = screenshots.canCapture,
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    screenshots.capture(includeFrame)?.let { image ->
-                        download(image, screenshotName(device, image, includeFrame))
-                    }
-                },
-            )
-        }
-    }
-    PanelCaption("PNGs at the device's own resolution")
-}
-
 /** The current frame, which opens the picker. Its thumbnail turns with the frame. */
 @Composable
 private fun DeviceCard(
@@ -457,24 +471,21 @@ private fun DeviceCard(
     }
 }
 
-/** A note that a frame shows a device's size and shape, but doesn't simulate the device. */
 @Composable
 private fun FrameDisclaimer() {
-    Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 10.dp)) {
-        Icon(
-            Icons.Outlined.Info,
-            contentDescription = null,
-            tint = PanelColors.TextTertiary,
-            modifier = Modifier.padding(top = 1.dp).size(14.dp),
-        )
-        Text(
-            "Frames give a feel for a device's size and shape. They don't simulate the device: your " +
-                    "app runs here, in a window that size.",
-            modifier = Modifier.padding(start = 6.dp),
-            color = PanelColors.TextTertiary,
-            fontSize = 12.sp,
-            lineHeight = 16.sp,
-        )
+    PanelTooltip(
+        text = "Frames give a feel for a device's size and shape. They don't simulate the device: your " +
+                "app runs here, in a window that size.",
+    ) {
+        Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.Info, contentDescription = null, tint = PanelColors.TextTertiary, modifier = Modifier.size(14.dp))
+            Text(
+                "Shows size and shape, not behaviour",
+                modifier = Modifier.padding(start = 6.dp),
+                color = PanelColors.TextTertiary,
+                fontSize = 12.sp,
+            )
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 package com.apadmi.cmpdevicepreview.preview
 
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -10,13 +11,17 @@ import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 @OptIn(ExperimentalTestApi::class)
 class DevicePickerTest {
@@ -52,6 +57,33 @@ class DevicePickerTest {
         onNode(hasSetTextAction()).performTextInput("resize")
         onNodeWithText("Freeform").performClick()
         assertEquals(freeform, picked)
+    }
+
+    @Test
+    fun submittingASearchPicksTheFirstMatch() = runComposeUiTest {
+        var picked: Device? = null
+        showPicker(onPick = { picked = it })
+        onNode(hasSetTextAction()).performTextInput("galaxy s2")
+        onNode(hasSetTextAction()).performImeAction()
+        assertEquals(DevicePresets.galaxyS25, picked)
+    }
+
+    @Test
+    fun theArrowKeysMoveWhichMatchSubmitPicks() = runComposeUiTest {
+        var picked: Device? = null
+        showPicker(onPick = { picked = it })
+        onNode(hasSetTextAction()).performTextInput("galaxy s2")
+        onNode(hasSetTextAction()).performKeyInput { pressKey(Key.DirectionDown) }
+        onNode(hasSetTextAction()).performImeAction()
+        assertEquals(DevicePresets.galaxyS24, picked)
+    }
+
+    @Test
+    fun submittingWithNothingHighlightedPicksNothing() = runComposeUiTest {
+        var picked: Device? = null
+        showPicker(onPick = { picked = it })
+        onNode(hasSetTextAction()).performImeAction()
+        assertNull(picked)
     }
 
     @Test

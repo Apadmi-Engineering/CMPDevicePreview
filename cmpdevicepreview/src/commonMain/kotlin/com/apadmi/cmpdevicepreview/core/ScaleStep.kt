@@ -17,6 +17,9 @@ internal val FontScaleSteps: List<ScaleStep> = (50..300 step 5).map { percent ->
     ScaleStep(if (percent == 100) DefaultLabel else "$percent%", percent / 100f)
 }
 
+// The text sizes Android's own setting offers.
+internal val CommonFontScales: List<Float> = listOf(0.85f, 1f, 1.15f, 1.3f)
+
 /**
  * The display sizes the device offers, smallest first, as Android's settings work them out: one
  * size smaller than the default and up to three larger, the largest leaving the screen's shorter
