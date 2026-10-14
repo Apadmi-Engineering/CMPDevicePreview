@@ -553,7 +553,7 @@ private fun SizeField(
                     .padding(horizontal = 12.dp),
                 verticalArrangement = Arrangement.Center,
             ) {
-                Text(label.uppercase(), color = PanelColors.TextTertiary, fontSize = 9.sp, letterSpacing = 0.8.sp)
+                Text(label.uppercase(), color = PanelColors.TextTertiary, fontSize = 11.sp, letterSpacing = 0.8.sp)
                 field()
             }
         },

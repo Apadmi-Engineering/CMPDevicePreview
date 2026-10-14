@@ -68,21 +68,24 @@ internal object PanelColors {
     val Border = Color(0xFF2A2A31)
     val TextPrimary = Color(0xFFF4F4F6)
     val TextSecondary = Color(0xFF9D9DA8)
-    val TextTertiary = Color(0xFF66666F)
+    val TextTertiary = Color(0xFF8A8A94)
     val Accent = Color(0xFF7C6CFF)
     val AccentBright = Color(0xFF9F94FF)
     val AccentSoft = Color(0x297C6CFF)
 
     /** The far end of gradients that start at [Accent]. */
     val AccentBlue = Color(0xFF4FA3FF)
-    val SwitchOff = Color(0xFF3A3A43)
+
+    /** The accent for a fill that white text sits on. */
+    val AccentDeep = Color(0xFF5B4BE0)
+    val SwitchOff = Color(0xFF60606B)
     val SegmentSelected = Color(0xFF303039)
     val ThumbnailBody = Color(0xFF5A5A66)
     val ThumbnailScreenTop = Color(0xFF24242B)
     val ThumbnailScreenBottom = Color(0xFF32323B)
 
     /** A plain window's border, and the resize handles at rest. */
-    val FrameOutline = Color(0xFF9A9AA6)
+    val FrameOutline = Color(0xFF80808C)
 }
 
 /**
@@ -383,7 +386,7 @@ internal fun StepSlider(
                 activeTrackColor = PanelColors.Accent,
                 activeTickColor = if (labels.size <= MaxTicks) PanelColors.AccentBright else Color.Transparent,
                 inactiveTrackColor = PanelColors.SwitchOff,
-                inactiveTickColor = if (labels.size <= MaxTicks) PanelColors.TextTertiary else Color.Transparent,
+                inactiveTickColor = if (labels.size <= MaxTicks) PanelColors.TextSecondary else Color.Transparent,
             ),
         )
     }
