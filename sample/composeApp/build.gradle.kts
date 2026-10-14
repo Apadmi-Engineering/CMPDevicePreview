@@ -1,3 +1,4 @@
+import org.gradle.api.Action
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -41,18 +42,27 @@ kotlin {
         }
     }
 
+    val rootDirPath = project.rootDir.path
+    val projectDirPath = project.projectDir.path
+    val siteWebpackConfig = Action<KotlinWebpackConfig> {
+        outputFileName = "composeApp.js"
+        devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
+            static(rootDirPath)
+            static(projectDirPath)
+        }
+    }
+
+    js {
+        browser {
+            commonWebpackConfig(siteWebpackConfig)
+        }
+        binaries.executable()
+    }
+
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser {
-            val rootDirPath = project.rootDir.path
-            val projectDirPath = project.projectDir.path
-            commonWebpackConfig {
-                outputFileName = "composeApp.js"
-                devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
-                    static(rootDirPath)
-                    static(projectDirPath)
-                }
-            }
+            commonWebpackConfig(siteWebpackConfig)
         }
         binaries.executable()
     }
@@ -74,7 +84,7 @@ kotlin {
         macosMain.dependencies {
             implementation(project(":cmpdevicepreview"))
         }
-        wasmJsMain.dependencies {
+        webMain.dependencies {
             implementation(project(":cmpdevicepreview"))
         }
     }

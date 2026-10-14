@@ -27,7 +27,8 @@ The library builds with `explicitApi()`, so every public declaration needs an ex
 
 | Platform | Entry point | Run it with |
 | --- | --- | --- |
-| Web | `sample/composeApp` (`wasmJsMain`) | `./gradlew :sample:composeApp:wasmJsBrowserDevelopmentRun`, or the [live demo](https://apadmi-engineering.github.io/CMPDevicePreview/) |
+| Web (Wasm) | `sample/composeApp` (`webMain`) | `./gradlew :sample:composeApp:wasmJsBrowserDevelopmentRun`, or the [live demo](https://apadmi-engineering.github.io/CMPDevicePreview/) |
+| Web (JS) | `sample/composeApp` (`webMain`) | `./gradlew :sample:composeApp:jsBrowserDevelopmentRun` |
 | Desktop (JVM) | `sample/desktopApp` | `./gradlew :sample:desktopApp:run` |
 | Android | `sample/androidApp` | `./gradlew :sample:androidApp:installDebug` |
 | iOS | `sample/composeApp` (`iosMain`), hosted by `sample/iosApp` | open `sample/iosApp/iosApp.xcodeproj` in Xcode and run it |
