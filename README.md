@@ -1,6 +1,6 @@
 # CmpDevicePreview - Compose Multiplatform Device Preview Library
 
-CmpDevicePreview is a Compose Multiplatform library for previewing your app on different devices. It draws your app inside a device frame and lets you change the device, orientation, dark mode, text size, display size, layout direction and keyboard from a panel, so you can see how it adapts without a real device or an emulator. It works on Android, iOS, desktop (JVM), JS and Wasm, and you can use it to put a web demo of your app online.
+CmpDevicePreview is a Compose Multiplatform library for previewing your app on different devices. It draws your app inside a device frame and lets you change the device, orientation, dark mode, text size, display size, layout direction and keyboard from a panel, so you can see how it adapts without a real device or an emulator. It works on Android, iOS, macOS (Apple silicon), desktop (JVM), JS and Wasm, and you can use it to put a web demo of your app online.
 
 **[Try the live demo](https://apadmi-engineering.github.io/CMPDevicePreview/)**: the sample app running in the preview, in your browser.
 
