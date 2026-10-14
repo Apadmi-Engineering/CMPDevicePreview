@@ -52,7 +52,7 @@ import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 private const val ButtonGlowAlpha = 0.45f
 
 /** The narrowest the view can be and still show the panel beside the device. */
-private val SidePanelMinWidth = 840.dp
+private val SidePanelMinWidth = 880.dp
 
 /** How far the dark glow around the button that turns preview mode back on reaches from its centre. */
 private val ButtonGlowRadius = 96.dp
