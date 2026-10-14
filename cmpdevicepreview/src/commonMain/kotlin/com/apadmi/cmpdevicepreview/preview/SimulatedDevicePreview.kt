@@ -5,9 +5,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
+
 import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
@@ -21,12 +28,15 @@ private const val DeviceFraction = 0.9f
 internal val DefaultDevice: DevicePreset = DevicePresets.galaxyS25
 
 /** The backdrop [settings] asks for: light or dark, with or without dots. */
+private fun PreviewSettings.isBackdropDark(isDeviceDark: Boolean): Boolean = when (backdrop) {
+    Backdrop.LIGHT -> false
+    Backdrop.DARK -> true
+    Backdrop.AUTO -> isDeviceDark
+}
+
+/** The backdrop [settings] asks for: light or dark, with or without dots. */
 private fun Modifier.backdrop(settings: PreviewSettings, isDeviceDark: Boolean): Modifier {
-    val isDark = when (settings.backdrop) {
-        Backdrop.LIGHT -> false
-        Backdrop.DARK -> true
-        Backdrop.AUTO -> isDeviceDark
-    }
+    val isDark = settings.isBackdropDark(isDeviceDark)
     val background = if (isDark) DotGridDefaults.DarkBackground else DotGridDefaults.Background
     return if (settings.isDotGridVisible) {
         dotGrid(background = background, dot = if (isDark) DotGridDefaults.DarkDot else DotGridDefaults.Dot)
@@ -53,18 +63,59 @@ public fun SimulatedDevicePreview(
     onResize: ((SimulatedDevice) -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
+    ZoomableDevicePreview(modifier, simulatedDevice, previewSettings, onResize, isZoomable = false, content)
+}
+
+@Composable
+internal fun ZoomableDevicePreview(
+    modifier: Modifier,
+    simulatedDevice: SimulatedDevice,
+    previewSettings: PreviewSettings,
+    onResize: ((SimulatedDevice) -> Unit)?,
+    isZoomable: Boolean,
+    content: @Composable () -> Unit,
+) {
+    val isDeviceDark = simulatedDevice.configuration.isDarkMode
+    val viewport = remember { PreviewViewport() }
+    val zoomGestures = if (isZoomable) {
+        Modifier.clipToBounds().onSizeChanged { viewport.resize(it.toSize()) }.zoomAndPan(viewport)
+    } else {
+        Modifier
+    }
+    val zoomTransform = if (isZoomable) {
+        Modifier.graphicsLayer {
+            transformOrigin = TransformOrigin(0f, 0f)
+            scaleX = viewport.zoom
+            scaleY = viewport.zoom
+            translationX = viewport.pan.x
+            translationY = viewport.pan.y
+        }
+    } else {
+        Modifier
+    }
     Box(
-        modifier = modifier.fillMaxSize().backdrop(previewSettings, isDeviceDark = simulatedDevice.configuration.isDarkMode),
+        modifier = modifier.fillMaxSize().backdrop(previewSettings, isDeviceDark).then(zoomGestures),
         contentAlignment = Alignment.Center,
     ) {
-        DeviceFrameView(
-            device = simulatedDevice.device,
-            modifier = Modifier.padding(16.dp).fillMaxSize(DeviceFraction),
-            configuration = simulatedDevice.configuration,
-            onResize = onResize?.let { resize ->
-                { freeform -> resize(simulatedDevice.copy(device = freeform).adaptedToDevice()) }
-            },
-            content = content,
-        )
+        Box(Modifier.fillMaxSize().then(zoomTransform), contentAlignment = Alignment.Center) {
+            DeviceFrame(
+                device = simulatedDevice.device,
+                modifier = Modifier.padding(16.dp).fillMaxSize(DeviceFraction),
+                configuration = simulatedDevice.configuration,
+                onResize = onResize?.let { resize ->
+                    { freeform -> resize(simulatedDevice.copy(device = freeform).adaptedToDevice()) }
+                },
+                onLayoutScale = if (isZoomable) ( { viewport.fitScale = it }) else null,
+                content = content,
+            )
+        }
+        if (isZoomable) {
+            PreviewToolbar(
+                viewport,
+                simulatedDevice.device,
+                previewSettings.isBackdropDark(isDeviceDark),
+                Modifier.align(Alignment.BottomStart).padding(8.dp),
+            )
+        }
     }
 }

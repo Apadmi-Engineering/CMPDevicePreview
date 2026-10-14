@@ -83,10 +83,12 @@ public fun DeviceWithConfigurationView(
             // The device keeps its place in the composition whichever way the panel is shown, so
             // neither it nor the content is recreated when the view crosses the width above.
             PreviewLayout(isWide) {
-                SimulatedDevicePreview(
+                ZoomableDevicePreview(
+                    modifier = Modifier,
                     simulatedDevice = simulatedDevice,
                     previewSettings = previewSettings,
                     onResize = onSimulatedDeviceChange,
+                    isZoomable = true,
                     content = content,
                 )
                 // PreviewLayout measures exactly two children, so the panel stays one node even
