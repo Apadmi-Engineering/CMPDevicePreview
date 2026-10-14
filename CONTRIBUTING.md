@@ -4,18 +4,18 @@
 
 - JDK 17 or newer (CI uses 17).
 - The Android SDK, for the Android targets. Android Studio creates the git-ignored `local.properties` that points Gradle at it.
-- macOS with Xcode, for the iOS targets: Kotlin/Native only builds them there, which is why CI builds iOS on a macOS runner.
+- macOS with Xcode, for the iOS and macOS targets: Kotlin/Native only builds them there, which is why CI builds them on a macOS runner.
 
 ## Project layout
 
 | Module | What it is |
 | --- | --- |
 | `cmpdevicepreview` | The library, published to Maven Central |
-| `composeApp` | The sample app's shared UI, and its web and iOS entry points |
+| `composeApp` | The sample app's shared UI, and its web, iOS and macOS entry points |
 | `androidApp`, `desktopApp` | The sample's Android and desktop entry points |
 | `iosApp` | The Xcode project that hosts the iOS entry point |
 
-In the library, platform code sits beside `commonMain`. Everything but Android draws with Skia, so JVM, iOS, JS and Wasm share `skikoMain`, and JS and Wasm share `webMain`. `SimulatedPlatform` in `skikoMain` is the only file that uses Compose's internal hooks for window insets and the system theme, so that a Compose update that changes them only breaks that file. Keep it that way.
+In the library, platform code sits beside `commonMain`. Everything but Android draws with Skia, so JVM, iOS, macOS, JS and Wasm share `skikoMain`, iOS and macOS share `appleMain`, and JS and Wasm share `webMain`. `SimulatedPlatform` in `skikoMain` is the only file that uses Compose's internal hooks for window insets and the system theme, so that a Compose update that changes them only breaks that file. Keep it that way.
 
 The library builds with `explicitApi()`, so every public declaration needs an explicit visibility and type.
 
@@ -29,6 +29,7 @@ The library builds with `explicitApi()`, so every public declaration needs an ex
 | Desktop (JVM) | `desktopApp` | `./gradlew :desktopApp:run` |
 | Android | `androidApp` | `./gradlew :androidApp:installDebug` |
 | iOS | `composeApp` (`iosMain`), hosted by `iosApp` | open `iosApp/iosApp.xcodeproj` in Xcode and run it |
+| macOS (Apple silicon) | `composeApp` (`macosMain`) | `./gradlew :composeApp:runDebugExecutableMacosArm64` |
 
 The desktop sample is also the quickest way to work on the sample app, or on the library, because it supports [Compose Hot Reload](https://github.com/JetBrains/compose-hot-reload): `./gradlew :desktopApp:hotRun --auto` recompiles and reloads the running window as you edit, in `composeApp` or `cmpdevicepreview`. Hot Reload runs on a JetBrains Runtime, which Gradle downloads the first time if there isn't one installed.
 
@@ -36,6 +37,7 @@ The desktop sample is also the quickest way to work on the sample app, or on the
 
 - **Android** can't override the window insets or the dark mode its host reports, so the app inside the device sees the real ones, not the simulated device's. The sample keeps the preview inside the real system bars to avoid showing them twice. The iOS, desktop and web previews simulate both.
 - **iOS**: the sample's preview sits inside the real safe area.
+- **macOS** is Kotlin/Native, and Compose still marks it experimental, which is why `gradle.properties` sets `org.jetbrains.compose.experimental.macos.enabled`. Compose's native `Window` neither runs the application nor quits when it closes, so the sample's `main` does both. Compose's native cursors are the arrow, crosshair, text and hand only, so the resize handles show the arrow there.
 - **Screenshots** of the device are saved from the web build only, and only there does the mouse act as a finger, so on desktop lists scroll with the wheel, not by dragging.
 
 ## Tests and checks

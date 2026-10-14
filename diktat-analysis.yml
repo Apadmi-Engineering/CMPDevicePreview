@@ -12,7 +12,7 @@
     # Add any new test source set to testDirs, and any new main source set to srcDirectories.
     testDirs: test, commonTest, jvmTest, webTest
     kotlinVersion: 1.9
-    srcDirectories: main, commonMain, androidMain, iosMain, jvmMain, skikoMain, webMain, wasmJsMain
+    srcDirectories: main, commonMain, androidMain, appleMain, iosMain, jvmMain, macosMain, skikoMain, webMain, wasmJsMain
 # Checks that the Class/Enum/Interface name matches Pascal case
 - name: CLASS_NAME_INCORRECT
   enabled: true

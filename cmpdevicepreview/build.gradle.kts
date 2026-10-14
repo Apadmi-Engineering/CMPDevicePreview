@@ -22,6 +22,7 @@ kotlin {
 
     iosArm64()
     iosSimulatorArm64()
+    macosArm64()
 
     android {
         namespace = "com.apadmi.cmpdevicepreview"
@@ -53,6 +54,7 @@ kotlin {
             group("skiko") {
                 withJvm()
                 withIos()
+                withMacos()
                 withJs()
                 withWasmJs()
             }
@@ -103,7 +105,7 @@ mavenPublishing {
     coordinates("com.apadmi", "cmpdevicepreview", libraryVersion.get())
     pom {
         name = "CmpDevicePreview"
-        description = "Compose Multiplatform library that previews your app inside device frames and settings, on Android, iOS, desktop and the web."
+        description = "Compose Multiplatform library that previews your app inside device frames and settings, on Android, iOS, macOS, desktop and the web."
         inceptionYear = "2026"
         url = "https://github.com/Apadmi-Engineering/CMPDevicePreview/"
         licenses {

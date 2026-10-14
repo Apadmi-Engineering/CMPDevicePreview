@@ -35,6 +35,12 @@ kotlin {
         }
     }
 
+    macosArm64 {
+        binaries.executable {
+            entryPoint = "com.apadmi.cmpdevicepreview.sample.main"
+        }
+    }
+
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser {
@@ -61,8 +67,11 @@ kotlin {
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.jetbrains.material3.adaptive)
         }
-        // The entry points wrap the app in the preview (Android and desktop: :androidApp, :desktopApp).
+        // The entry points wrap the app in the preview (Android and desktop (JVM): :androidApp, :desktopApp).
         iosMain.dependencies {
+            implementation(project(":cmpdevicepreview"))
+        }
+        macosMain.dependencies {
             implementation(project(":cmpdevicepreview"))
         }
         wasmJsMain.dependencies {
