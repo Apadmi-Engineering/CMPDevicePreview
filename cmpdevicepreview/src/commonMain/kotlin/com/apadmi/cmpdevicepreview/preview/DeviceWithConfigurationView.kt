@@ -36,7 +36,7 @@ import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 
 /** The narrowest the view can be and still show the panel beside the device. */
-private val SidePanelMinWidth = 840.dp
+private val SidePanelMinWidth = 880.dp
 
 /**
  * Shows [content] in a simulated device, with the configuration panel beside it when there is

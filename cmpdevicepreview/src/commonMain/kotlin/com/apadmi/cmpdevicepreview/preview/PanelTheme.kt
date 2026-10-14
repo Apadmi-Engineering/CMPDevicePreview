@@ -92,7 +92,7 @@ private val PanelRippleAlpha = RippleAlpha(
     pressedAlpha = 0.16f,
 )
 
-internal val PanelWidth = 300.dp
+internal val PanelWidth = 340.dp
 
 /** The colours of the configuration panel, the device picker and the preview's handles. */
 internal object PanelColors {
