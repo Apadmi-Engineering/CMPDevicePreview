@@ -23,13 +23,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -78,6 +79,7 @@ internal const val TurnMillis = 450
 
 private val WindowCornerRadius = 4.dp
 private val WindowShadow = 8.dp
+private val WindowShape = RoundedCornerShape(WindowCornerRadius)
 
 /** Gets the device a drag resized to, and the scale the drag started at. */
 private typealias OnResized = (resized: FreeformDevice, scale: Float) -> Unit
@@ -221,14 +223,25 @@ private fun BoxScope.ResizeLayer(
 /** This size in pixels, at [scale] pixels per unit. */
 private fun Size.toPixels(scale: Float): IntSize = IntSize((width * scale).roundToInt(), (height * scale).roundToInt())
 
+/** Clips the content to [shape], bordered and shadowed when it is a plain window's. */
+private fun Modifier.screenClip(shape: Shape): Modifier =
+    if (shape === WindowShape) {
+        shadow(WindowShadow, shape, clip = false)
+            .border(shape = shape, border = BorderStroke(1.dp, PanelColors.FrameOutline))
+            .clip(shape)
+    } else {
+        clip(shape)
+    }
+
 /**
  * Draws [device] around [content], shown as [configuration] describes, scaled to fit the space.
  *
  * The content is laid out at the device's screen size in dp. Inside it, `WindowInsets`,
  * `isSystemInDarkTheme()`, `LocalDensity` and `LocalWindowInfo` describe the device, except on
- * Android, where insets and theme stay the real window's. The status bar, gesture pill and keyboard
- * band are drawn over the content and don't take touches. On the web, the mouse acts as a finger on
- * a touchscreen device.
+ * Android, where insets and theme stay the real window's. Dialogs and popups are kept to the
+ * screen, except on Android, where each is a window of its own. The status bar, gesture pill and
+ * keyboard band are drawn over the content and don't take touches. On the web, the mouse acts
+ * as a finger on a touchscreen device.
  *
  * @param device The device to draw.
  * @param modifier The modifier for the view, which the device is scaled to fit.
@@ -261,7 +274,8 @@ public fun DeviceFrameView(
         device.systemUi?.takeUnless { it.isEmpty }?.let(::SystemUiPainter)
     }.takeIf { configuration.isSystemUiVisible }
 
-    val screenModifier = rememberScreenClip(painter, screenSize, isPortrait, isWindow = !device.hasFrameArtwork, configuration.isFrameVisible)
+    val screenShape = rememberScreenShape(painter, screenSize, isPortrait, isWindow = !device.hasFrameArtwork, configuration.isFrameVisible)
+    val screenModifier = Modifier.screenClip(screenShape)
         .systemOverlay(systemUiPainter, keyboardInset, screenSize, safeArea, configuration.isDarkMode, layoutDirection)
         .then(if (device.isTouchscreen) Modifier.mouseAsTouch() else Modifier)
 
@@ -323,6 +337,7 @@ public fun DeviceFrameView(
                             safeArea / configuration.displayScale,
                             keyboardInset / configuration.displayScale,
                             configuration.isDarkMode,
+                            screenShape,
                             content,
                         )
                     }
@@ -404,29 +419,24 @@ private fun rememberDeviceTurn(device: Device, wantsPortrait: Boolean): DeviceTu
 }
 
 /**
- * Clips the content to the device's screen outline. A device without artwork is a plain window,
- * bordered and shadowed while its frame is shown.
+ * The outline of the device's screen. A device without artwork is a plain window, with rounded
+ * corners while its frame is shown.
  */
 @Composable
-private fun rememberScreenClip(
+private fun rememberScreenShape(
     painter: DeviceFramePainter?,
     screenSize: Size,
     isPortrait: Boolean,
     isWindow: Boolean,
     isFrameVisible: Boolean,
-): Modifier {
+): Shape {
     val screenShape = remember(painter, screenSize, isPortrait) {
         painter?.screenClip(screenSize, isPortrait)?.let { DeviceScreenShape(it, screenSize) }
     }
     return when {
-        screenShape != null -> Modifier.clip(screenShape)
-        isWindow && isFrameVisible -> RoundedCornerShape(WindowCornerRadius).let { shape ->
-            Modifier
-                .shadow(WindowShadow, shape, clip = false)
-                .border(shape = shape, border = BorderStroke(1.dp, PanelColors.FrameOutline))
-                .clip(shape)
-        }
-        else -> Modifier.clipToBounds()
+        screenShape != null -> screenShape
+        isWindow && isFrameVisible -> WindowShape
+        else -> RectangleShape
     }
 }
 
