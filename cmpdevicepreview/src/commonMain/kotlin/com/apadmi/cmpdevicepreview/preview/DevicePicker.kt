@@ -85,7 +85,7 @@ import com.apadmi.cmpdevicepreview.core.DeviceKind
 import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.DeviceType
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
-import com.apadmi.cmpdevicepreview.devices.allDevices
+import com.apadmi.cmpdevicepreview.devices.DevicePresets
 import com.apadmi.cmpdevicepreview.frame.DeviceFramePainter
 import com.apadmi.cmpdevicepreview.isMobilePlatform
 import kotlin.math.min
@@ -103,6 +103,14 @@ private val KindFilters: List<Pair<String, DeviceKind?>> = listOf(
     "Tablets" to DeviceKind.TABLET,
     "Foldables" to DeviceKind.FOLDABLE,
     "Desktop" to DeviceKind.DESKTOP,
+)
+
+/** The devices offered by the configuration view: by platform, then brand, newest first. */
+internal val allDevices: List<DevicePreset> = DevicePresets.all.sortedWith(
+    compareBy<DevicePreset> { it.type }
+        .thenBy { it.brand.orEmpty() }
+        .thenByDescending { it.year ?: 0 }
+        .thenBy { it.name }
 )
 
 /** The built-in devices by platform, in the order the picker lists them. */

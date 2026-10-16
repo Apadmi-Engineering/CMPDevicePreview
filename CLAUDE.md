@@ -12,7 +12,7 @@ Write self-documenting code: names and structure say what it does, comments are 
 
 ## The library
 
-- Code is in `cmpdevicepreview/src/commonMain/.../`: `core/` is the device and configuration model, `preview/` is the panel, picker, device view and resize handles, `frame/` draws frames and system UI, `svg/` renders the frame artwork, and `devices/` is the catalog.
+- Code is in `cmpdevicepreview/src/commonMain/.../`: `core/` is the device and configuration model, `preview/` is the panel, picker, device view and resize handles, `frame/` draws frames and system UI, `svg/` renders the frame artwork, and the `devices` package is the generated catalog.
 - The public API is `DeviceWithConfigurationView`, `ConfigurationView`, `SimulatedDevicePreview`, `DeviceFrameView` and the model types in `core/`. Everything else is `internal`. Changing a public signature is a breaking change, so the commit needs `!`.
 - `DevicePresets` is generated from `cmpdevicepreview/device_specs/*.json` on every build. Never edit the generated file: change the JSON, as `device_specs/README.md` describes.
 - The preview's zoom and pan are a graphics transform held by `PreviewViewport`, not a public setting or a new layout, so the app isn't laid out again as you zoom. The wheel reports pixels on the web and notches elsewhere: `isWheelDeltaInPixels` accounts for it.

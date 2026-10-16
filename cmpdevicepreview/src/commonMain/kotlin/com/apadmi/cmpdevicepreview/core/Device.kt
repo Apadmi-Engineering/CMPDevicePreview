@@ -39,3 +39,26 @@ public interface Device {
     public val landscapeKeyboardHeight: Float?
         get() = null
 }
+
+/** The broad category of a simulated device. */
+public enum class DeviceKind {
+    PHONE,
+    TABLET,
+    FOLDABLE,
+    DESKTOP,
+    ;
+}
+
+/**
+ * The platform a device runs, in the order the device picker lists them.
+ *
+ * @property displayName The platform's name as the device picker shows it.
+ */
+public enum class DeviceType(public val displayName: String) {
+    ANDROID("Android"),
+    IOS("iOS"),
+    OTHER("Other"),
+    ;
+
+    override fun toString(): String = displayName
+}

@@ -32,6 +32,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CropFree
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.ripple.RippleAlpha
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,7 +58,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerIcon
@@ -557,4 +560,21 @@ internal fun ResetButton(
         tint = PanelColors.TextTertiary,
         isShown = isShown,
     )
+}
+
+@Composable
+internal fun DevicePreviewLogo(
+    modifier: Modifier = Modifier,
+    size: Dp = 28.dp,
+    shape: Shape = RoundedCornerShape(size * 2 / 7),
+    contentDescription: String? = null,
+) {
+    Box(
+        modifier
+            .size(size)
+            .background(Brush.linearGradient(listOf(PanelColors.Accent, PanelColors.AccentBlue)), shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(Icons.Outlined.CropFree, contentDescription = contentDescription, tint = Color.White, modifier = Modifier.size(size * 4 / 7))
+    }
 }
