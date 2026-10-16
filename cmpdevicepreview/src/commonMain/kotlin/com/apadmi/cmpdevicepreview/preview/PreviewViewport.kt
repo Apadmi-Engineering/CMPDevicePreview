@@ -18,7 +18,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerInputScope
-import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.isMetaPressed
 import androidx.compose.ui.input.pointer.pointerInput
@@ -31,7 +30,7 @@ private const val MaxZoom = 8f
 private const val MinWheelZoomStep = 0.8f
 private const val MaxWheelZoomStep = 1.25f
 
-// What a unit of the wheel pans, and zooms in the exponent of e; a notch is 100 pixels on the web.
+// Per unit of the wheel, which is a notch everywhere but the web, where a notch is about 100.
 private val WheelPanPixels = if (isWheelDeltaInPixels) 1f else 48f
 private val WheelZoomPerUnit = if (isWheelDeltaInPixels) 0.01f else 0.1f
 
@@ -66,15 +65,23 @@ internal class PreviewViewport {
         panChange: Offset,
         zoomChange: Float
     ) {
-        val newZoom = (zoom * zoomChange).coerceIn(MinZoom, MaxZoom)
+        transformTo(centroid, panChange, zoom * zoomChange)
+    }
+
+    fun zoomTo(newZoom: Float, about: Offset = Offset(size.width / 2f, size.height / 2f)) {
+        transformTo(about, Offset.Zero, newZoom)
+    }
+
+    private fun transformTo(
+        centroid: Offset,
+        panChange: Offset,
+        targetZoom: Float
+    ) {
+        val newZoom = targetZoom.coerceIn(MinZoom, MaxZoom)
         // Keeps the point of the device that was under the centroid under it, as it moves.
         val moved = centroid + panChange - (centroid - pan) * (newZoom / zoom)
         zoom = newZoom
         pan = clamped(moved)
-    }
-
-    fun zoomTo(newZoom: Float, about: Offset = Offset(size.width / 2f, size.height / 2f)) {
-        transformBy(about, Offset.Zero, newZoom / zoom)
     }
 
     fun panBy(delta: Offset) {
@@ -110,7 +117,7 @@ private suspend fun PointerInputScope.recognizePinch(viewport: PreviewViewport) 
                 }
             }
         }
-    } while (event.changes.any { it.pressed && !it.changedToUp() })
+    } while (event.changes.any { it.pressed })
 }
 
 private suspend fun PointerInputScope.recognizeWheelZoom(viewport: PreviewViewport) = awaitPointerEventScope {

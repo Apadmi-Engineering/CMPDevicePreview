@@ -30,7 +30,7 @@ import com.apadmi.cmpdevicepreview.core.Device
 import kotlin.math.roundToInt
 
 private const val ZoomStep = 1.25f
-private const val RestingAlpha = 0.45f
+private const val RestingAlpha = 0.6f
 private const val HoveredAlpha = 0.9f
 
 private val ButtonSize = 28.dp
@@ -50,7 +50,6 @@ internal fun PreviewToolbar(
     val actualSize = hostDensity / viewport.fitScale
     val step = { factor: Float ->
         val target = viewport.zoom * factor
-        // A step that would go past actual size stops there.
         val isPassingActualSize = (viewport.zoom - actualSize) * (target - actualSize) < 0f
         viewport.zoomTo(if (isPassingActualSize) actualSize else target)
     }

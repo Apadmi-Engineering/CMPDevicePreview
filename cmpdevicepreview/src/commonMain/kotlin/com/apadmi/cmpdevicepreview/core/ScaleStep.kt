@@ -58,3 +58,5 @@ internal fun List<ScaleStep>.nearest(scale: Float): ScaleStep {
     val distance = minOf { abs(it.scale - scale) }
     return filter { abs(it.scale - scale) <= distance + 0.001f }.minBy { abs(it.scale - 1f) }
 }
+
+internal fun List<ScaleStep>.indexOfNearest(scale: Float): Int = indexOf(nearest(scale))

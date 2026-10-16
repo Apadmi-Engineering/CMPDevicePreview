@@ -17,13 +17,20 @@ import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.dp
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
 class PreviewViewportTest {
+    private val scenes = mutableListOf<ImageComposeScene>()
+
     private fun viewport() = PreviewViewport().apply { resize(Size(400f, 400f)) }
+
+    @AfterTest
+    fun closeScenes() = scenes.forEach(ImageComposeScene::close)
 
     @Test
     fun zoomingKeepsThePointUnderTheCentroidWhereItWas() {
@@ -49,7 +56,7 @@ class PreviewViewportTest {
         val viewport = viewport()
         viewport.zoomTo(0.5f)
         assertEquals(Offset(100f, 100f), viewport.pan)
-        assertEquals(false, viewport.canPan)
+        assertFalse(viewport.canPan)
         viewport.panBy(Offset(50f, 50f))
         assertEquals(Offset(100f, 100f), viewport.pan)
     }
@@ -64,13 +71,21 @@ class PreviewViewportTest {
     }
 
     @Test
+    fun zoomingToAZoomLandsExactlyOnIt() {
+        val viewport = viewport()
+        viewport.zoomTo(1.3f)
+        viewport.zoomTo(1.5f)
+        assertEquals(1.5f, viewport.zoom)
+    }
+
+    @Test
     fun resettingFitsTheDeviceAgain() {
         val viewport = viewport()
         viewport.zoomTo(3f, about = Offset(300f, 50f))
         viewport.reset()
         assertEquals(1f, viewport.zoom)
         assertEquals(Offset.Zero, viewport.pan)
-        assertEquals(false, viewport.isTransformed)
+        assertFalse(viewport.isTransformed)
     }
 
     @Test
@@ -136,7 +151,7 @@ class PreviewViewportTest {
     }
 
     // With something of its own to scroll, which gets a drag or the wheel before the viewport does.
-    private class Gestures(val viewport: PreviewViewport, hasScrollingContent: Boolean = true) {
+    private inner class Gestures(val viewport: PreviewViewport, hasScrollingContent: Boolean = true) {
         private var clock = 0L
         private val scene = ImageComposeScene(400, 400) {
             Box(Modifier.fillMaxSize().zoomAndPan(viewport)) {
@@ -149,6 +164,7 @@ class PreviewViewportTest {
         }
 
         init {
+            scenes += scene
             viewport.resize(Size(400f, 400f))
             scene.render(0)
         }

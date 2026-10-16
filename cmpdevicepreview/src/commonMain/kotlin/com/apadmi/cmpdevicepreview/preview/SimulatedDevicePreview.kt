@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
-
 import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
@@ -27,7 +26,6 @@ private const val DeviceFraction = 0.9f
 /** The device the preview starts with. */
 internal val DefaultDevice: DevicePreset = DevicePresets.galaxyS25
 
-/** The backdrop [settings] asks for: light or dark, with or without dots. */
 private fun PreviewSettings.isBackdropDark(isDeviceDark: Boolean): Boolean = when (backdrop) {
     Backdrop.LIGHT -> false
     Backdrop.DARK -> true
@@ -63,16 +61,16 @@ public fun SimulatedDevicePreview(
     onResize: ((SimulatedDevice) -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    ZoomableDevicePreview(modifier, simulatedDevice, previewSettings, onResize, isZoomable = false, content)
+    ZoomableDevicePreview(simulatedDevice, previewSettings, onResize, isZoomable = false, modifier, content)
 }
 
 @Composable
 internal fun ZoomableDevicePreview(
-    modifier: Modifier,
     simulatedDevice: SimulatedDevice,
     previewSettings: PreviewSettings,
     onResize: ((SimulatedDevice) -> Unit)?,
     isZoomable: Boolean,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     val isDeviceDark = simulatedDevice.configuration.isDarkMode
@@ -105,7 +103,7 @@ internal fun ZoomableDevicePreview(
                 onResize = onResize?.let { resize ->
                     { freeform -> resize(simulatedDevice.copy(device = freeform).adaptedToDevice()) }
                 },
-                onLayoutScale = if (isZoomable) ( { viewport.fitScale = it }) else null,
+                onLayoutScale = { viewport.fitScale = it },
                 content = content,
             )
         }
