@@ -87,7 +87,7 @@ public data class DeviceSystemUi(
  * @property center Artwork in the middle, such as the gesture pill.
  * @property trailing Artwork at the trailing edge, such as the status icons.
  * @property inset The distance from the screen edge to [leading] and [trailing].
- * @property bottomInset When set, the distance from the bar's outer edge to the bottom of the
+ * @property bottomInset When set, the distance from the bar's bottom edge to the bottom of the
  * artwork, as a home indicator sits. Otherwise the artwork is centred vertically.
  */
 @Immutable

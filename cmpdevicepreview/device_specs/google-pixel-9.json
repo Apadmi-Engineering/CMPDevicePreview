@@ -44,6 +44,7 @@
   "systemUi": {
     "statusBar": {
       "inset": 18,
+      "bottomInset": 16,
       "leading": [
         "<svg viewBox=\"0 0 26.48 10.01\">",
         "  <g transform=\"scale(0.31) translate(-118.17, -47.03)\" fill=\"currentColor\">",

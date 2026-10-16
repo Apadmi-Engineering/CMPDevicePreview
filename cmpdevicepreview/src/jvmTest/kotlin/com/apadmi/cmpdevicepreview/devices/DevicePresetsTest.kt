@@ -7,10 +7,12 @@ import androidx.compose.ui.unit.LayoutDirection
 import com.apadmi.cmpdevicepreview.assertRectEquals
 import com.apadmi.cmpdevicepreview.core.DeviceInsets
 import com.apadmi.cmpdevicepreview.core.DeviceKind
+import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.DeviceType
 import com.apadmi.cmpdevicepreview.frame.DeviceFramePainter
 import com.apadmi.cmpdevicepreview.frame.SystemUiPainter
 import com.apadmi.cmpdevicepreview.svg.SvgDrawing
+import com.apadmi.cmpdevicepreview.svg.parseSvgPathData
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -136,6 +138,46 @@ class DevicePresetsTest {
                         "${preset.id} (${if (isPortrait) "portrait" else "landscape"}): $bounds outside its bar",
                     )
                 }
+            }
+        }
+    }
+
+    @Test
+    fun aPixelsStatusBarIsLevelWithItsCameraHole() {
+        for (pixel in listOf(DevicePresets.pixel9, DevicePresets.pixel10)) {
+            val hole = parseSvgPathData(assertNotNull(pixel.frame).screenPath.substringAfter('Z')).getBounds()
+            val placed = SystemUiPainter(assertNotNull(pixel.systemUi))
+                .layout(pixel.portraitSize, pixel.portraitSafeArea, LayoutDirection.Ltr)
+                .filter { it.bounds.top < pixel.portraitSafeArea.top }
+            assertTrue(placed.isNotEmpty(), pixel.id)
+            for (artwork in placed) {
+                assertEquals(hole.center.y, artwork.bounds.center.y, absoluteTolerance = 1f, message = pixel.id)
+            }
+        }
+    }
+
+    private fun artworkOverCutouts(preset: DevicePreset, isPortrait: Boolean): List<Rect> {
+        val systemUi = preset.systemUi ?: return emptyList()
+        val width = preset.portraitSize.width
+        val screen = if (isPortrait) preset.portraitSize else Size(preset.portraitSize.height, width)
+        val safeArea = if (isPortrait) preset.portraitSafeArea else preset.landscapeSafeArea
+        val cutouts = preset.frame?.screenPath.orEmpty()
+            .split('Z')
+            .drop(1)
+            .filter { it.isNotBlank() }
+            .map { parseSvgPathData(it).getBounds() }
+            // Landscape turns the frame a quarter turn: portrait (x, y) becomes (y, width - x).
+            .map { if (isPortrait) it else Rect(it.top, width - it.right, it.bottom, width - it.left) }
+        return SystemUiPainter(systemUi).layout(screen, safeArea, LayoutDirection.Ltr)
+            .map { it.bounds }
+            .filter { artwork -> cutouts.any(artwork::overlaps) }
+    }
+
+    @Test
+    fun everyStatusBarClearsItsScreenCutouts() {
+        for (preset in DevicePresets.all) {
+            for (isPortrait in listOf(true, false)) {
+                assertEquals(emptyList(), artworkOverCutouts(preset, isPortrait), "${preset.id} (portrait=$isPortrait)")
             }
         }
     }
