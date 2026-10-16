@@ -232,6 +232,7 @@ private fun DrawerApp(state: WanderState) {
                     Text(
                         "Wander",
                         modifier = Modifier.padding(start = 12.dp),
+                        color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                     )

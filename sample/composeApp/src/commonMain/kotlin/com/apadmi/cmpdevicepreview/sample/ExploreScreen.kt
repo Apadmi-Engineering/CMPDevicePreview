@@ -90,7 +90,14 @@ private fun PhoneExplore(state: WanderState, modifier: Modifier) {
             item { FeaturedCard(featured, state, Modifier.fillMaxWidth().height(300.dp)) }
         } ?: item { NoResults(state, Modifier.fillMaxWidth()) }
         if (results.size > 1) {
-            item { Text("Popular", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold) }
+            item {
+                Text(
+                    "Popular",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
         items(results.drop(1), key = { it.id }) { destination -> ListCard(destination, state) }
     }

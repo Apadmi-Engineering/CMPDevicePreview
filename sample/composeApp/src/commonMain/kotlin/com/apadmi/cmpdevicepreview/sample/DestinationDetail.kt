@@ -138,7 +138,12 @@ private fun DetailBody(
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column {
-            Text(destination.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(
+                destination.name,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+            )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Rounded.Place, contentDescription = null,
@@ -156,7 +161,7 @@ private fun DetailBody(
             Fact(Icons.Rounded.Bedtime, "${destination.nights} nights")
             Fact(Icons.Rounded.Sell, "from £${destination.price}")
         }
-        Text(destination.blurb, style = MaterialTheme.typography.bodyLarge)
+        Text(destination.blurb, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge)
         FilledTonalButton(onClick = { state.toggleSaved(destination) }, modifier = Modifier.fillMaxWidth()) {
             Text(if (destination.id in state.saved) "Saved" else "Save")
         }
@@ -172,7 +177,12 @@ private fun Fact(
     Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
-            Text(text, modifier = Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelLarge)
+            Text(
+                text,
+                modifier = Modifier.padding(start = 6.dp),
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.labelLarge,
+            )
         }
     }
 }
