@@ -1,12 +1,17 @@
 package com.apadmi.cmpdevicepreview.preview
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Tune
@@ -24,8 +29,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
@@ -35,16 +49,21 @@ import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 
+private const val ButtonGlowAlpha = 0.45f
+
 /** The narrowest the view can be and still show the panel beside the device. */
 private val SidePanelMinWidth = 880.dp
+
+/** How far the dark glow around the button that turns preview mode back on reaches from its centre. */
+private val ButtonGlowRadius = 96.dp
 
 /**
  * Shows [content] in a simulated device, with the configuration panel beside it when there is
  * room, or behind a button below it otherwise. The panel's settings, and [content]'s own state,
  * are kept when the view is resized.
  *
- * Turning preview mode off in the panel shows just [content] until it is composed again, such as
- * by reloading the page.
+ * Turning preview mode off in the panel shows just [content], with a button in the corner to turn
+ * it back on. [content] is composed afresh each time the mode changes.
  *
  * @param modifier The modifier for the view as a whole, which holds the device and the panel.
  * @param initialDevice The device shown first: a built-in preset, or a [Device] of your own. The
@@ -72,7 +91,13 @@ public fun DeviceWithConfigurationView(
         mutableStateOf(initialPreviewSettings)
     }
     if (!previewSettings.isPreviewModeEnabled) {
-        content()
+        Box(modifier.fillMaxSize()) {
+            content()
+            PreviewModeButton(
+                onClick = { previewSettings = previewSettings.copy(isPreviewModeEnabled = true) },
+                modifier = Modifier.align(Alignment.BottomEnd).windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp),
+            )
+        }
         return
     }
     val onSimulatedDeviceChange: (SimulatedDevice) -> Unit = { simulatedDevice = it }
@@ -182,6 +207,32 @@ private fun PanelSheet(
         Icon(Icons.Outlined.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
         Text(deviceLabel(simulatedDevice.device), modifier = Modifier.padding(start = 10.dp), fontWeight = FontWeight.Medium)
     }
+}
+
+@Composable
+private fun PreviewModeButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    DevicePreviewLogo(
+        modifier = modifier
+            .drawBehind {
+                val radius = ButtonGlowRadius.toPx()
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colorStops = arrayOf(0f to Color.Black.copy(alpha = ButtonGlowAlpha), 1f to Color.Transparent),
+                        center = center,
+                        radius = radius,
+                    ),
+                    radius = radius,
+                    center = center,
+                )
+            }
+            .shadow(10.dp, CircleShape)
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .pointerHoverIcon(PointerIcon.Hand),
+        size = 44.dp,
+        shape = CircleShape,
+        contentDescription = "Turn preview mode on",
+    )
 }
 
 /** Where the preview's screenshots are recorded, on a platform that can save them. */
