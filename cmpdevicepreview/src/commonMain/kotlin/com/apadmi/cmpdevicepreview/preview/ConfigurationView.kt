@@ -86,17 +86,17 @@ import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 import com.apadmi.cmpdevicepreview.core.currentContentSize
 import com.apadmi.cmpdevicepreview.core.displayScaleSteps
 import com.apadmi.cmpdevicepreview.core.hasFrameArtwork
+import com.apadmi.cmpdevicepreview.core.indexOfNearest
 import com.apadmi.cmpdevicepreview.core.isLaidOutInPortrait
 import com.apadmi.cmpdevicepreview.core.isRotatable
-import com.apadmi.cmpdevicepreview.core.nearest
 
 import kotlin.math.roundToInt
 
 private const val NotAvailable = "Not available for this frame"
 
-private const val DefaultScale = 1f
+private val DefaultConfiguration = DeviceConfiguration()
 
-private val CommonTextSizeIndices = CommonFontScales.map { FontScaleSteps.indexOf(FontScaleSteps.nearest(it)) }.toSet()
+private val CommonTextSizeIndices = CommonFontScales.map(FontScaleSteps::indexOfNearest).toSet()
 
 private val OrientationOptions = listOf(
     SegmentOption("Portrait", Icons.Outlined.StayCurrentPortrait),
@@ -172,8 +172,8 @@ public fun ConfigurationView(
                 .drawBehind { drawLine(PanelColors.Border, Offset.Zero, Offset(0f, size.height), 1.dp.toPx()) }
         ) {
             PanelHeader(
-                isModified = simulatedDevice.configuration != DeviceConfiguration(),
-                onResetAll = { updateConfiguration(DeviceConfiguration()) },
+                isModified = simulatedDevice.configuration != DefaultConfiguration,
+                onResetAll = { updateConfiguration(DefaultConfiguration) },
             )
 
             Column(
@@ -299,9 +299,9 @@ private fun TextAndDisplaySection(simulatedDevice: SimulatedDevice, onChange: (D
         title = "Text size",
         note = "Ticks mark common device sizes",
         labels = FontScaleSteps.map { it.label },
-        selectedIndex = FontScaleSteps.indexOf(FontScaleSteps.nearest(configuration.fontScale)),
+        selectedIndex = FontScaleSteps.indexOfNearest(configuration.fontScale),
         onSelect = { index -> onChange(configuration.copy(fontScale = FontScaleSteps[index].scale)) },
-        defaultIndex = FontScaleSteps.indexOf(FontScaleSteps.nearest(DefaultScale)),
+        defaultIndex = FontScaleSteps.indexOfNearest(DefaultConfiguration.fontScale),
         markedIndices = CommonTextSizeIndices,
     )
     val displaySteps = simulatedDevice.device.displayScaleSteps
@@ -310,9 +310,9 @@ private fun TextAndDisplaySection(simulatedDevice: SimulatedDevice, onChange: (D
         title = "Display size",
         note = "App sees ${simulatedDevice.currentContentSize.dimensionsLabel()} dp",
         labels = displaySteps.map { it.label },
-        selectedIndex = displaySteps.indexOf(displaySteps.nearest(configuration.displayScale)),
+        selectedIndex = displaySteps.indexOfNearest(configuration.displayScale),
         onSelect = { index -> onChange(configuration.copy(displayScale = displaySteps[index].scale)) },
-        defaultIndex = displaySteps.indexOf(displaySteps.nearest(DefaultScale)),
+        defaultIndex = displaySteps.indexOfNearest(DefaultConfiguration.displayScale),
     )
 }
 

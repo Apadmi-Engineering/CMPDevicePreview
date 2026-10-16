@@ -71,7 +71,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -110,7 +109,7 @@ internal object PanelColors {
     /** The far end of gradients that start at [Accent]. */
     val AccentBlue = Color(0xFF4FA3FF)
 
-    /** The accent for a fill that white text sits on. */
+    // White text on Accent is 3.9:1, short of the 4.5:1 text needs.
     val AccentDeep = Color(0xFF5B4BE0)
     val SwitchOff = Color(0xFF60606B)
     val SegmentSelected = Color(0xFF303039)
@@ -415,6 +414,7 @@ internal fun StepSlider(
     defaultIndex: Int? = null,
     markedIndices: Set<Int> = emptySet(),
 ) {
+    val isEachTicked = labels.size <= MaxTicks
     val colors = SliderDefaults.colors(
         thumbColor = PanelColors.Accent,
         activeTrackColor = PanelColors.Accent,
@@ -460,7 +460,6 @@ internal fun StepSlider(
                     state,
                     colors = colors,
                     drawTick = { center, color ->
-                        val isEachTicked = labels.size <= MaxTicks
                         if (isEachTicked) {
                             drawCircle(color, radius = TickRadius.toPx(), center = center)
                         } else if (isMarked(center.x, markedIndices, labels.lastIndex)) {
@@ -508,13 +507,12 @@ internal fun PanelIconButton(
     isShown: Boolean = true,
     enabled: Boolean = true,
 ) {
-    val alpha by animateFloatAsState(if (!isShown) {
-        0f
-    } else if (enabled) {
-        1f
-    } else {
-        DisabledAlpha
-    }, label = "iconAlpha")
+    val targetAlpha = when {
+        !isShown -> 0f
+        enabled -> 1f
+        else -> DisabledAlpha
+    }
+    val alpha by animateFloatAsState(targetAlpha, label = "iconAlpha")
     val interactions = remember { MutableInteractionSource() }
     val isHovered by interactions.collectIsHoveredAsState()
     PanelTooltip(tooltip, isEnabled = isShown) {
@@ -530,7 +528,7 @@ internal fun PanelIconButton(
                     role = Role.Button,
                     onClick = onClick,
                 )
-                .pointerHoverIcon(PointerIcon.Hand),
+                .pointerHoverIcon(if (isShown && enabled) PointerIcon.Hand else PointerIcon.Default),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

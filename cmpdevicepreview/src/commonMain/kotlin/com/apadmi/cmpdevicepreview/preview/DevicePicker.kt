@@ -128,8 +128,8 @@ private fun String.hasAllWordsIn(haystack: String): Boolean {
  *
  * @param selected The device that is checked, and in view when the list opens.
  * @param freeform The window that picking the Freeform row gives.
- * @param onPick Called with the device that was picked: a row, or the first match when a search is
- * submitted.
+ * @param onPick Called with the device that was picked: a row, or the highlighted match when a
+ * search is submitted.
  * @param onDismiss Called when the dialog is closed, by its close button or by dismissing it.
  */
 @Composable
@@ -155,15 +155,14 @@ internal fun DevicePickerDialog(
                     listState.scrollToItem(0)
                 }
             }
-            // The rows in the order they are listed, which the arrow keys move through.
-            val shown: List<Device> = buildList {
+            val rowsInOrder: List<Device> = buildList {
                 if (showFreeform) {
                     add(freeform)
                 }
                 groups.values.forEach(::addAll)
             }
             var activeIndex by remember(query, kind) { mutableStateOf<Int?>(if (query.isBlank()) null else 0) }
-            val active = activeIndex?.let(shown::getOrNull)
+            val active = activeIndex?.let(rowsInOrder::getOrNull)
             LaunchedEffect(activeIndex) {
                 val position = activeIndex?.let { rowPosition(it, showFreeform, groups) } ?: return@LaunchedEffect
                 val inView = listState.layoutInfo.visibleItemsInfo
@@ -200,7 +199,7 @@ internal fun DevicePickerDialog(
                     query = query,
                     onQueryChange = { query = it },
                     onSubmit = { active?.let(onPick) },
-                    onMove = { step -> activeIndex = ((activeIndex ?: -1) + step).coerceIn(0, maxOf(shown.lastIndex, 0)) },
+                    onMove = { step -> activeIndex = ((activeIndex ?: -1) + step).coerceIn(0, maxOf(rowsInOrder.lastIndex, 0)) },
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
                 Row(
@@ -330,19 +329,9 @@ internal fun DeviceThumbnail(
  * each platform's header.
  */
 private fun indexInList(device: Device): Int {
-    if (device is FreeformDevice) {
-        return 0
-    }
-    var index = 1  // The Freeform row.
-    for (devices in deviceGroups.values) {
-        index++  // The header.
-        val at = devices.indexOf(device)
-        if (at >= 0) {
-            return maxOf(0, index + at - RowsAboveSelected)
-        }
-        index += devices.size
-    }
-    return 0
+    // Counting the Freeform row first.
+    val row = if (device is FreeformDevice) 0 else deviceGroups.values.flatten().indexOf(device) + 1
+    return if (row == 0) 0 else maxOf(0, rowPosition(row, hasFreeform = true, deviceGroups) - RowsAboveSelected)
 }
 
 private fun rowPosition(

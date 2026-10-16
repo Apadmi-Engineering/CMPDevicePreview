@@ -109,7 +109,6 @@ public fun DeviceWithConfigurationView(
             // neither it nor the content is recreated when the view crosses the width above.
             PreviewLayout(isWide) {
                 ZoomableDevicePreview(
-                    modifier = Modifier,
                     simulatedDevice = simulatedDevice,
                     previewSettings = previewSettings,
                     onResize = onSimulatedDeviceChange,
