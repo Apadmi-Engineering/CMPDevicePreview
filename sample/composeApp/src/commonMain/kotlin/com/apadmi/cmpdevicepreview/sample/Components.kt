@@ -149,6 +149,8 @@ fun CategoryChips(
             onClick = { onSelect(null) },
             label = { Text("All") },
             leadingIcon = { Icon(Icons.Rounded.Public, contentDescription = null, modifier = Modifier.size(18.dp)) },
+            // The default hover elevation casts a shadow that shows through an unselected chip's transparent container.
+            elevation = null,
         )
         for (category in Category.entries) {
             FilterChip(
@@ -156,6 +158,7 @@ fun CategoryChips(
                 onClick = { onSelect(category) },
                 label = { Text(category.label) },
                 leadingIcon = { Icon(category.icon, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                elevation = null,
             )
         }
     }
