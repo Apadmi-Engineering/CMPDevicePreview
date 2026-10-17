@@ -81,7 +81,12 @@ fun SavedScreen(
     val saved = destinations.filter { it.id in state.saved }
     val title: @Composable () -> Unit = {
         Column {
-            Text("Saved", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Saved",
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+            )
             Text(
                 "${saved.size} ${if (saved.size == 1) "place" else "places"} on your list",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -158,7 +163,12 @@ fun ProfileScreen(state: WanderState, modifier: Modifier = Modifier) {
                     Text("AR", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
                 Column(Modifier.padding(start = 16.dp)) {
-                    Text("Alex Rivera", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Alex Rivera",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
                     Text("Exploring since 2021", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -235,6 +245,7 @@ private fun LanguageSheet(
         Text(
             "Language",
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )
@@ -263,8 +274,13 @@ private fun Stat(
 ) {
     Surface(modifier, shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.primaryContainer) {
         Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(label, style = MaterialTheme.typography.labelMedium)
+            Text(
+                value,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(label, color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -284,7 +300,12 @@ private fun SettingRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        Text(title, modifier = Modifier.weight(1f).padding(horizontal = 16.dp), style = MaterialTheme.typography.bodyLarge)
+        Text(
+            title,
+            modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.bodyLarge,
+        )
         trailing()
     }
 }
