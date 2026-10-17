@@ -27,7 +27,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Commute
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material3.AlertDialog
@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
 private val currencies = listOf("GBP", "EUR", "USD", "JPY")
-private val languages = listOf("Welsh", "English", "Portuguese", "Español", "日本語")
+private val transports = listOf("Train", "Plane", "Car", "Coach", "Bicycle")
 
 /**
  * The saved destinations: a list on a phone, a grid with more room.
@@ -132,7 +132,8 @@ fun SavedScreen(
 
 /**
  * A profile and a few settings, in a column that stops growing on wide screens. The currency is
- * picked from a menu, the language from a bottom sheet, and signing out asks first in a dialog.
+ * picked from a menu, the preferred transport from a bottom sheet, and signing out asks first in a
+ * dialog.
  *
  * @param state The app state that supplies the number of saved destinations in the profile stats.
  * @param modifier The modifier for the screen.
@@ -142,8 +143,8 @@ fun ProfileScreen(state: WanderState, modifier: Modifier = Modifier) {
     var reminders by remember { mutableStateOf(true) }
     var currency by remember { mutableStateOf(currencies.first()) }
     var isPickingCurrency by remember { mutableStateOf(false) }
-    var language by remember { mutableStateOf(languages.first()) }
-    var isPickingLanguage by remember { mutableStateOf(false) }
+    var transport by remember { mutableStateOf(transports.first()) }
+    var isPickingTransport by remember { mutableStateOf(false) }
     var isSigningOut by remember { mutableStateOf(false) }
     Box(modifier.fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
         Column(
@@ -206,8 +207,8 @@ fun ProfileScreen(state: WanderState, modifier: Modifier = Modifier) {
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    SettingRow(Icons.Rounded.Language, "Language", onClick = { isPickingLanguage = true }) {
-                        SettingValue(language)
+                    SettingRow(Icons.Rounded.Commute, "Transport Preference", onClick = { isPickingTransport = true }) {
+                        SettingValue(transport)
                     }
                 }
             }
@@ -216,8 +217,8 @@ fun ProfileScreen(state: WanderState, modifier: Modifier = Modifier) {
             }
         }
     }
-    if (isPickingLanguage) {
-        LanguageSheet(language, onPick = { language = it }, onDismiss = { isPickingLanguage = false })
+    if (isPickingTransport) {
+        TransportSheet(transport, onPick = { transport = it }, onDismiss = { isPickingTransport = false })
     }
     if (isSigningOut) {
         AlertDialog(
@@ -231,11 +232,11 @@ fun ProfileScreen(state: WanderState, modifier: Modifier = Modifier) {
     }
 }
 
-/** The languages in a bottom sheet, which slides away once one is picked. */
+/** The ways of travelling in a bottom sheet, which slides away once one is picked. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LanguageSheet(
-    language: String,
+private fun TransportSheet(
+    transport: String,
     onPick: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -243,16 +244,16 @@ private fun LanguageSheet(
     val scope = rememberCoroutineScope()
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Text(
-            "Language",
+            "Transport Preference",
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
             color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )
-        for (option in languages) {
+        for (option in transports) {
             ListItem(
                 headlineContent = { Text(option) },
-                trailingContent = if (option == language) {
+                trailingContent = if (option == transport) {
                     { Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                 } else {
                     null
