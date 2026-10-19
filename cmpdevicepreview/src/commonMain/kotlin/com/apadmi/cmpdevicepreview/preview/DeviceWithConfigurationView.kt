@@ -53,6 +53,8 @@ private val SidePanelMinWidth = 840.dp
  * @param initialPreviewSettings How the preview around the device is shown at first.
  * @param panelItems Your own items for the configuration panel, below its settings: see
  * [ConfigurationView].
+ * @param panelTitle The title in the configuration panel's header: see [ConfigurationView].
+ * @param panelIcon The icon beside the title in the configuration panel's header: see [ConfigurationView].
  * @param content What is shown inside the simulated device, or on its own when preview mode is off.
  */
 @Composable
@@ -62,6 +64,8 @@ public fun DeviceWithConfigurationView(
     initialConfiguration: DeviceConfiguration = DeviceConfiguration(),
     initialPreviewSettings: PreviewSettings = PreviewSettings(),
     panelItems: List<@Composable () -> Unit> = emptyList(),
+    panelTitle: String = DefaultPanelTitle,
+    panelIcon: @Composable () -> Unit = DefaultPanelIcon,
     content: @Composable () -> Unit,
 ) {
     val simulatedDeviceSaver = remember(initialDevice) { simulatedDeviceSaver(initialDevice) }
@@ -100,9 +104,19 @@ public fun DeviceWithConfigurationView(
                             onPreviewSettingsChange = onPreviewSettingsChange,
                             modifier = Modifier.fillMaxSize(),
                             panelItems = panelItems,
+                            panelTitle = panelTitle,
+                            panelIcon = panelIcon,
                         )
                     } else {
-                        PanelSheet(simulatedDevice, onSimulatedDeviceChange, previewSettings, onPreviewSettingsChange, panelItems)
+                        PanelSheet(
+                            simulatedDevice,
+                            onSimulatedDeviceChange,
+                            previewSettings,
+                            onPreviewSettingsChange,
+                            panelItems,
+                            panelTitle,
+                            panelIcon,
+                        )
                     }
                 }
             }
@@ -150,6 +164,8 @@ private fun PanelSheet(
     previewSettings: PreviewSettings,
     onPreviewSettingsChange: (PreviewSettings) -> Unit,
     panelItems: List<@Composable () -> Unit>,
+    panelTitle: String,
+    panelIcon: @Composable () -> Unit,
 ) {
     var isSheetShown by remember { mutableStateOf(false) }
     if (isSheetShown) {
@@ -165,6 +181,8 @@ private fun PanelSheet(
                 onPreviewSettingsChange = onPreviewSettingsChange,
                 modifier = Modifier.fillMaxSize(),
                 panelItems = panelItems,
+                panelTitle = panelTitle,
+                panelIcon = panelIcon,
             )
         }
     }

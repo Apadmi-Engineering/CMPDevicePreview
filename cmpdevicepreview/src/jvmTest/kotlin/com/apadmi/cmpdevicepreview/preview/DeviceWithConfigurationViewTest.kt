@@ -1,6 +1,7 @@
 package com.apadmi.cmpdevicepreview.preview
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
@@ -8,11 +9,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -44,6 +47,32 @@ class DeviceWithConfigurationViewTest {
         onNode(hasText("iPhone 16 Pro") and hasClickAction()).performClick()
         waitForIdle()
         onNodeWithText("Device Preview").assertExists()
+    }
+
+    @Test
+    fun yourOwnTitleAndIconAreShownBesideTheDeviceAndInTheSheet() = runComposeUiTest {
+        var width by mutableStateOf(wide)
+        setContent {
+            Box(Modifier.width(width).height(800.dp)) {
+                DeviceWithConfigurationView(
+                    initialDevice = DevicePresets.iPhone16Pro,
+                    panelTitle = "Acme Preview",
+                    panelIcon = { Box(Modifier.fillMaxSize().testTag("logo")) },
+                ) {}
+            }
+        }
+        onNodeWithText("Acme Preview").assertExists()
+        onNodeWithTag("logo").assertExists()
+        onNodeWithText("Device Preview").assertDoesNotExist()
+
+        width = narrow
+        waitForIdle()
+        onNodeWithTag("logo").assertDoesNotExist()
+        onNode(hasText("iPhone 16 Pro") and hasClickAction()).performClick()
+        waitForIdle()
+        onNodeWithText("Acme Preview").assertExists()
+        onNodeWithTag("logo").assertExists()
+        onNodeWithText("Device Preview").assertDoesNotExist()
     }
 
     @Test
