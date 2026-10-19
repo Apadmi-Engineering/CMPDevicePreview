@@ -3,6 +3,7 @@ name: Deploy
 # Publishes the library to Maven Central when release-please pushes a version tag, then the web
 # sample to GitHub Pages (see demo.yml).
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v*'
@@ -18,6 +19,7 @@ jobs:
   publish:
     name: Publish to Maven Central
     runs-on: macos-latest
+    environment: maven-central
     env:
       ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
       ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}

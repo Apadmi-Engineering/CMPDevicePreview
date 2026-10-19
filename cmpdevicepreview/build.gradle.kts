@@ -101,6 +101,9 @@ val libraryVersion = providers
     .map { it.trim() }
 
 mavenPublishing {
+    if (isSigningEnabled()) {
+        signAllPublications()
+    }
 
     coordinates("com.apadmi", "cmpdevicepreview", libraryVersion.get())
     pom {
@@ -142,9 +145,5 @@ mavenPublishing {
         }
     }
 
-    publishToMavenCentral()
-
-    if (isSigningEnabled()) {
-        signAllPublications()
-    }
+    publishToMavenCentral(automaticRelease = true)
 }

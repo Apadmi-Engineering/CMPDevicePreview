@@ -12,7 +12,10 @@ permissions:
   contents: read
 
 jobs:
+  # release-please PRs only bump the version and changelog, so there is nothing to lint or build.
+  # The same-repo check stops a fork from skipping CI by naming its branch like one.
   lint:
+    if: ${{ !(startsWith(github.head_ref, 'release-please--') && github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     name: Lint
     steps:
@@ -31,6 +34,7 @@ jobs:
         run: ./gradlew spotlessCheck
 
   build:
+    if: ${{ !(startsWith(github.head_ref, 'release-please--') && github.event.pull_request.head.repo.full_name == github.repository) }}
     strategy:
       fail-fast: false
       matrix:
