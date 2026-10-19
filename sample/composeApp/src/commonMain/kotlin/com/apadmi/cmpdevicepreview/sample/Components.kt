@@ -86,10 +86,16 @@ fun BreakpointBadge(layout: AppLayout, modifier: Modifier = Modifier) {
     val size = currentWindowSize()
     Surface(modifier, shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.Devices, contentDescription = null, modifier = Modifier.size(16.dp))
+            Icon(
+                Icons.Rounded.Devices,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(16.dp),
+            )
             Text(
                 "${layout.label} · ${size.width.value.roundToInt()} × ${size.height.value.roundToInt()} dp",
                 modifier = Modifier.padding(start = 6.dp),
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
                 style = MaterialTheme.typography.labelMedium,
             )
         }
@@ -149,6 +155,8 @@ fun CategoryChips(
             onClick = { onSelect(null) },
             label = { Text("All") },
             leadingIcon = { Icon(Icons.Rounded.Public, contentDescription = null, modifier = Modifier.size(18.dp)) },
+            // The default hover elevation casts a shadow that shows through an unselected chip's transparent container.
+            elevation = null,
         )
         for (category in Category.entries) {
             FilterChip(
@@ -156,6 +164,7 @@ fun CategoryChips(
                 onClick = { onSelect(category) },
                 label = { Text(category.label) },
                 leadingIcon = { Icon(category.icon, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                elevation = null,
             )
         }
     }
@@ -292,7 +301,13 @@ fun TileCard(
             SaveButton(destination, state, Modifier.align(Alignment.TopEnd).padding(4.dp), onArt = true)
         }
         Column(Modifier.padding(horizontal = 8.dp, vertical = 10.dp)) {
-            Text(destination.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Text(
+                destination.name,
+                color = if (isSelected) colors.onPrimaryContainer else colors.onSurface,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+            )
             Text(destination.country, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
             RatingRow(destination, Modifier.padding(top = 4.dp))
         }
@@ -324,7 +339,12 @@ fun ListCard(
     ) {
         SceneryArt(destination, Modifier.size(84.dp).clip(RoundedCornerShape(16.dp)))
         Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
-            Text(destination.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                destination.name,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
             Text(destination.country, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             RatingRow(destination, Modifier.padding(top = 4.dp))
         }
@@ -341,7 +361,7 @@ fun EmptyState(
 ) {
     Column(modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(48.dp))
-        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+        Text(title, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
         Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

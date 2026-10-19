@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,7 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.FormatTextdirectionLToR
 import androidx.compose.material.icons.automirrored.outlined.FormatTextdirectionRToL
 import androidx.compose.material.icons.outlined.BrightnessAuto
-import androidx.compose.material.icons.outlined.CropFree
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.GridOn
@@ -58,7 +56,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
@@ -126,17 +123,8 @@ private val BackdropOptions = Backdrop.entries.map { backdrop ->
 private val MinFreeformSizeDp = MinFreeformSize.roundToInt()
 private val MaxFreeformSizeDp = MaxFreeformSize.roundToInt()
 
-/** The icon [ConfigurationView] shows unless it is given one: white corners on the panel's accent gradient. */
-internal val DefaultPanelIcon: @Composable () -> Unit = {
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Brush.linearGradient(listOf(PanelColors.Accent, PanelColors.AccentBlue)), RoundedCornerShape(8.dp)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(Icons.Outlined.CropFree, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-    }
-}
+/** The icon [ConfigurationView] shows unless it is given one: the logo, which fills the header's 28 dp square. */
+internal val DefaultPanelIcon: @Composable () -> Unit = { DevicePreviewLogo() }
 
 /**
  * The configuration panel, which picks the device and sets how it and the preview are shown.
@@ -228,7 +216,7 @@ public fun ConfigurationView(
             ToggleRow(
                 icon = Icons.Outlined.Visibility,
                 title = "Preview mode",
-                note = "Off shows just the app, until it is reloaded",
+                note = "Off shows just the app, with a button to turn it back on",
                 checked = previewSettings.isPreviewModeEnabled,
                 onCheckedChange = { onPreviewSettingsChange(previewSettings.copy(isPreviewModeEnabled = it)) },
                 modifier = Modifier.padding(8.dp),
