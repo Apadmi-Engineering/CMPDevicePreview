@@ -66,11 +66,15 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -93,6 +97,8 @@ import com.apadmi.cmpdevicepreview.core.nearest
 import kotlin.math.roundToInt
 
 private const val NotAvailable = "Not available for this frame"
+
+private const val RepositoryUrl = "https://github.com/Apadmi-Engineering/CMPDevicePreview"
 
 /** The title [ConfigurationView] shows unless it is given one. */
 internal const val DefaultPanelTitle = "Device Preview"
@@ -141,6 +147,8 @@ internal val DefaultPanelIcon: @Composable () -> Unit = { DevicePreviewLogo() }
  * @param panelTitle The title in the panel's header.
  * @param panelIcon The icon beside the title, which fills a square 28 dp across: the whole icon, with
  * any background of its own. It is read as decoration unless it sets a content description.
+ * @param isAttributionVisible Whether the end of the panel has a "Built with CMPDevicePreview" link to
+ * the project's GitHub repository. Pass false to hide it.
  */
 @Composable
 public fun ConfigurationView(
@@ -152,6 +160,7 @@ public fun ConfigurationView(
     panelItems: List<@Composable () -> Unit> = emptyList(),
     panelTitle: String = DefaultPanelTitle,
     panelIcon: @Composable () -> Unit = DefaultPanelIcon,
+    isAttributionVisible: Boolean = true,
 ) {
     val device = simulatedDevice.device
     // Every change is fitted to the device, whichever setting it comes from.
@@ -210,6 +219,11 @@ public fun ConfigurationView(
                     Spacer(Modifier.height(20.dp))
                     panelItems.forEach { item -> item() }
                 }
+
+                if (isAttributionVisible) {
+                    Spacer(Modifier.height(24.dp))
+                    Attribution()
+                }
             }
 
             HorizontalDivider(color = PanelColors.Border)
@@ -240,6 +254,38 @@ private fun PanelHeader(title: String, icon: @Composable () -> Unit) {
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
         )
+    }
+}
+
+/** A link to the project's repository at the end of the panel: GitHub's mark and a line of text, as one button. */
+@Composable
+private fun Attribution() {
+    val uriHandler = LocalUriHandler.current
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(role = Role.Button, onClickLabel = "Open on GitHub") {
+                    // Android's handler throws when no app can open the link, which mustn't crash the host.
+                    runCatching { uriHandler.openUri(RepositoryUrl) }
+                }
+                .pointerHoverIcon(PointerIcon.Hand)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(GitHubMark, contentDescription = null, tint = PanelColors.TextTertiary, modifier = Modifier.size(14.dp))
+            Text(
+                buildAnnotatedString {
+                    append("Built with ")
+                    withStyle(SpanStyle(color = PanelColors.TextSecondary, fontWeight = FontWeight.Medium)) {
+                        append("CMPDevicePreview")
+                    }
+                },
+                modifier = Modifier.padding(start = 8.dp),
+                color = PanelColors.TextTertiary,
+                fontSize = 12.sp,
+            )
+        }
     }
 }
 

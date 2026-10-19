@@ -89,6 +89,15 @@ DeviceWithConfigurationView(
 
 The icon fills a square 28 dp across and replaces the whole of the default one, so it brings any background of its own.
 
+### Attribution
+
+The end of the panel has a "Built with CMPDevicePreview" link to the project's GitHub repository. Pass `isAttributionVisible = false` to hide it:
+```kotlin
+DeviceWithConfigurationView(isAttributionVisible = false) {
+    App()
+}
+```
+
 ### Your own controls
 
 To add your own controls to the configuration panel, pass `panelItems`. They are shown in order below the panel's settings, as wide as them and inside the panel's dark Material theme:

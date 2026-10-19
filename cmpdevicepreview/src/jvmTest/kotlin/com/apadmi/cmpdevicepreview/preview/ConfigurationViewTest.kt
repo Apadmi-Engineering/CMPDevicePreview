@@ -5,10 +5,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.renderComposeScene
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -35,6 +41,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+
+private const val AttributionText = "Built with CMPDevicePreview"
 
 @OptIn(ExperimentalTestApi::class)
 class ConfigurationViewTest {
@@ -85,6 +93,67 @@ class ConfigurationViewTest {
     }
 
     @Test
+    fun theLinkToTheProjectIsShownUnlessItIsHidden() = runComposeUiTest {
+        var isAttributionVisible by mutableStateOf(true)
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9),
+                onSimulatedDeviceChange = {},
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+                isAttributionVisible = isAttributionVisible,
+            )
+        }
+        onNodeWithText(AttributionText).assertExists()
+
+        isAttributionVisible = false
+        waitForIdle()
+        onNodeWithText(AttributionText).assertDoesNotExist()
+    }
+
+    @Test
+    fun theLinkOpensTheProjectsRepository() = runComposeUiTest {
+        val opened = mutableListOf<String>()
+        setContent {
+            CompositionLocalProvider(LocalUriHandler provides uriHandler { opened += it }) {
+                ConfigurationView(
+                    simulatedDevice = SimulatedDevice(DevicePresets.pixel9),
+                    onSimulatedDeviceChange = {},
+                    previewSettings = PreviewSettings(),
+                    onPreviewSettingsChange = {},
+                    modifier = Modifier.width(300.dp).fillMaxSize(),
+                )
+            }
+        }
+        onNodeWithText(AttributionText).performScrollTo().performClick()
+        assertEquals(listOf("https://github.com/Apadmi-Engineering/CMPDevicePreview"), opened)
+    }
+
+    @Test
+    fun aLinkThatCannotBeOpenedDoesNotCrashTheApp() = runComposeUiTest {
+        var attempts = 0
+        setContent {
+            CompositionLocalProvider(
+                LocalUriHandler provides uriHandler {
+                    attempts++
+                    throw IllegalArgumentException("No app can open $it")
+                },
+            ) {
+                ConfigurationView(
+                    simulatedDevice = SimulatedDevice(DevicePresets.pixel9),
+                    onSimulatedDeviceChange = {},
+                    previewSettings = PreviewSettings(),
+                    onPreviewSettingsChange = {},
+                    modifier = Modifier.width(300.dp).fillMaxSize(),
+                )
+            }
+        }
+        onNodeWithText(AttributionText).performScrollTo().performClick()
+        assertEquals(1, attempts)
+    }
+
+    @Test
     fun aTypedSizeIsFittedToTheDevice() = runComposeUiTest {
         var changed: SimulatedDevice? = null
         setContent {
@@ -126,4 +195,9 @@ class ConfigurationViewTest {
         assertEquals(PreviewSettings(isDotGridVisible = false), settings)
         assertNull(device)
     }
+}
+
+/** A [UriHandler] that passes each link it is asked to open to [onOpen], rather than to a browser. */
+private fun uriHandler(onOpen: (String) -> Unit) = object : UriHandler {
+    override fun openUri(uri: String) = onOpen(uri)
 }
