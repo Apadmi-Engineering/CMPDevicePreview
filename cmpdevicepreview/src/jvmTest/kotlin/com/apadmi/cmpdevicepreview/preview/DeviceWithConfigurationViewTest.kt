@@ -38,6 +38,7 @@ import kotlin.test.assertEquals
 class DeviceWithConfigurationViewTest {
     private val wide = 1000.dp
     private val narrow = 600.dp
+    private val attribution = "Built with CMPDevicePreview"
 
     @Test
     fun thePanelIsBesideTheDeviceWhenThereIsRoomAndBehindAButtonIfNot() = runComposeUiTest {
@@ -81,6 +82,36 @@ class DeviceWithConfigurationViewTest {
         onNodeWithText("Acme Preview").assertExists()
         onNodeWithTag("logo").assertExists()
         onNodeWithText("Device Preview").assertDoesNotExist()
+    }
+
+    @Test
+    fun theLinkToTheProjectCanBeHiddenBesideTheDeviceAndInTheSheet() = runComposeUiTest {
+        var width by mutableStateOf(wide)
+        var isAttributionVisible by mutableStateOf(true)
+        setContent {
+            Box(Modifier.width(width).height(800.dp)) {
+                DeviceWithConfigurationView(
+                    initialDevice = DevicePresets.iPhone16Pro,
+                    isAttributionVisible = isAttributionVisible,
+                ) {}
+            }
+        }
+        onNodeWithText(attribution).assertExists()
+
+        width = narrow
+        waitForIdle()
+        onNode(hasText("iPhone 16 Pro") and hasClickAction()).performClick()
+        waitForIdle()
+        onNodeWithText(attribution).assertExists()
+
+        isAttributionVisible = false
+        waitForIdle()
+        onNodeWithText(attribution).assertDoesNotExist()
+
+        width = wide
+        waitForIdle()
+        onNodeWithText("Device Preview").assertExists()
+        onNodeWithText(attribution).assertDoesNotExist()
     }
 
     @Test

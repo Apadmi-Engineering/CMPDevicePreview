@@ -74,6 +74,8 @@ private val ButtonGlowRadius = 96.dp
  * [ConfigurationView].
  * @param panelTitle The title in the configuration panel's header: see [ConfigurationView].
  * @param panelIcon The icon beside the title in the configuration panel's header: see [ConfigurationView].
+ * @param isAttributionVisible Whether the configuration panel ends with a "Built with CMPDevicePreview"
+ * link to the project's GitHub repository: see [ConfigurationView]. Pass false to hide it.
  * @param content What is shown inside the simulated device, or on its own when preview mode is off.
  */
 @Composable
@@ -85,6 +87,7 @@ public fun DeviceWithConfigurationView(
     panelItems: List<@Composable () -> Unit> = emptyList(),
     panelTitle: String = DefaultPanelTitle,
     panelIcon: @Composable () -> Unit = DefaultPanelIcon,
+    isAttributionVisible: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val simulatedDeviceSaver = remember(initialDevice) { simulatedDeviceSaver(initialDevice) }
@@ -131,6 +134,7 @@ public fun DeviceWithConfigurationView(
                             panelItems = panelItems,
                             panelTitle = panelTitle,
                             panelIcon = panelIcon,
+                            isAttributionVisible = isAttributionVisible,
                         )
                     } else {
                         PanelSheet(
@@ -141,6 +145,7 @@ public fun DeviceWithConfigurationView(
                             panelItems,
                             panelTitle,
                             panelIcon,
+                            isAttributionVisible,
                         )
                     }
                 }
@@ -191,6 +196,7 @@ private fun PanelSheet(
     panelItems: List<@Composable () -> Unit>,
     panelTitle: String,
     panelIcon: @Composable () -> Unit,
+    isAttributionVisible: Boolean,
 ) {
     var isSheetShown by remember { mutableStateOf(false) }
     if (isSheetShown) {
@@ -208,6 +214,7 @@ private fun PanelSheet(
                 panelItems = panelItems,
                 panelTitle = panelTitle,
                 panelIcon = panelIcon,
+                isAttributionVisible = isAttributionVisible,
             )
         }
     }
