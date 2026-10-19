@@ -9,11 +9,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.renderComposeScene
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
@@ -59,6 +63,25 @@ class ConfigurationViewTest {
         // The panel's 16 dp margins, as its settings have.
         assertEquals(300 - 2 * 16, width)
         assertEquals(PanelColors.Accent, primary, "inside the panel's theme")
+    }
+
+    @Test
+    fun yourOwnTitleAndIconReplaceTheDefaultHeader() = runComposeUiTest {
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9),
+                onSimulatedDeviceChange = {},
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+                panelTitle = "Acme Preview",
+                panelIcon = { Box(Modifier.fillMaxSize().testTag("logo")) },
+            )
+        }
+        onNodeWithText("Acme Preview").assertExists()
+        onNodeWithText("Device Preview").assertDoesNotExist()
+        // The icon fills the header's square, and no more.
+        onNodeWithTag("logo").assertWidthIsEqualTo(28.dp).assertHeightIsEqualTo(28.dp)
     }
 
     @Test

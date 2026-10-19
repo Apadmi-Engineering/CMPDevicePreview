@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.click
@@ -19,6 +20,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -53,6 +55,32 @@ class DeviceWithConfigurationViewTest {
         onNode(hasText("iPhone 16 Pro") and hasClickAction()).performClick()
         waitForIdle()
         onNodeWithText("Device Preview").assertExists()
+    }
+
+    @Test
+    fun yourOwnTitleAndIconAreShownBesideTheDeviceAndInTheSheet() = runComposeUiTest {
+        var width by mutableStateOf(wide)
+        setContent {
+            Box(Modifier.width(width).height(800.dp)) {
+                DeviceWithConfigurationView(
+                    initialDevice = DevicePresets.iPhone16Pro,
+                    panelTitle = "Acme Preview",
+                    panelIcon = { Box(Modifier.fillMaxSize().testTag("logo")) },
+                ) {}
+            }
+        }
+        onNodeWithText("Acme Preview").assertExists()
+        onNodeWithTag("logo").assertExists()
+        onNodeWithText("Device Preview").assertDoesNotExist()
+
+        width = narrow
+        waitForIdle()
+        onNodeWithTag("logo").assertDoesNotExist()
+        onNode(hasText("iPhone 16 Pro") and hasClickAction()).performClick()
+        waitForIdle()
+        onNodeWithText("Acme Preview").assertExists()
+        onNodeWithTag("logo").assertExists()
+        onNodeWithText("Device Preview").assertDoesNotExist()
     }
 
     @Test

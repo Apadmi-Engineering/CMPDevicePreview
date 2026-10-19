@@ -94,6 +94,9 @@ import kotlin.math.roundToInt
 
 private const val NotAvailable = "Not available for this frame"
 
+/** The title [ConfigurationView] shows unless it is given one. */
+internal const val DefaultPanelTitle = "Device Preview"
+
 private val OrientationOptions = listOf(
     SegmentOption("Portrait", Icons.Outlined.StayCurrentPortrait),
     SegmentOption("Landscape", Icons.Outlined.StayCurrentLandscape),
@@ -120,6 +123,9 @@ private val BackdropOptions = Backdrop.entries.map { backdrop ->
 private val MinFreeformSizeDp = MinFreeformSize.roundToInt()
 private val MaxFreeformSizeDp = MaxFreeformSize.roundToInt()
 
+/** The icon [ConfigurationView] shows unless it is given one: the logo, which fills the header's 28 dp square. */
+internal val DefaultPanelIcon: @Composable () -> Unit = { DevicePreviewLogo() }
+
 /**
  * The configuration panel, which picks the device and sets how it and the preview are shown.
  *
@@ -132,6 +138,9 @@ private val MaxFreeformSizeDp = MaxFreeformSize.roundToInt()
  * @param modifier The modifier for the panel.
  * @param panelItems Your own items, shown in order below the panel's settings, as wide as them and
  * inside the panel's dark Material theme.
+ * @param panelTitle The title in the panel's header.
+ * @param panelIcon The icon beside the title, which fills a square 28 dp across: the whole icon, with
+ * any background of its own. It is read as decoration unless it sets a content description.
  */
 @Composable
 public fun ConfigurationView(
@@ -141,6 +150,8 @@ public fun ConfigurationView(
     onPreviewSettingsChange: (PreviewSettings) -> Unit,
     modifier: Modifier = Modifier,
     panelItems: List<@Composable () -> Unit> = emptyList(),
+    panelTitle: String = DefaultPanelTitle,
+    panelIcon: @Composable () -> Unit = DefaultPanelIcon,
 ) {
     val device = simulatedDevice.device
     // Every change is fitted to the device, whichever setting it comes from.
@@ -167,7 +178,7 @@ public fun ConfigurationView(
                 .background(PanelColors.Background)
                 .drawBehind { drawLine(PanelColors.Border, Offset.Zero, Offset(0f, size.height), 1.dp.toPx()) }
         ) {
-            PanelHeader()
+            PanelHeader(panelTitle, panelIcon)
 
             Column(
                 Modifier
@@ -215,14 +226,15 @@ public fun ConfigurationView(
 }
 
 @Composable
-private fun PanelHeader() {
+private fun PanelHeader(title: String, icon: @Composable () -> Unit) {
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DevicePreviewLogo()
+        // A fixed square, so the header keeps its height whatever the icon is.
+        Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) { icon() }
         Text(
-            "Device Preview",
+            title,
             modifier = Modifier.padding(start = 12.dp),
             color = PanelColors.TextPrimary,
             fontSize = 16.sp,

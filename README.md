@@ -69,7 +69,29 @@ SimulatedDevicePreview(
 
 To use your own device, implement the `Device` interface (or create a `DevicePreset`) and pass it as `initialDevice`, or to `SimulatedDevicePreview` or `DeviceFrameView`. The panel's picker lists the built-in devices.
 
-To add your own controls to the configuration panel, pass `panelItems`. They are shown in order below the panel's settings:
+## Customisation
+
+The configuration panel can carry your own branding and controls. Both are parameters of `DeviceWithConfigurationView`, and of `ConfigurationView` if you place the panel yourself.
+
+### Header
+
+The header shows "Device Preview" beside an icon. Pass `panelTitle` and `panelIcon` to replace them:
+```kotlin
+DeviceWithConfigurationView(
+    panelTitle = "Acme Preview",
+    panelIcon = {
+        Image(painterResource(Res.drawable.logo), contentDescription = null, modifier = Modifier.fillMaxSize())
+    },
+) {
+    App()
+}
+```
+
+The icon fills a square 28 dp across and replaces the whole of the default one, so it brings any background of its own.
+
+### Your own controls
+
+To add your own controls to the configuration panel, pass `panelItems`. They are shown in order below the panel's settings, as wide as them and inside the panel's dark Material theme:
 ```kotlin
 DeviceWithConfigurationView(
     panelItems = listOf(
