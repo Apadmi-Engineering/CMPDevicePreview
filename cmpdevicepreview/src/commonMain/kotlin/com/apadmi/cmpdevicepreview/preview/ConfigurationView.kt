@@ -23,7 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.FormatTextdirectionLToR
 import androidx.compose.material.icons.automirrored.outlined.FormatTextdirectionRToL
 import androidx.compose.material.icons.outlined.BrightnessAuto
-import androidx.compose.material.icons.outlined.CropFree
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.GridOn
@@ -57,7 +56,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
@@ -207,7 +205,7 @@ public fun ConfigurationView(
             ToggleRow(
                 icon = Icons.Outlined.Visibility,
                 title = "Preview mode",
-                note = "Off shows just the app, until it is reloaded",
+                note = "Off shows just the app, with a button to turn it back on",
                 checked = previewSettings.isPreviewModeEnabled,
                 onCheckedChange = { onPreviewSettingsChange(previewSettings.copy(isPreviewModeEnabled = it)) },
                 modifier = Modifier.padding(8.dp),
@@ -222,14 +220,7 @@ private fun PanelHeader() {
         Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier
-                .size(28.dp)
-                .background(Brush.linearGradient(listOf(PanelColors.Accent, PanelColors.AccentBlue)), RoundedCornerShape(8.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Outlined.CropFree, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-        }
+        DevicePreviewLogo()
         Text(
             "Device Preview",
             modifier = Modifier.padding(start = 12.dp),
