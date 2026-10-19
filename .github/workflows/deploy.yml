@@ -3,6 +3,7 @@ name: Deploy
 # Publishes the library to Maven Central when release-please pushes a version tag, then the web
 # sample to GitHub Pages (see demo.yml).
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v*'
