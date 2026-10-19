@@ -5,8 +5,7 @@
 
 ### ⚠ BREAKING CHANGES
 
-* keep the preview's state when the window crosses the panel breakpoint
-* describe devices in dp, with their kind and pixel ratio
+* through forked from KMPDevicePreview (see README.md), there is no backward compatbility and versioning restarts from 0.0.1.
 
 ### Features
 
