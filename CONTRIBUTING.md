@@ -71,7 +71,7 @@ The desktop sample is also the quickest way to work on the sample app, or on the
 - **iOS**: the sample's preview sits inside the real safe area.
 - **macOS** is Kotlin/Native, and Compose still marks it experimental, so `gradle.properties` sets `org.jetbrains.compose.experimental.macos.enabled`. Compose's native cursors are limited, so the resize handles show the arrow there.
 - **Dialogs, bottom sheets and menus**: the sample's Profile tab has one of each, to check they stay on the device's screen.
-- **Screenshots** of the device are saved from the web build only.
+- **Screenshots** of the device are saved from the web and desktop builds only. Desktop asks where to save with a native file dialog.
 - **Mouse as touch** is web only, so on desktop lists scroll with the wheel, not by dragging.
 
 ## Tests and checks
