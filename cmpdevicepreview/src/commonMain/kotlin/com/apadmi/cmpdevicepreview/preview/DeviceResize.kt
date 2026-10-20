@@ -157,7 +157,7 @@ internal fun BoxScope.ResizeOutline(size: Size, scale: Float) {
         BasicText(
             size.dimensionsLabel(),
             modifier = Modifier
-                .drawBehind { drawRoundRect(HandleHighlight, cornerRadius = CornerRadius(6.dp.toPx())) }
+                .drawBehind { drawRoundRect(PanelColors.AccentDeep, cornerRadius = CornerRadius(6.dp.toPx())) }
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             style = TextStyle(color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium),
         )

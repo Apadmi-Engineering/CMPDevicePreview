@@ -59,7 +59,7 @@ Each bar fills the safe area on its side of the screen, and isn't drawn when
 that side is 0 (an iPhone's status bar in landscape). `leading`, `center` and
 `trailing` are SVG documents drawn at their view box size, never stretched:
 `inset` is the distance from the screen edge to `leading` and `trailing`
-(default 16), and `bottomInset` pins the artwork that far from the bar's outer
+(default 16), and `bottomInset` pins the artwork that far from the bar's bottom
 edge instead of centring it. Shapes with `fill="currentColor"` (or no fill) are
 tinted to contrast with the simulated theme; use `fill-opacity` for secondary
 detail.

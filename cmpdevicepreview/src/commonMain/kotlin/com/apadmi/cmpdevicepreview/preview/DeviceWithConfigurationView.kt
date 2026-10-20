@@ -52,7 +52,7 @@ import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 private const val ButtonGlowAlpha = 0.45f
 
 /** The narrowest the view can be and still show the panel beside the device. */
-private val SidePanelMinWidth = 840.dp
+private val SidePanelMinWidth = 880.dp
 
 /** How far the dark glow around the button that turns preview mode back on reaches from its centre. */
 private val ButtonGlowRadius = 96.dp
@@ -115,10 +115,11 @@ public fun DeviceWithConfigurationView(
             // The device keeps its place in the composition whichever way the panel is shown, so
             // neither it nor the content is recreated when the view crosses the width above.
             PreviewLayout(isWide) {
-                SimulatedDevicePreview(
+                ZoomableDevicePreview(
                     simulatedDevice = simulatedDevice,
                     previewSettings = previewSettings,
                     onResize = onSimulatedDeviceChange,
+                    isZoomable = true,
                     content = content,
                 )
                 // PreviewLayout measures exactly two children, so the panel stays one node even

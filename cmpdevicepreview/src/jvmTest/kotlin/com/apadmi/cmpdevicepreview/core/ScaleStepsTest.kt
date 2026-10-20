@@ -41,6 +41,11 @@ class ScaleStepsTest {
     }
 
     @Test
+    fun everyTextSizeAndroidOffersIsOneOfTheSteps() {
+        assertEquals(CommonFontScales, CommonFontScales.map { FontScaleSteps.nearest(it).scale })
+    }
+
+    @Test
     fun theNearestOfTwoAsNearIsTheOneNearerTheDefault() {
         val steps = listOf(ScaleStep("a", 1f), ScaleStep("b", 1.1f), ScaleStep("c", 1.2f))
         assertEquals(1.1f, steps.nearest(1.15f).scale)

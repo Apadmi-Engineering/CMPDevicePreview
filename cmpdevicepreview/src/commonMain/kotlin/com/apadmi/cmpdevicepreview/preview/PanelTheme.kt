@@ -6,9 +6,13 @@ package com.apadmi.cmpdevicepreview.preview
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -27,35 +31,70 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CropFree
+import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.ripple.RippleAlpha
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private const val DisabledAlpha = 0.45f
 
 private const val MaxTicks = 12
 
-internal val PanelWidth = 300.dp
+private val TickRadius = 1.dp
+private val MarkRadius = 2.dp
+
+// M3 insets a slider's ticks from the ends of its track by the thumb gap and half the thumb.
+private val TickInset = 8.dp
+
+private val PanelRippleAlpha = RippleAlpha(
+    draggedAlpha = 0.16f,
+    focusedAlpha = 0.2f,
+    hoveredAlpha = 0.14f,
+    pressedAlpha = 0.16f,
+)
+
+internal val PanelWidth = 340.dp
 
 /** The colours of the configuration panel, the device picker and the preview's handles. */
 internal object PanelColors {
@@ -64,22 +103,25 @@ internal object PanelColors {
     val SurfaceRaised = Color(0xFF26262D)
     val Border = Color(0xFF2A2A31)
     val TextPrimary = Color(0xFFF4F4F6)
-    val TextSecondary = Color(0xFF9D9DA8)
-    val TextTertiary = Color(0xFF66666F)
+    val TextSecondary = Color(0xFFB0B0BA)
+    val TextTertiary = Color(0xFF8A8A94)
     val Accent = Color(0xFF7C6CFF)
     val AccentBright = Color(0xFF9F94FF)
     val AccentSoft = Color(0x297C6CFF)
 
     /** The far end of gradients that start at [Accent]. */
     val AccentBlue = Color(0xFF4FA3FF)
-    val SwitchOff = Color(0xFF3A3A43)
+
+    // White text on Accent is 3.9:1, short of the 4.5:1 text needs.
+    val AccentDeep = Color(0xFF5B4BE0)
+    val SwitchOff = Color(0xFF60606B)
     val SegmentSelected = Color(0xFF303039)
     val ThumbnailBody = Color(0xFF5A5A66)
     val ThumbnailScreenTop = Color(0xFF24242B)
     val ThumbnailScreenBottom = Color(0xFF32323B)
 
     /** A plain window's border, and the resize handles at rest. */
-    val FrameOutline = Color(0xFF9A9AA6)
+    val FrameOutline = Color(0xFF80808C)
 }
 
 /**
@@ -96,7 +138,8 @@ private fun RowScope.SettingLabel(
     icon: ImageVector,
     title: String,
     note: String?,
-    badge: String?
+    badge: String?,
+    titleEnd: (@Composable () -> Unit)? = null,
 ) {
     Box(
         Modifier.size(32.dp).background(PanelColors.Surface, RoundedCornerShape(8.dp)),
@@ -119,6 +162,7 @@ private fun RowScope.SettingLabel(
                     fontWeight = FontWeight.SemiBold,
                 )
             }
+            titleEnd?.invoke()
         }
         if (note != null) {
             Text(
@@ -133,11 +177,22 @@ private fun RowScope.SettingLabel(
     }
 }
 
+private fun DrawScope.isMarked(
+    x: Float,
+    marks: Set<Int>,
+    lastIndex: Int
+): Boolean {
+    val inset = TickInset.toPx()
+    val spacing = (size.width - 2 * inset) / lastIndex
+    return marks.any { abs(inset + it * spacing - x) < spacing / 2 }
+}
+
 /**
  * The panel's dark Material theme, so ripples, text fields and dialogs inside it match.
  *
  * @param content What is shown inside the theme.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PanelTheme(content: @Composable () -> Unit) {
     MaterialTheme(
@@ -154,7 +209,12 @@ internal fun PanelTheme(content: @Composable () -> Unit) {
             outlineVariant = PanelColors.Border,
             surfaceContainerHigh = PanelColors.Surface,
         ),
-        content = content,
+        content = {
+            CompositionLocalProvider(
+                LocalRippleConfiguration provides RippleConfiguration(PanelColors.TextPrimary, PanelRippleAlpha),
+                content = content,
+            )
+        },
     )
 }
 
@@ -163,17 +223,24 @@ internal fun PanelTheme(content: @Composable () -> Unit) {
  *
  * @param text The heading, shown in upper case.
  * @param modifier The modifier for the heading.
+ * @param trailing Shown after the heading, such as a reset button.
  */
 @Composable
-internal fun SectionLabel(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text.uppercase(),
-        modifier = modifier.padding(start = 4.dp, bottom = 8.dp),
-        color = PanelColors.TextTertiary,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.SemiBold,
-        letterSpacing = 0.9.sp,
-    )
+internal fun SectionLabel(
+    text: String,
+    modifier: Modifier = Modifier,
+    trailing: (@Composable () -> Unit)? = null
+) {
+    Row(modifier.padding(start = 4.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = text.uppercase(),
+            color = PanelColors.TextTertiary,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.9.sp,
+        )
+        trailing?.invoke()
+    }
 }
 
 /**
@@ -334,7 +401,10 @@ internal fun ToggleRow(
  * @param onSelect Called with the index of the value the slider moves to.
  * @param modifier The modifier for the setting.
  * @param note A line below the title that says more about the setting, or null for none.
+ * @param defaultIndex The index in [labels] a reset button returns to, or null for no button.
+ * @param markedIndices The indices in [labels] to put a tick at, when there are too many labels for a tick each.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun StepSlider(
     icon: ImageVector,
@@ -344,10 +414,28 @@ internal fun StepSlider(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     note: String? = null,
+    defaultIndex: Int? = null,
+    markedIndices: Set<Int> = emptySet(),
 ) {
+    val isEachTicked = labels.size <= MaxTicks
+    val colors = SliderDefaults.colors(
+        thumbColor = PanelColors.Accent,
+        activeTrackColor = PanelColors.Accent,
+        activeTickColor = PanelColors.AccentBright,
+        inactiveTrackColor = PanelColors.SwitchOff,
+        inactiveTickColor = PanelColors.TextSecondary,
+    )
     Column(modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(top = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SettingLabel(icon, title, note, badge = labels.getOrNull(selectedIndex))
+            SettingLabel(
+                icon,
+                title,
+                note,
+                badge = labels.getOrNull(selectedIndex),
+                titleEnd = defaultIndex?.let {
+                    { ResetButton(title, isShown = selectedIndex != it, onClick = { onSelect(it) }) }
+                },
+            )
         }
         Slider(
             value = selectedIndex.toFloat(),
@@ -358,61 +446,135 @@ internal fun StepSlider(
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth().pointerHoverIcon(PointerIcon.Hand),
+            modifier = Modifier
+                .fillMaxWidth()
+                .pointerHoverIcon(PointerIcon.Hand)
+                .semantics {
+                    contentDescription = title
+                    labels.getOrNull(selectedIndex)?.let { stateDescription = it }
+                },
             enabled = labels.size > 1,
             valueRange = 0f..(labels.size - 1).coerceAtLeast(1).toFloat(),
             steps = (labels.size - 2).coerceAtLeast(0),
-            // Ticks only while there are few enough to tell apart.
-            colors = SliderDefaults.colors(
-                thumbColor = PanelColors.Accent,
-                activeTrackColor = PanelColors.Accent,
-                activeTickColor = if (labels.size <= MaxTicks) PanelColors.AccentBright else Color.Transparent,
-                inactiveTrackColor = PanelColors.SwitchOff,
-                inactiveTickColor = if (labels.size <= MaxTicks) PanelColors.TextTertiary else Color.Transparent,
-            ),
+            colors = colors,
+            // A tick for each value while there are few enough to tell apart, else only the marked ones.
+            track = { state ->
+                SliderDefaults.Track(
+                    state,
+                    colors = colors,
+                    drawTick = { center, color ->
+                        if (isEachTicked) {
+                            drawCircle(color, radius = TickRadius.toPx(), center = center)
+                        } else if (isMarked(center.x, markedIndices, labels.lastIndex)) {
+                            drawCircle(color, radius = MarkRadius.toPx(), center = center)
+                        }
+                    },
+                )
+            },
         )
     }
 }
 
-/**
- * An action in the panel: an icon and a label on a raised surface.
- *
- * @param icon The icon before the label.
- * @param label The text of the button.
- * @param onClick Called when the button is pressed.
- * @param modifier The modifier for the button.
- * @param enabled Whether the button can be pressed. When false it is dimmed.
- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun PanelButton(
+internal fun PanelTooltip(
+    text: String,
+    modifier: Modifier = Modifier,
+    isEnabled: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+        tooltip = {
+            PlainTooltip(containerColor = PanelColors.SurfaceRaised, contentColor = PanelColors.TextPrimary) {
+                Text(text)
+            }
+        },
+        state = rememberTooltipState(),
+        modifier = modifier,
+        enableUserInput = isEnabled,
+        content = content,
+    )
+}
+
+@Composable
+internal fun PanelIconButton(
     icon: ImageVector,
-    label: String,
+    description: String,
+    tooltip: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    size: Dp = 32.dp,
+    tint: Color = PanelColors.TextSecondary,
+    hoverTint: Color = PanelColors.TextPrimary,
+    isShown: Boolean = true,
     enabled: Boolean = true,
 ) {
-    val shape = RoundedCornerShape(10.dp)
-    Row(
-        modifier = modifier
-            .height(40.dp)
-            .clip(shape)
-            .background(PanelColors.Surface)
-            .border(1.dp, PanelColors.Border, shape)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .pointerHoverIcon(PointerIcon.Hand)
-            .alpha(if (enabled) 1f else DisabledAlpha)
-            .padding(horizontal = 12.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
+    val targetAlpha = when {
+        !isShown -> 0f
+        enabled -> 1f
+        else -> DisabledAlpha
+    }
+    val alpha by animateFloatAsState(targetAlpha, label = "iconAlpha")
+    val interactions = remember { MutableInteractionSource() }
+    val isHovered by interactions.collectIsHoveredAsState()
+    PanelTooltip(tooltip, isEnabled = isShown) {
+        Box(
+            modifier
+                .size(size)
+                .alpha(alpha)
+                .clip(CircleShape)
+                .clickable(
+                    interactionSource = interactions,
+                    indication = LocalIndication.current,
+                    enabled = isShown && enabled,
+                    role = Role.Button,
+                    onClick = onClick,
+                )
+                .pointerHoverIcon(if (isShown && enabled) PointerIcon.Hand else PointerIcon.Default),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                icon,
+                contentDescription = description,
+                tint = if (isHovered && enabled) hoverTint else tint,
+                modifier = Modifier.size(size * 0.65f),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun ResetButton(
+    title: String,
+    isShown: Boolean,
+    onClick: () -> Unit
+) {
+    PanelIconButton(
+        icon = Icons.Outlined.RestartAlt,
+        description = "Reset $title",
+        tooltip = "Reset to default",
+        onClick = onClick,
+        modifier = Modifier.padding(start = 4.dp),
+        size = 18.dp,
+        tint = PanelColors.TextTertiary,
+        isShown = isShown,
+    )
+}
+
+@Composable
+internal fun DevicePreviewLogo(
+    modifier: Modifier = Modifier,
+    size: Dp = 28.dp,
+    shape: Shape = RoundedCornerShape(size * 2 / 7),
+    contentDescription: String? = null,
+) {
+    Box(
+        modifier
+            .size(size)
+            .background(Brush.linearGradient(listOf(PanelColors.Accent, PanelColors.AccentBlue)), shape),
+        contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = PanelColors.TextSecondary, modifier = Modifier.size(16.dp))
-        Text(
-            label,
-            modifier = Modifier.padding(start = 6.dp),
-            color = PanelColors.TextPrimary,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-        )
+        Icon(Icons.Outlined.CropFree, contentDescription = contentDescription, tint = Color.White, modifier = Modifier.size(size * 4 / 7))
     }
 }

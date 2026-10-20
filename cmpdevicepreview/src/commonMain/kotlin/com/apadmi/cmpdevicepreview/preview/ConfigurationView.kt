@@ -29,8 +29,7 @@ import androidx.compose.material.icons.outlined.GridOn
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.LightMode
-import androidx.compose.material.icons.outlined.PhoneAndroid
-import androidx.compose.material.icons.outlined.Screenshot
+import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.StayCurrentLandscape
@@ -80,6 +79,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.apadmi.cmpdevicepreview.core.Backdrop
+import com.apadmi.cmpdevicepreview.core.CommonFontScales
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.DevicePreset
@@ -90,9 +90,9 @@ import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 import com.apadmi.cmpdevicepreview.core.currentContentSize
 import com.apadmi.cmpdevicepreview.core.displayScaleSteps
 import com.apadmi.cmpdevicepreview.core.hasFrameArtwork
+import com.apadmi.cmpdevicepreview.core.indexOfNearest
 import com.apadmi.cmpdevicepreview.core.isLaidOutInPortrait
 import com.apadmi.cmpdevicepreview.core.isRotatable
-import com.apadmi.cmpdevicepreview.core.nearest
 
 import kotlin.math.roundToInt
 
@@ -102,6 +102,10 @@ private const val RepositoryUrl = "https://github.com/Apadmi-Engineering/CMPDevi
 
 /** The title [ConfigurationView] shows unless it is given one. */
 internal const val DefaultPanelTitle = "Device Preview"
+
+private val DefaultConfiguration = DeviceConfiguration()
+
+private val CommonTextSizeIndices = CommonFontScales.map(FontScaleSteps::indexOfNearest).toSet()
 
 private val OrientationOptions = listOf(
     SegmentOption("Portrait", Icons.Outlined.StayCurrentPortrait),
@@ -187,7 +191,12 @@ public fun ConfigurationView(
                 .background(PanelColors.Background)
                 .drawBehind { drawLine(PanelColors.Border, Offset.Zero, Offset(0f, size.height), 1.dp.toPx()) }
         ) {
-            PanelHeader(panelTitle, panelIcon)
+            PanelHeader(
+                title = panelTitle,
+                icon = panelIcon,
+                isModified = simulatedDevice.configuration != DefaultConfiguration,
+                onResetAll = { updateConfiguration(DefaultConfiguration) },
+            )
 
             Column(
                 Modifier
@@ -213,7 +222,6 @@ public fun ConfigurationView(
                 DisplaySection(simulatedDevice, updateConfiguration)
                 Spacer(Modifier.height(20.dp))
                 BackdropSection(previewSettings, onPreviewSettingsChange)
-                ScreenshotSection(device)
 
                 if (panelItems.isNotEmpty()) {
                     Spacer(Modifier.height(20.dp))
@@ -240,19 +248,31 @@ public fun ConfigurationView(
 }
 
 @Composable
-private fun PanelHeader(title: String, icon: @Composable () -> Unit) {
+private fun PanelHeader(
+    title: String,
+    icon: @Composable () -> Unit,
+    isModified: Boolean,
+    onResetAll: () -> Unit
+) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
+        Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 16.dp, bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // A fixed square, so the header keeps its height whatever the icon is.
         Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) { icon() }
         Text(
             title,
-            modifier = Modifier.padding(start = 12.dp),
+            modifier = Modifier.padding(start = 12.dp).weight(1f),
             color = PanelColors.TextPrimary,
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
+        )
+        PanelIconButton(
+            icon = Icons.Outlined.RestartAlt,
+            description = "Reset all settings",
+            tooltip = "Reset all settings",
+            onClick = onResetAll,
+            isShown = isModified,
         )
     }
 }
@@ -339,10 +359,12 @@ private fun TextAndDisplaySection(simulatedDevice: SimulatedDevice, onChange: (D
     StepSlider(
         icon = Icons.Outlined.FormatSize,
         title = "Text size",
-        note = "Real device scaling options may vary",
+        note = "Ticks mark common device sizes",
         labels = FontScaleSteps.map { it.label },
-        selectedIndex = FontScaleSteps.indexOf(FontScaleSteps.nearest(configuration.fontScale)),
+        selectedIndex = FontScaleSteps.indexOfNearest(configuration.fontScale),
         onSelect = { index -> onChange(configuration.copy(fontScale = FontScaleSteps[index].scale)) },
+        defaultIndex = FontScaleSteps.indexOfNearest(DefaultConfiguration.fontScale),
+        markedIndices = CommonTextSizeIndices,
     )
     val displaySteps = simulatedDevice.device.displayScaleSteps
     StepSlider(
@@ -350,14 +372,21 @@ private fun TextAndDisplaySection(simulatedDevice: SimulatedDevice, onChange: (D
         title = "Display size",
         note = "App sees ${simulatedDevice.currentContentSize.dimensionsLabel()} dp",
         labels = displaySteps.map { it.label },
-        selectedIndex = displaySteps.indexOf(displaySteps.nearest(configuration.displayScale)),
+        selectedIndex = displaySteps.indexOfNearest(configuration.displayScale),
         onSelect = { index -> onChange(configuration.copy(displayScale = displaySteps[index].scale)) },
+        defaultIndex = displaySteps.indexOfNearest(DefaultConfiguration.displayScale),
     )
 }
 
 @Composable
 private fun LayoutDirectionSection(configuration: DeviceConfiguration, onChange: (DeviceConfiguration) -> Unit) {
-    SectionLabel("Layout direction")
+    SectionLabel("Layout direction") {
+        ResetButton(
+            title = "Layout direction",
+            isShown = configuration.layoutDirection != null,
+            onClick = { onChange(configuration.copy(layoutDirection = null)) },
+        )
+    }
     val direction = configuration.layoutDirection ?: LocalLayoutDirection.current
     SegmentedControl(
         options = DirectionOptions,
@@ -420,34 +449,6 @@ private fun BackdropSection(previewSettings: PreviewSettings, onChange: (Preview
     )
 }
 
-/** Buttons that save the screen, or the whole device, as a PNG, where the platform can. */
-@Composable
-private fun ScreenshotSection(device: Device) {
-    val screenshots = LocalDeviceScreenshots.current
-    val download = pngDownloader
-    if (screenshots == null || download == null) {
-        return
-    }
-    Spacer(Modifier.height(20.dp))
-    SectionLabel("Screenshot")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        for (includeFrame in listOf(false, true)) {
-            PanelButton(
-                icon = if (includeFrame) Icons.Outlined.PhoneAndroid else Icons.Outlined.Screenshot,
-                label = if (includeFrame) "With frame" else "Screen",
-                enabled = screenshots.canCapture,
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    screenshots.capture(includeFrame)?.let { image ->
-                        download(image, screenshotName(device, image, includeFrame))
-                    }
-                },
-            )
-        }
-    }
-    PanelCaption("PNGs at the device's own resolution")
-}
-
 /** The current frame, which opens the picker. Its thumbnail turns with the frame. */
 @Composable
 private fun DeviceCard(
@@ -496,24 +497,21 @@ private fun DeviceCard(
     }
 }
 
-/** A note that a frame shows a device's size and shape, but doesn't simulate the device. */
 @Composable
 private fun FrameDisclaimer() {
-    Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 10.dp)) {
-        Icon(
-            Icons.Outlined.Info,
-            contentDescription = null,
-            tint = PanelColors.TextTertiary,
-            modifier = Modifier.padding(top = 1.dp).size(14.dp),
-        )
-        Text(
-            "Frames give a feel for a device's size and shape. They don't simulate the device: your " +
-                    "app runs here, in a window that size.",
-            modifier = Modifier.padding(start = 6.dp),
-            color = PanelColors.TextTertiary,
-            fontSize = 12.sp,
-            lineHeight = 16.sp,
-        )
+    PanelTooltip(
+        text = "Frames give a feel for a device's size and shape. They don't simulate the device: your " +
+                "app runs here, in a window that size.",
+    ) {
+        Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.Info, contentDescription = null, tint = PanelColors.TextTertiary, modifier = Modifier.size(14.dp))
+            Text(
+                "Shows size and shape, not behaviour",
+                modifier = Modifier.padding(start = 6.dp),
+                color = PanelColors.TextTertiary,
+                fontSize = 12.sp,
+            )
+        }
     }
 }
 
@@ -598,7 +596,7 @@ private fun SizeField(
                     .padding(horizontal = 12.dp),
                 verticalArrangement = Arrangement.Center,
             ) {
-                Text(label.uppercase(), color = PanelColors.TextTertiary, fontSize = 9.sp, letterSpacing = 0.8.sp)
+                Text(label.uppercase(), color = PanelColors.TextTertiary, fontSize = 11.sp, letterSpacing = 0.8.sp)
                 field()
             }
         },

@@ -65,6 +65,11 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.semantics.Role
@@ -80,7 +85,7 @@ import com.apadmi.cmpdevicepreview.core.DeviceKind
 import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.DeviceType
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
-import com.apadmi.cmpdevicepreview.devices.allDevices
+import com.apadmi.cmpdevicepreview.devices.DevicePresets
 import com.apadmi.cmpdevicepreview.frame.DeviceFramePainter
 import com.apadmi.cmpdevicepreview.isMobilePlatform
 import kotlin.math.min
@@ -98,6 +103,14 @@ private val KindFilters: List<Pair<String, DeviceKind?>> = listOf(
     "Tablets" to DeviceKind.TABLET,
     "Foldables" to DeviceKind.FOLDABLE,
     "Desktop" to DeviceKind.DESKTOP,
+)
+
+/** The devices offered by the configuration view: by platform, then brand, newest first. */
+internal val allDevices: List<DevicePreset> = DevicePresets.all.sortedWith(
+    compareBy<DevicePreset> { it.type }
+        .thenBy { it.brand.orEmpty() }
+        .thenByDescending { it.year ?: 0 }
+        .thenBy { it.name }
 )
 
 /** The built-in devices by platform, in the order the picker lists them. */
@@ -123,8 +136,8 @@ private fun String.hasAllWordsIn(haystack: String): Boolean {
  *
  * @param selected The device that is checked, and in view when the list opens.
  * @param freeform The window that picking the Freeform row gives.
- * @param onPick Called with the device that was picked: a row, or the first match when a search is
- * submitted.
+ * @param onPick Called with the device that was picked: a row, or the highlighted match when a
+ * search is submitted.
  * @param onDismiss Called when the dialog is closed, by its close button or by dismissing it.
  */
 @Composable
@@ -142,12 +155,32 @@ internal fun DevicePickerDialog(
             val groups = results.groupBy { it.type }
             // Freeform isn't a kind of device, so only the unfiltered list has it.
             val showFreeform = kind == null && query.hasAllWordsIn(FreeformKeywords)
-            // Opens with the current device in view: each group is a header followed by its rows.
-            val listState = rememberLazyListState(initialFirstVisibleItemIndex = remember { indexInList(selected) })
+            // Opens with the current device in view.
+            val listState = rememberLazyListState(
+                initialFirstVisibleItemIndex = remember {
+                    val position = positionInList(selected, deviceGroups, hasFreeform = true) ?: 0
+                    (position - RowsAboveSelected).coerceAtLeast(0)
+                }
+            )
             // A search or filter shows its matches from the top.
             LaunchedEffect(query, kind) {
                 if (query.isNotEmpty() || kind != null) {
                     listState.scrollToItem(0)
+                }
+            }
+            val rowsInOrder: List<Device> = buildList {
+                if (showFreeform) {
+                    add(freeform)
+                }
+                groups.values.forEach(::addAll)
+            }
+            var activeIndex by remember(query, kind) { mutableStateOf<Int?>(if (query.isBlank()) null else 0) }
+            val active = activeIndex?.let(rowsInOrder::getOrNull)
+            LaunchedEffect(activeIndex) {
+                val position = active?.let { positionInList(it, groups, showFreeform) } ?: return@LaunchedEffect
+                val inView = listState.layoutInfo.visibleItemsInfo
+                if (inView.isEmpty() || position <= inView.first().index + 1 || position >= inView.last().index) {
+                    listState.animateScrollToItem((position - RowsAboveSelected).coerceAtLeast(0))
                 }
             }
 
@@ -178,7 +211,8 @@ internal fun DevicePickerDialog(
                 SearchField(
                     query = query,
                     onQueryChange = { query = it },
-                    onSubmit = { (results.firstOrNull() ?: freeform.takeIf { showFreeform })?.let(onPick) },
+                    onSubmit = { active?.let(onPick) },
+                    onMove = { step -> activeIndex = ((activeIndex ?: -1) + step).coerceIn(0, maxOf(rowsInOrder.lastIndex, 0)) },
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
                 Row(
@@ -211,6 +245,7 @@ internal fun DevicePickerDialog(
                                     device = freeform,
                                     details = "Any size · drag a corner to resize",
                                     isSelected = selected is FreeformDevice,
+                                    isActive = active == freeform,
                                 ) { onPick(freeform) }
                             }
                         }
@@ -229,7 +264,12 @@ internal fun DevicePickerDialog(
                                 )
                             }
                             items(devices, key = { it.id }) { device ->
-                                DeviceRow(device, deviceDetails(device), isSelected = device == selected) { onPick(device) }
+                                DeviceRow(
+                                    device,
+                                    deviceDetails(device),
+                                    isSelected = device == selected,
+                                    isActive = device == active,
+                                ) { onPick(device) }
                             }
                         }
                     }
@@ -297,24 +337,21 @@ internal fun DeviceThumbnail(
     }
 }
 
-/**
- * The first row to show so [device] is in view in the unfiltered list, counting the Freeform row and
- * each platform's header.
- */
-private fun indexInList(device: Device): Int {
+// The list is Freeform, if shown, then a header before each platform's devices, so that is what comes before one.
+private fun positionInList(
+    device: Device,
+    groups: Map<DeviceType, List<DevicePreset>>,
+    hasFreeform: Boolean
+): Int? {
     if (device is FreeformDevice) {
         return 0
     }
-    var index = 1  // The Freeform row.
-    for (devices in deviceGroups.values) {
-        index++  // The header.
-        val at = devices.indexOf(device)
-        if (at >= 0) {
-            return maxOf(0, index + at - RowsAboveSelected)
-        }
-        index += devices.size
+    val devicesBefore = groups.values.flatten().indexOf(device)
+    if (devicesBefore < 0) {
+        return null
     }
-    return 0
+    val headersUpToIt = groups.keys.indexOf(device.type) + 1
+    return (if (hasFreeform) 1 else 0) + headersUpToIt + devicesBefore
 }
 
 @Composable
@@ -322,6 +359,7 @@ private fun SearchField(
     query: String,
     onQueryChange: (String) -> Unit,
     onSubmit: () -> Unit,
+    onMove: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -336,7 +374,20 @@ private fun SearchField(
     BasicTextField(
         value = query,
         onValueChange = onQueryChange,
-        modifier = modifier.fillMaxWidth().focusRequester(focusRequester),
+        modifier = modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester)
+            .onPreviewKeyEvent { event ->
+                val step = when (event.key) {
+                    Key.DirectionDown -> 1
+                    Key.DirectionUp -> -1
+                    else -> 0
+                }
+                if (step != 0 && event.type == KeyEventType.KeyDown) {
+                    onMove(step)
+                }
+                step != 0
+            },
         singleLine = true,
         textStyle = TextStyle(color = PanelColors.TextPrimary, fontSize = 14.sp),
         cursorBrush = SolidColor(PanelColors.Accent),
@@ -390,13 +441,16 @@ private fun DeviceRow(
     device: Device,
     details: String,
     isSelected: Boolean,
+    isActive: Boolean,
     onClick: () -> Unit
 ) {
+    val shape = RoundedCornerShape(10.dp)
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(shape)
             .background(if (isSelected) PanelColors.AccentSoft else Color.Transparent)
+            .border(1.dp, if (isActive) PanelColors.Accent.copy(alpha = 0.5f) else Color.Transparent, shape)
             .selectable(selected = isSelected, role = Role.RadioButton, onClick = onClick)
             .pointerHoverIcon(PointerIcon.Hand)
             .padding(horizontal = 10.dp, vertical = 8.dp),

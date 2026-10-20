@@ -17,6 +17,10 @@ internal val FontScaleSteps: List<ScaleStep> = (50..300 step 5).map { percent ->
     ScaleStep(if (percent == 100) DefaultLabel else "$percent%", percent / 100f)
 }
 
+// The text sizes Android 14's own setting offers (entryvalues_font_size):
+// https://android.googlesource.com/platform/frameworks/base/+/refs/heads/android14-release/packages/SettingsLib/res/values/arrays.xml#653
+internal val CommonFontScales: List<Float> = listOf(0.85f, 1f, 1.15f, 1.3f, 1.5f, 1.8f, 2f)
+
 /**
  * The display sizes the device offers, smallest first, as Android's settings work them out: one
  * size smaller than the default and up to three larger, the largest leaving the screen's shorter
@@ -55,3 +59,5 @@ internal fun List<ScaleStep>.nearest(scale: Float): ScaleStep {
     val distance = minOf { abs(it.scale - scale) }
     return filter { abs(it.scale - scale) <= distance + 0.001f }.minBy { abs(it.scale - 1f) }
 }
+
+internal fun List<ScaleStep>.indexOfNearest(scale: Float): Int = indexOf(nearest(scale))
