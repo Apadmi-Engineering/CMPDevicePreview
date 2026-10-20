@@ -155,8 +155,13 @@ internal fun DevicePickerDialog(
             val groups = results.groupBy { it.type }
             // Freeform isn't a kind of device, so only the unfiltered list has it.
             val showFreeform = kind == null && query.hasAllWordsIn(FreeformKeywords)
-            // Opens with the current device in view: each group is a header followed by its rows.
-            val listState = rememberLazyListState(initialFirstVisibleItemIndex = remember { indexInList(selected) })
+            // Opens with the current device in view.
+            val listState = rememberLazyListState(
+                initialFirstVisibleItemIndex = remember {
+                    val position = positionInList(selected, deviceGroups, hasFreeform = true) ?: 0
+                    (position - RowsAboveSelected).coerceAtLeast(0)
+                }
+            )
             // A search or filter shows its matches from the top.
             LaunchedEffect(query, kind) {
                 if (query.isNotEmpty() || kind != null) {
@@ -172,7 +177,7 @@ internal fun DevicePickerDialog(
             var activeIndex by remember(query, kind) { mutableStateOf<Int?>(if (query.isBlank()) null else 0) }
             val active = activeIndex?.let(rowsInOrder::getOrNull)
             LaunchedEffect(activeIndex) {
-                val position = activeIndex?.let { rowPosition(it, showFreeform, groups) } ?: return@LaunchedEffect
+                val position = active?.let { positionInList(it, groups, showFreeform) } ?: return@LaunchedEffect
                 val inView = listState.layoutInfo.visibleItemsInfo
                 if (inView.isEmpty() || position <= inView.first().index + 1 || position >= inView.last().index) {
                     listState.animateScrollToItem((position - RowsAboveSelected).coerceAtLeast(0))
@@ -332,39 +337,21 @@ internal fun DeviceThumbnail(
     }
 }
 
-/**
- * The first row to show so [device] is in view in the unfiltered list, counting the Freeform row and
- * each platform's header.
- */
-private fun indexInList(device: Device): Int {
-    // Counting the Freeform row first.
-    val row = if (device is FreeformDevice) 0 else deviceGroups.values.flatten().indexOf(device) + 1
-    return if (row == 0) 0 else maxOf(0, rowPosition(row, hasFreeform = true, deviceGroups) - RowsAboveSelected)
-}
-
-private fun rowPosition(
-    index: Int,
-    hasFreeform: Boolean,
-    groups: Map<DeviceType, List<DevicePreset>>
-): Int {
-    var remaining = index
-    var position = 0
-    if (hasFreeform) {
-        if (remaining == 0) {
-            return 0
-        }
-        remaining--
-        position++
+// The list is Freeform, if shown, then a header before each platform's devices, so that is what comes before one.
+private fun positionInList(
+    device: Device,
+    groups: Map<DeviceType, List<DevicePreset>>,
+    hasFreeform: Boolean
+): Int? {
+    if (device is FreeformDevice) {
+        return 0
     }
-    for (devices in groups.values) {
-        position++
-        if (remaining < devices.size) {
-            return position + remaining
-        }
-        remaining -= devices.size
-        position += devices.size
+    val devicesBefore = groups.values.flatten().indexOf(device)
+    if (devicesBefore < 0) {
+        return null
     }
-    return position
+    val headersUpToIt = groups.keys.indexOf(device.type) + 1
+    return (if (hasFreeform) 1 else 0) + headersUpToIt + devicesBefore
 }
 
 @Composable

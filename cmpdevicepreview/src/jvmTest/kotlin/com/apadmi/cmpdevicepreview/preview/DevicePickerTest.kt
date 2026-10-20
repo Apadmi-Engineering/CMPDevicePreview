@@ -79,6 +79,16 @@ class DevicePickerTest {
     }
 
     @Test
+    fun arrowingDownTheListScrollsTheHighlightedRowIntoView() = runComposeUiTest {
+        showPicker(selected = freeform)
+        val last = allDevices.last()
+        onNodeWithText(last.name).assertDoesNotExist()
+        // The first press highlights Freeform, so the last device takes one press more than there are devices.
+        repeat(allDevices.size + 1) { onNode(hasSetTextAction()).performKeyInput { pressKey(Key.DirectionDown) } }
+        onNodeWithText(last.name).assertIsDisplayed()
+    }
+
+    @Test
     fun submittingWithNothingHighlightedPicksNothing() = runComposeUiTest {
         var picked: Device? = null
         showPicker(onPick = { picked = it })
