@@ -78,10 +78,12 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.apadmi.cmpdevicepreview.core.Appearance
 import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.CommonFontScales
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
+import com.apadmi.cmpdevicepreview.core.DeviceOrientation
 import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.FontScaleSteps
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
@@ -107,15 +109,19 @@ private val DefaultConfiguration = DeviceConfiguration()
 
 private val CommonTextSizeIndices = CommonFontScales.map(FontScaleSteps::indexOfNearest).toSet()
 
-private val OrientationOptions = listOf(
-    SegmentOption("Portrait", Icons.Outlined.StayCurrentPortrait),
-    SegmentOption("Landscape", Icons.Outlined.StayCurrentLandscape),
-)
+private val OrientationOptions = DeviceOrientation.entries.map { orientation ->
+    when (orientation) {
+        DeviceOrientation.PORTRAIT -> SegmentOption("Portrait", Icons.Outlined.StayCurrentPortrait)
+        DeviceOrientation.LANDSCAPE -> SegmentOption("Landscape", Icons.Outlined.StayCurrentLandscape)
+    }
+}
 
-private val AppearanceOptions = listOf(
-    SegmentOption("Light", Icons.Outlined.LightMode),
-    SegmentOption("Dark", Icons.Outlined.DarkMode),
-)
+private val AppearanceOptions = Appearance.entries.map { appearance ->
+    when (appearance) {
+        Appearance.LIGHT -> SegmentOption("Light", Icons.Outlined.LightMode)
+        Appearance.DARK -> SegmentOption("Dark", Icons.Outlined.DarkMode)
+    }
+}
 
 private val DirectionOptions = listOf(
     SegmentOption("Left to right", Icons.AutoMirrored.Outlined.FormatTextdirectionLToR),
@@ -144,7 +150,7 @@ internal val DefaultPanelIcon: @Composable () -> Unit = { DevicePreviewLogo() }
  * setting changes them, fitted to the device. Pass it back as [simulatedDevice] to apply it.
  * @param previewSettings The settings of the preview around the device that the panel shows.
  * @param onPreviewSettingsChange Called with the new settings when the backdrop, the dot grid or
- * preview mode is changed. Pass them back as [previewSettings] to apply them.
+ * preview mode is changed, or everything is reset. Pass them back as [previewSettings] to apply them.
  * @param modifier The modifier for the panel.
  * @param panelItems Your own items, shown in order below the panel's settings, as wide as them and
  * inside the panel's dark Material theme.
@@ -153,6 +159,8 @@ internal val DefaultPanelIcon: @Composable () -> Unit = { DevicePreviewLogo() }
  * any background of its own. It is read as decoration unless it sets a content description.
  * @param isAttributionVisible Whether the end of the panel has a "Built with CMPDevicePreview" link to
  * the project's GitHub repository. Pass false to hide it.
+ * @param initialSimulatedDevice The device and configuration the reset button in the header returns to.
+ * @param initialPreviewSettings The preview settings the reset button in the header returns to.
  */
 @Composable
 public fun ConfigurationView(
@@ -165,8 +173,11 @@ public fun ConfigurationView(
     panelTitle: String = DefaultPanelTitle,
     panelIcon: @Composable () -> Unit = DefaultPanelIcon,
     isAttributionVisible: Boolean = true,
+    initialSimulatedDevice: SimulatedDevice = SimulatedDevice(DefaultDevice),
+    initialPreviewSettings: PreviewSettings = PreviewSettings(),
 ) {
     val device = simulatedDevice.device
+    val initialDevice = remember(initialSimulatedDevice) { initialSimulatedDevice.adaptedToDevice() }
     // Every change is fitted to the device, whichever setting it comes from.
     val update = { changed: SimulatedDevice -> onSimulatedDeviceChange(changed.adaptedToDevice()) }
     val updateConfiguration = { changed: DeviceConfiguration -> update(simulatedDevice.copy(configuration = changed)) }
@@ -194,8 +205,11 @@ public fun ConfigurationView(
             PanelHeader(
                 title = panelTitle,
                 icon = panelIcon,
-                isModified = simulatedDevice.configuration != DefaultConfiguration,
-                onResetAll = { updateConfiguration(DefaultConfiguration) },
+                isModified = simulatedDevice != initialDevice || previewSettings != initialPreviewSettings,
+                onResetAll = {
+                    update(initialDevice)
+                    onPreviewSettingsChange(initialPreviewSettings)
+                },
             )
 
             Column(
@@ -313,7 +327,7 @@ private fun Attribution() {
 private fun FrameSection(simulatedDevice: SimulatedDevice, onChangeFrame: () -> Unit) {
     val device = simulatedDevice.device
     SectionLabel("Frame")
-    DeviceCard(device, isPortrait = device.isLaidOutInPortrait(simulatedDevice.configuration.isPortrait), onChangeFrame)
+    DeviceCard(device, isPortrait = device.isLaidOutInPortrait(simulatedDevice.configuration.orientation), onChangeFrame)
     FrameDisclaimer()
 }
 
@@ -333,8 +347,8 @@ private fun OrientationSection(
     // A desktop window can't turn, so it shows as landscape.
     SegmentedControl(
         options = OrientationOptions,
-        selectedIndex = if (device.isRotatable && configuration.isPortrait) 0 else 1,
-        onSelect = { index -> onChange(configuration.copy(isPortrait = index == 0)) },
+        selectedIndex = (if (device.isRotatable) configuration.orientation else DeviceOrientation.LANDSCAPE).ordinal,
+        onSelect = { index -> onChange(configuration.copy(orientation = DeviceOrientation.entries[index])) },
         enabled = device.isRotatable,
     )
     if (!device.isRotatable) {
@@ -347,8 +361,8 @@ private fun AppearanceSection(configuration: DeviceConfiguration, onChange: (Dev
     SectionLabel("Appearance")
     SegmentedControl(
         options = AppearanceOptions,
-        selectedIndex = if (configuration.isDarkMode) 1 else 0,
-        onSelect = { index -> onChange(configuration.copy(isDarkMode = index == 1)) },
+        selectedIndex = configuration.appearance.ordinal,
+        onSelect = { index -> onChange(configuration.copy(appearance = Appearance.entries[index])) },
     )
 }
 

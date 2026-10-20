@@ -18,7 +18,7 @@ public data class SimulatedDevice(
 ) {
     /** Whether the device is shown in portrait: always, for a device that can't rotate. */
     private val isPortrait: Boolean
-        get() = device.isLaidOutInPortrait(configuration.isPortrait)
+        get() = device.isLaidOutInPortrait(configuration.orientation)
 
     /** The screen size in the current orientation, in dp. */
     val currentSize: Size

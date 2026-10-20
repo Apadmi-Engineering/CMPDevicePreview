@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntSize
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
+import com.apadmi.cmpdevicepreview.core.DeviceOrientation
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
 import kotlin.math.abs
 import kotlin.test.Test
@@ -46,11 +47,11 @@ class DeviceTurnTest {
 
     @Test
     fun theDeviceTurnsBeforeTheContentChangesOrientation() {
-        var isPortrait by mutableStateOf(true)
+        var orientation by mutableStateOf(DeviceOrientation.PORTRAIT)
         var contentSize = IntSize.Zero
         val scene = ImageComposeScene(width = 1000, height = 600) {
             Box(Modifier.fillMaxSize().background(Color.White)) {
-                DeviceFrameView(DevicePresets.pixel9, Modifier.fillMaxSize(), DeviceConfiguration(isPortrait = isPortrait)) {
+                DeviceFrameView(DevicePresets.pixel9, Modifier.fillMaxSize(), DeviceConfiguration(orientation = orientation)) {
                     Box(Modifier.fillMaxSize().background(Color.Red).onSizeChanged { contentSize = it })
                 }
             }
@@ -60,7 +61,7 @@ class DeviceTurnTest {
             val uprightBox = deviceBox(upright)
             assertTrue(contentSize.height > contentSize.width, "portrait content")
 
-            isPortrait = false
+            orientation = DeviceOrientation.LANDSCAPE
             scene.frame(0)
             scene.frame(16)
             val halfway = scene.frame(16L + TurnMillis / 2)
@@ -81,12 +82,12 @@ class DeviceTurnTest {
 
     @Test
     fun aDesktopWindowStaysLandscapeWhateverIsAsked() {
-        var isPortrait by mutableStateOf(true)
+        var orientation by mutableStateOf(DeviceOrientation.PORTRAIT)
         var device by mutableStateOf<Device>(DevicePresets.largeDesktopWindow)
         var contentSize = IntSize.Zero
         val scene = ImageComposeScene(width = 1000, height = 600) {
             Box(Modifier.fillMaxSize().background(Color.White)) {
-                DeviceFrameView(device, Modifier.fillMaxSize(), DeviceConfiguration(isPortrait = isPortrait)) {
+                DeviceFrameView(device, Modifier.fillMaxSize(), DeviceConfiguration(orientation = orientation)) {
                     Box(Modifier.fillMaxSize().background(Color.Red).onSizeChanged { contentSize = it })
                 }
             }
@@ -97,7 +98,7 @@ class DeviceTurnTest {
             val upright = deviceBox(scene.frame(16))
 
             // Asking for landscape neither turns the window nor changes its shape, not even mid-turn.
-            isPortrait = false
+            orientation = DeviceOrientation.LANDSCAPE
             val settled = 32L + TurnMillis + 66
             for (millis in listOf(32L, 32L + TurnMillis / 2, 32L + TurnMillis + 50, settled)) {
                 val pixels = scene.frame(millis)

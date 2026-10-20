@@ -38,8 +38,10 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.apadmi.cmpdevicepreview.core.Appearance
 import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
+import com.apadmi.cmpdevicepreview.core.DeviceOrientation
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
@@ -234,6 +236,7 @@ class ConfigurationViewTest {
                 previewSettings = PreviewSettings(),
                 onPreviewSettingsChange = {},
                 modifier = Modifier.width(300.dp).fillMaxSize(),
+                initialSimulatedDevice = SimulatedDevice(DevicePresets.pixel9),
             )
         }
         onNodeWithContentDescription("Reset Text size").assertIsNotEnabled()
@@ -243,29 +246,85 @@ class ConfigurationViewTest {
     }
 
     @Test
-    fun resetAllReturnsEveryDeviceSettingToItsDefaultAndKeepsTheDevice() = runComposeUiTest {
-        var changed: SimulatedDevice? = null
+    fun resetAllReturnsTheDeviceAndEverySettingToTheInitialOnes() = runComposeUiTest {
+        var changedDevice: SimulatedDevice? = null
+        var changedSettings: PreviewSettings? = null
         setContent {
             ConfigurationView(
                 simulatedDevice = SimulatedDevice(
-                    DevicePresets.pixel9,
+                    DevicePresets.iPhone16Pro,
                     DeviceConfiguration(
-                        isPortrait = false,
-                        isDarkMode = true,
+                        orientation = DeviceOrientation.LANDSCAPE,
+                        appearance = Appearance.DARK,
                         isFrameVisible = false,
                         fontScale = 1.5f,
                         displayScale = 0.85f,
                         layoutDirection = LayoutDirection.Rtl,
                     ),
                 ),
-                onSimulatedDeviceChange = { changed = it },
-                previewSettings = PreviewSettings(),
-                onPreviewSettingsChange = {},
+                onSimulatedDeviceChange = { changedDevice = it },
+                previewSettings = PreviewSettings(backdrop = Backdrop.DARK, isDotGridVisible = false),
+                onPreviewSettingsChange = { changedSettings = it },
                 modifier = Modifier.width(300.dp).fillMaxSize(),
+                initialSimulatedDevice = SimulatedDevice(DevicePresets.pixel9),
             )
         }
         onNodeWithContentDescription("Reset all settings").assertIsEnabled().performClick()
-        assertEquals(SimulatedDevice(DevicePresets.pixel9), changed)
+        assertEquals(SimulatedDevice(DevicePresets.pixel9), changedDevice)
+        assertEquals(PreviewSettings(), changedSettings)
+    }
+
+    @Test
+    fun resetAllGoesBackToWhatTheHostStartedWithNotTheLibrarysDefaults() = runComposeUiTest {
+        val started = SimulatedDevice(DevicePresets.pixel9, DeviceConfiguration(appearance = Appearance.DARK, fontScale = 1.3f))
+        val startedSettings = PreviewSettings(backdrop = Backdrop.AUTO)
+        var changedDevice: SimulatedDevice? = null
+        var changedSettings: PreviewSettings? = null
+        var current by mutableStateOf(SimulatedDevice(DevicePresets.pixel9))
+        setContent {
+            ConfigurationView(
+                simulatedDevice = current,
+                onSimulatedDeviceChange = { changedDevice = it },
+                previewSettings = startedSettings,
+                onPreviewSettingsChange = { changedSettings = it },
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+                initialSimulatedDevice = started,
+                initialPreviewSettings = startedSettings,
+            )
+        }
+        onNodeWithContentDescription("Reset all settings").assertIsEnabled().performClick()
+        assertEquals(started, changedDevice)
+        assertEquals(startedSettings, changedSettings)
+
+        current = started
+        waitForIdle()
+        onNodeWithContentDescription("Reset all settings").assertIsNotEnabled()
+    }
+
+    @Test
+    fun resetAllIsOfferedWhenOnlyTheDeviceOrOnlyThePreviewSettingsDiffer() = runComposeUiTest {
+        var simulatedDevice by mutableStateOf(SimulatedDevice(DevicePresets.pixel9))
+        var previewSettings by mutableStateOf(PreviewSettings())
+        setContent {
+            ConfigurationView(
+                simulatedDevice = simulatedDevice,
+                onSimulatedDeviceChange = {},
+                previewSettings = previewSettings,
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+                initialSimulatedDevice = SimulatedDevice(DevicePresets.pixel9),
+            )
+        }
+        onNodeWithContentDescription("Reset all settings").assertIsNotEnabled()
+
+        simulatedDevice = SimulatedDevice(DevicePresets.iPhone16Pro)
+        waitForIdle()
+        onNodeWithContentDescription("Reset all settings").assertIsEnabled()
+
+        simulatedDevice = SimulatedDevice(DevicePresets.pixel9)
+        previewSettings = PreviewSettings(isDotGridVisible = false)
+        waitForIdle()
+        onNodeWithContentDescription("Reset all settings").assertIsEnabled()
     }
 
     @Test

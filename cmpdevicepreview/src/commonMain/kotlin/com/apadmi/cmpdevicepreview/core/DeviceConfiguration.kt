@@ -5,10 +5,10 @@ import androidx.compose.ui.unit.LayoutDirection
 /**
  * How a simulated device is shown.
  *
- * @property isPortrait Whether the device is upright. Devices that can't turn, such as desktop
+ * @property orientation Which way up the device is held. Devices that can't turn, such as desktop
  * windows, ignore it.
- * @property isDarkMode What `isSystemInDarkTheme()` returns inside the device. It also sets the
- * colour of the status bar's icons.
+ * @property appearance Whether `isSystemInDarkTheme()` returns true inside the device, which is
+ * when this is [Appearance.DARK]. It also sets the colour of the status bar's icons.
  * @property isFrameVisible Whether the device's body is drawn. The content is clipped to the
  * screen outline either way.
  * @property isSystemUiVisible Whether the status bar and gesture pill are drawn. The safe area is
@@ -24,8 +24,8 @@ import androidx.compose.ui.unit.LayoutDirection
  * bar, or null for the host's.
  */
 public data class DeviceConfiguration(
-    val isPortrait: Boolean = true,
-    val isDarkMode: Boolean = false,
+    val orientation: DeviceOrientation = DeviceOrientation.PORTRAIT,
+    val appearance: Appearance = Appearance.LIGHT,
     val isFrameVisible: Boolean = true,
     val isSystemUiVisible: Boolean = true,
     val isKeyboardVisible: Boolean = false,
@@ -33,6 +33,20 @@ public data class DeviceConfiguration(
     val displayScale: Float = 1f,
     val layoutDirection: LayoutDirection? = null,
 )
+
+/** Which way up a simulated device is held. */
+public enum class DeviceOrientation {
+    PORTRAIT,
+    LANDSCAPE,
+    ;
+}
+
+/** Whether a simulated device is in light or dark mode. */
+public enum class Appearance {
+    LIGHT,
+    DARK,
+    ;
+}
 
 /**
  * How the preview around a simulated device is shown.

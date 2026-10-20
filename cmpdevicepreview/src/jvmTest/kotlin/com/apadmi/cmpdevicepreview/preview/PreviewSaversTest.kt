@@ -23,9 +23,11 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.apadmi.cmpdevicepreview.core.Appearance
 import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
+import com.apadmi.cmpdevicepreview.core.DeviceOrientation
 import com.apadmi.cmpdevicepreview.core.DeviceType
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
@@ -49,8 +51,8 @@ class PreviewSaversTest {
         val simulated = SimulatedDevice(
             pixel,
             DeviceConfiguration(
-                isPortrait = false,
-                isDarkMode = true,
+                orientation = DeviceOrientation.LANDSCAPE,
+                appearance = Appearance.DARK,
                 isFrameVisible = false,
                 isSystemUiVisible = false,
                 isKeyboardVisible = true,
@@ -98,7 +100,7 @@ class PreviewSaversTest {
             CompositionLocalProvider(LocalSaveableStateRegistry provides registry) {
                 if (isShown) {
                     Box(Modifier.width(1000.dp).height(800.dp)) {
-                        DeviceWithConfigurationView(initialDevice = DevicePresets.pixel9) {}
+                        DeviceWithConfigurationView(initialDevice = DevicePresets.pixel9, isPersistenceEnabled = false) {}
                     }
                 }
             }

@@ -28,6 +28,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.apadmi.cmpdevicepreview.core.Appearance
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
@@ -45,7 +46,7 @@ class DeviceWithConfigurationViewTest {
         var width by mutableStateOf(wide)
         setContent {
             Box(Modifier.width(width).height(800.dp)) {
-                DeviceWithConfigurationView(initialDevice = DevicePresets.iPhone16Pro) {}
+                DeviceWithConfigurationView(initialDevice = DevicePresets.iPhone16Pro, isPersistenceEnabled = false) {}
             }
         }
         onNodeWithText("Device Preview").assertExists()
@@ -65,6 +66,7 @@ class DeviceWithConfigurationViewTest {
             Box(Modifier.width(width).height(800.dp)) {
                 DeviceWithConfigurationView(
                     initialDevice = DevicePresets.iPhone16Pro,
+                    isPersistenceEnabled = false,
                     panelTitle = "Acme Preview",
                     panelIcon = { Box(Modifier.fillMaxSize().testTag("logo")) },
                 ) {}
@@ -92,6 +94,7 @@ class DeviceWithConfigurationViewTest {
             Box(Modifier.width(width).height(800.dp)) {
                 DeviceWithConfigurationView(
                     initialDevice = DevicePresets.iPhone16Pro,
+                    isPersistenceEnabled = false,
                     isAttributionVisible = isAttributionVisible,
                 ) {}
             }
@@ -120,7 +123,7 @@ class DeviceWithConfigurationViewTest {
         val appStates = mutableListOf<Any>()
         setContent {
             Box(Modifier.width(width).height(800.dp)) {
-                DeviceWithConfigurationView {
+                DeviceWithConfigurationView(isPersistenceEnabled = false) {
                     appStates += remember { Any() }
                 }
             }
@@ -142,7 +145,8 @@ class DeviceWithConfigurationViewTest {
             Box(Modifier.width(wide).height(800.dp)) {
                 DeviceWithConfigurationView(
                     initialDevice = DevicePresets.pixel9,
-                    initialConfiguration = DeviceConfiguration(isDarkMode = true),
+                    isPersistenceEnabled = false,
+                    initialConfiguration = DeviceConfiguration(appearance = Appearance.DARK),
                 ) {}
             }
         }
@@ -155,7 +159,7 @@ class DeviceWithConfigurationViewTest {
     fun aButtonTurnsPreviewModeBackOnAfterThePanelTurnsItOff() = runComposeUiTest {
         setContent {
             Box(Modifier.width(wide).height(800.dp)) {
-                DeviceWithConfigurationView { Text("The app") }
+                DeviceWithConfigurationView(isPersistenceEnabled = false) { Text("The app") }
             }
         }
         onNodeWithContentDescription(restoreButton).assertDoesNotExist()
@@ -176,7 +180,10 @@ class DeviceWithConfigurationViewTest {
     fun startsWithJustTheAppAndTheButtonWhenPreviewModeStartsOff() = runComposeUiTest {
         setContent {
             Box(Modifier.width(wide).height(800.dp)) {
-                DeviceWithConfigurationView(initialPreviewSettings = PreviewSettings(isPreviewModeEnabled = false)) {
+                DeviceWithConfigurationView(
+                    initialPreviewSettings = PreviewSettings(isPreviewModeEnabled = false),
+                    isPersistenceEnabled = false,
+                ) {
                     Text("The app")
                 }
             }
@@ -191,7 +198,10 @@ class DeviceWithConfigurationViewTest {
         var taps = 0
         setContent {
             Box(Modifier.width(wide).height(800.dp)) {
-                DeviceWithConfigurationView(initialPreviewSettings = PreviewSettings(isPreviewModeEnabled = false)) {
+                DeviceWithConfigurationView(
+                    initialPreviewSettings = PreviewSettings(isPreviewModeEnabled = false),
+                    isPersistenceEnabled = false,
+                ) {
                     Box(Modifier.fillMaxSize().clickable { taps++ })
                 }
             }
@@ -206,7 +216,7 @@ class DeviceWithConfigurationViewTest {
     fun theSettingsAreKeptWhilePreviewModeIsOff() = runComposeUiTest {
         setContent {
             Box(Modifier.width(wide).height(800.dp)) {
-                DeviceWithConfigurationView(initialDevice = DevicePresets.pixel9) {}
+                DeviceWithConfigurationView(initialDevice = DevicePresets.pixel9, isPersistenceEnabled = false) {}
             }
         }
         onNodeWithText("Landscape").performClick()

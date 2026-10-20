@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.apadmi.cmpdevicepreview.core.Appearance
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.DeviceType
@@ -47,7 +48,7 @@ class DeviceFrameViewTest {
         device: Device = iPhone,
         isSystemUiVisible: Boolean = true,
         isKeyboardVisible: Boolean = false,
-        isDarkMode: Boolean = false,
+        appearance: Appearance = Appearance.LIGHT,
         background: Color = Color.White,
         layoutDirection: LayoutDirection = LayoutDirection.Ltr,
         deviceLayoutDirection: LayoutDirection? = null,
@@ -62,7 +63,7 @@ class DeviceFrameViewTest {
                     isFrameVisible = false,
                     isSystemUiVisible = isSystemUiVisible,
                     isKeyboardVisible = isKeyboardVisible,
-                    isDarkMode = isDarkMode,
+                    appearance = appearance,
                     fontScale = fontScale,
                     displayScale = displayScale,
                     layoutDirection = deviceLayoutDirection,
@@ -110,19 +111,19 @@ class DeviceFrameViewTest {
 
     @Test
     fun theStatusBarIconsContrastWithTheTheme() {
-        val dark = render(isDarkMode = true, background = Color.Black)
+        val dark = render(appearance = Appearance.DARK, background = Color.Black)
         assertTrue(lightPixels(dark, 30..61, 25..37) > 0, "white clock in dark mode")
         assertEquals(0, lightPixels(dark, 0..401, 100..100), "the content below the bar is untouched")
 
-        val light = render(isDarkMode = false, background = Color.White)
+        val light = render(appearance = Appearance.LIGHT, background = Color.White)
         assertTrue(darkPixels(light, 30..61, 25..37) > 0, "dark clock in light mode")
     }
 
     @Test
     fun theStatusBarFollowsTheLayoutDirection() {
         // The gap between the clock and the status icons in LTR; the battery in RTL.
-        assertEquals(0, lightPixels(render(isDarkMode = true, background = Color.Black), 75..95, 20..45))
-        val rtl = render(isDarkMode = true, background = Color.Black, layoutDirection = LayoutDirection.Rtl)
+        assertEquals(0, lightPixels(render(appearance = Appearance.DARK, background = Color.Black), 75..95, 20..45))
+        val rtl = render(appearance = Appearance.DARK, background = Color.Black, layoutDirection = LayoutDirection.Rtl)
         assertTrue(lightPixels(rtl, 75..95, 20..45) > 0)
     }
 
@@ -138,7 +139,7 @@ class DeviceFrameViewTest {
         val pixels = render(
             isSystemUiVisible = false,
             isKeyboardVisible = true,
-            isDarkMode = true,
+            appearance = Appearance.DARK,
             background = Color.Black,
             captured = captured,
         )
@@ -151,13 +152,13 @@ class DeviceFrameViewTest {
 
     @Test
     fun composeApisDescribeTheSimulatedDevice() {
-        val captured = Captured().also { render(isDarkMode = true, captured = it) }
+        val captured = Captured().also { render(appearance = Appearance.DARK, captured = it) }
         assertEquals(62, captured.statusBarTop)
         assertEquals(true, captured.isDark)
         // The padding modifiers read the same insets: 874 less the status bar and home indicator.
         assertEquals(874 - 62 - 34, captured.paddedHeight)
 
-        val light = Captured().also { render(isDarkMode = false, isKeyboardVisible = true, captured = it) }
+        val light = Captured().also { render(appearance = Appearance.LIGHT, isKeyboardVisible = true, captured = it) }
         assertEquals(false, light.isDark)
         assertEquals(874 - 62 - 335, light.paddedHeight, "the raised keyboard pads the content too")
         // The window is the device's screen, so window size classes follow the device.
@@ -180,9 +181,9 @@ class DeviceFrameViewTest {
     @Test
     fun aLargerDisplaySizeShrinksTheWindowButNotTheBars() {
         val default = Captured()
-        val defaultPixels = render(isDarkMode = true, background = Color.Black, captured = default)
+        val defaultPixels = render(appearance = Appearance.DARK, background = Color.Black, captured = default)
         val larger = Captured()
-        val largerPixels = render(isDarkMode = true, background = Color.Black, displayScale = 1.25f, captured = larger)
+        val largerPixels = render(appearance = Appearance.DARK, background = Color.Black, displayScale = 1.25f, captured = larger)
 
         assertEquals(DpSize(402.dp / 1.25f, 874.dp / 1.25f), larger.windowSize)
         assertEquals(1.25f, larger.density)
@@ -194,14 +195,14 @@ class DeviceFrameViewTest {
     @Test
     fun theDeviceHasItsOwnLayoutDirection() {
         val rtl = Captured()
-        val pixels = render(isDarkMode = true, background = Color.Black, deviceLayoutDirection = LayoutDirection.Rtl, captured = rtl)
+        val pixels = render(appearance = Appearance.DARK, background = Color.Black, deviceLayoutDirection = LayoutDirection.Rtl, captured = rtl)
         assertEquals(LayoutDirection.Rtl, rtl.layoutDirection)
         // The status bar mirrors with it: the battery is where LTR has a gap.
         assertTrue(lightPixels(pixels, 75..95, 20..45) > 0)
 
         val ltr = Captured()
         val hostRtl = render(
-            isDarkMode = true,
+            appearance = Appearance.DARK,
             background = Color.Black,
             layoutDirection = LayoutDirection.Rtl,
             deviceLayoutDirection = LayoutDirection.Ltr,

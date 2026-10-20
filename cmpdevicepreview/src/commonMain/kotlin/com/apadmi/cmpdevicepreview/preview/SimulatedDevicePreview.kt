@@ -21,6 +21,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
+import com.apadmi.cmpdevicepreview.core.Appearance
 import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
@@ -138,7 +139,7 @@ internal fun ZoomableDevicePreview(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val isDeviceDark = simulatedDevice.configuration.isDarkMode
+    val isDeviceDark = simulatedDevice.configuration.appearance == Appearance.DARK
     val viewport = remember { PreviewViewport() }
     val zoomGestures = if (isZoomable) {
         Modifier.clipToBounds().onSizeChanged { viewport.resize(it.toSize()) }.zoomAndPan(viewport)
