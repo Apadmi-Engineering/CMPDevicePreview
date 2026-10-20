@@ -7,6 +7,9 @@
     "github-actions"
   ],
   "semanticCommits": "enabled",
+  "constraints": {
+    "java": "17"
+  },
   "packageRules": [
     {
       "description": "The CI JDK is chosen together with AGP and Kotlin, so Renovate leaves it alone.",
@@ -27,6 +30,20 @@
       "description": "Kotlin dependencies move together; keep this after the Compose rule so the Compose compiler plugin, which shares the kotlin version, lands here.",
       "matchPackageNames": ["/^org\\.jetbrains\\.kotlin/"],
       "groupName": "Kotlin"
+    },
+    {
+      "description": "Kotlin/JS pins its npm dependencies in kotlin-js-store, and any Gradle update can move them. Regenerate the lockfiles in the same commit, so that concurrent Renovate PRs don't conflict on them. The command must match allowedCommands in renovate.yaml. The JDK matches the one CI uses.",
+      "matchManagers": ["gradle"],
+      "postUpgradeTasks": {
+        "commands": [
+          "./gradlew --no-daemon kotlinUpgradeYarnLock kotlinWasmUpgradeYarnLock"
+        ],
+        "installTools": {
+          "java": {}
+        },
+        "fileFilters": ["kotlin-js-store/**"],
+        "executionMode": "branch"
+      }
     }
   ]
 }
