@@ -5,7 +5,7 @@
 
 ### Features
 
-* reset buttons and zoom ([#23](https://github.com/Apadmi-Engineering/CMPDevicePreview/issues/23)) ([88e673d](https://github.com/Apadmi-Engineering/CMPDevicePreview/commit/88e673d6fd5eb31aa9e667a19a4a02cf339c1a75))
+* add reset buttons to the font scale slides and add ability to zoom into the device ([#23](https://github.com/Apadmi-Engineering/CMPDevicePreview/issues/23)) ([88e673d](https://github.com/Apadmi-Engineering/CMPDevicePreview/commit/88e673d6fd5eb31aa9e667a19a4a02cf339c1a75))
 
 ## 0.0.1 (2026-10-19)
 
