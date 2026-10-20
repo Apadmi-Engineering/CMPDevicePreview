@@ -15,13 +15,14 @@ internal val Device.isTouchscreen: Boolean
     get() = kind != DeviceKind.DESKTOP
 
 /**
- * Whether the device is laid out in portrait when [isPortrait] is asked for. A device that can't
+ * Whether the device is laid out in portrait when [orientation] is asked for. A device that can't
  * rotate always is, since its portrait size is its natural one.
  *
- * @param isPortrait Whether the device is asked to be shown in portrait.
+ * @param orientation The orientation the device is asked to be shown in.
  * @return Whether the device is laid out in portrait.
  */
-internal fun Device.isLaidOutInPortrait(isPortrait: Boolean): Boolean = isPortrait || !isRotatable
+internal fun Device.isLaidOutInPortrait(orientation: DeviceOrientation): Boolean =
+    orientation == DeviceOrientation.PORTRAIT || !isRotatable
 
 /** This size a quarter turn round: its width and height swapped.
  *

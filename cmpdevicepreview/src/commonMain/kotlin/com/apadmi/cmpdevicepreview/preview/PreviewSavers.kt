@@ -4,9 +4,11 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.LayoutDirection
+import com.apadmi.cmpdevicepreview.core.Appearance
 import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
+import com.apadmi.cmpdevicepreview.core.DeviceOrientation
 import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
@@ -16,8 +18,8 @@ import com.apadmi.cmpdevicepreview.devices.DevicePresets
 private const val FreeformWidth = "freeformWidth"
 private const val FreeformHeight = "freeformHeight"
 private const val PresetId = "presetId"
-private const val IsPortrait = "isPortrait"
-private const val IsDarkMode = "isDarkMode"
+private const val OrientationName = "orientation"
+private const val AppearanceName = "appearance"
 private const val IsFrameVisible = "isFrameVisible"
 private const val IsSystemUiVisible = "isSystemUiVisible"
 private const val IsKeyboardVisible = "isKeyboardVisible"
@@ -58,8 +60,8 @@ private fun SimulatedDevice.toSavedValues(initialDevice: Device): Map<String, An
             // this is a generated else block
         }
     }
-    put(IsPortrait, configuration.isPortrait)
-    put(IsDarkMode, configuration.isDarkMode)
+    put(OrientationName, configuration.orientation.name)
+    put(AppearanceName, configuration.appearance.name)
     put(IsFrameVisible, configuration.isFrameVisible)
     put(IsSystemUiVisible, configuration.isSystemUiVisible)
     put(IsKeyboardVisible, configuration.isKeyboardVisible)
@@ -93,8 +95,8 @@ private fun restoreSimulatedDevice(saved: Map<String, Any?>, initialDevice: Devi
         else -> initialDevice
     }
     val configuration = DeviceConfiguration(
-        isPortrait = saved[IsPortrait] as Boolean,
-        isDarkMode = saved[IsDarkMode] as Boolean,
+        orientation = DeviceOrientation.valueOf(saved[OrientationName] as String),
+        appearance = Appearance.valueOf(saved[AppearanceName] as String),
         isFrameVisible = saved[IsFrameVisible] as Boolean,
         isSystemUiVisible = saved[IsSystemUiVisible] as Boolean,
         isKeyboardVisible = saved[IsKeyboardVisible] as Boolean,

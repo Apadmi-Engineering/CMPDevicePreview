@@ -24,6 +24,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,14 +49,24 @@ import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
+import kotlinx.coroutines.delay
 
 private const val ButtonGlowAlpha = 0.45f
+
+// Long enough that dragging a slider or a corner is kept once, which also keeps the URL under Safari's limit on changing it.
+private const val SaveDelayMillis = 250L
 
 /** The narrowest the view can be and still show the panel beside the device. */
 private val SidePanelMinWidth = 880.dp
 
 /** How far the dark glow around the button that turns preview mode back on reaches from its centre. */
 private val ButtonGlowRadius = 96.dp
+
+// A link's settings are the whole truth, so what it leaves out is the initial setting, not a kept one.
+private fun SettingsStore?.startingState(initial: PreviewState): PreviewState {
+    val encoded = this?.let { it.readLink()?.takeIf(String::isNotEmpty) ?: it.readSaved() }
+    return encoded?.let { decodeSettings(it, initial) } ?: initial
+}
 
 /**
  * Shows [content] in a simulated device, with the configuration panel beside it when there is
@@ -76,6 +87,9 @@ private val ButtonGlowRadius = 96.dp
  * @param panelIcon The icon beside the title in the configuration panel's header: see [ConfigurationView].
  * @param isAttributionVisible Whether the configuration panel ends with a "Built with CMPDevicePreview"
  * link to the project's GitHub repository: see [ConfigurationView]. Pass false to hide it.
+ * @param isPersistenceEnabled Whether what differs from the initial settings is kept across reloads
+ * and restarts, and on the web in the page's URL as `dp.` query parameters, so a link opens the same
+ * preview. A link's settings win over the kept ones. Pass false to turn both off.
  * @param content What is shown inside the simulated device, or on its own when preview mode is off.
  */
 @Composable
@@ -88,14 +102,30 @@ public fun DeviceWithConfigurationView(
     panelTitle: String = DefaultPanelTitle,
     panelIcon: @Composable () -> Unit = DefaultPanelIcon,
     isAttributionVisible: Boolean = true,
+    isPersistenceEnabled: Boolean = true,
     content: @Composable () -> Unit,
 ) {
+    val store = if (isPersistenceEnabled) LocalSettingsStore.current ?: rememberSettingsStore() else null
+    val initial = remember(initialDevice, initialConfiguration, initialPreviewSettings) {
+        PreviewState(SimulatedDevice(initialDevice, initialConfiguration).adaptedToDevice(), initialPreviewSettings)
+    }
+    val starting = remember(store) { store.startingState(initial) }
     val simulatedDeviceSaver = remember(initialDevice) { simulatedDeviceSaver(initialDevice) }
     var simulatedDevice by rememberSaveable(stateSaver = simulatedDeviceSaver) {
-        mutableStateOf(SimulatedDevice(initialDevice, initialConfiguration).adaptedToDevice())
+        mutableStateOf(starting.simulatedDevice)
     }
     var previewSettings by rememberSaveable(stateSaver = PreviewSettingsSaver) {
-        mutableStateOf(initialPreviewSettings)
+        mutableStateOf(starting.previewSettings)
+    }
+    // Before the return below, so the settings are kept while only the content is shown too.
+    val encoded = remember(simulatedDevice, previewSettings, initial) {
+        encodeSettings(PreviewState(simulatedDevice, previewSettings), initial)
+    }
+    LaunchedEffect(store, encoded) {
+        if (store != null) {
+            delay(SaveDelayMillis)
+            store.write(encoded)
+        }
     }
     if (!previewSettings.isPreviewModeEnabled) {
         Box(modifier.fillMaxSize()) {
@@ -136,6 +166,8 @@ public fun DeviceWithConfigurationView(
                             panelTitle = panelTitle,
                             panelIcon = panelIcon,
                             isAttributionVisible = isAttributionVisible,
+                            initialSimulatedDevice = initial.simulatedDevice,
+                            initialPreviewSettings = initial.previewSettings,
                         )
                     } else {
                         PanelSheet(
@@ -147,6 +179,7 @@ public fun DeviceWithConfigurationView(
                             panelTitle,
                             panelIcon,
                             isAttributionVisible,
+                            initial,
                         )
                     }
                 }
@@ -198,6 +231,7 @@ private fun PanelSheet(
     panelTitle: String,
     panelIcon: @Composable () -> Unit,
     isAttributionVisible: Boolean,
+    initial: PreviewState,
 ) {
     var isSheetShown by remember { mutableStateOf(false) }
     if (isSheetShown) {
@@ -216,6 +250,8 @@ private fun PanelSheet(
                 panelTitle = panelTitle,
                 panelIcon = panelIcon,
                 isAttributionVisible = isAttributionVisible,
+                initialSimulatedDevice = initial.simulatedDevice,
+                initialPreviewSettings = initial.previewSettings,
             )
         }
     }

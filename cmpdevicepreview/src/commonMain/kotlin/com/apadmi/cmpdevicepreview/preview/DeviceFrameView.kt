@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 
+import com.apadmi.cmpdevicepreview.core.Appearance
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.DeviceInsets
@@ -271,7 +272,7 @@ internal fun DeviceFrame(
     onLayoutScale: ((Float) -> Unit)?,
     content: @Composable () -> Unit,
 ) {
-    val wantsPortrait = device.isLaidOutInPortrait(configuration.isPortrait)
+    val wantsPortrait = device.isLaidOutInPortrait(configuration.orientation)
     val turn = rememberDeviceTurn(device, wantsPortrait)
     val isPortrait = turn.isLayoutPortrait
     val screenSize = device.screenSizeIn(isPortrait)
@@ -289,7 +290,7 @@ internal fun DeviceFrame(
 
     val screenShape = rememberScreenShape(painter, screenSize, isPortrait, isWindow = !device.hasFrameArtwork, configuration.isFrameVisible)
     val screenModifier = Modifier.screenClip(screenShape)
-        .systemOverlay(systemUiPainter, keyboardInset, screenSize, safeArea, configuration.isDarkMode, layoutDirection)
+        .systemOverlay(systemUiPainter, keyboardInset, screenSize, safeArea, configuration.appearance == Appearance.DARK, layoutDirection)
         .then(if (device.isTouchscreen) Modifier.mouseAsTouch() else Modifier)
 
     // The scale a resized device keeps instead of fitting the space again. Forgotten once another
@@ -350,7 +351,7 @@ internal fun DeviceFrame(
                         SimulatedPlatform(
                             safeArea / configuration.displayScale,
                             keyboardInset / configuration.displayScale,
-                            configuration.isDarkMode,
+                            configuration.appearance == Appearance.DARK,
                             screenShape,
                             content,
                         )

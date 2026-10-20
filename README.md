@@ -47,7 +47,7 @@ To start on a particular device or configuration:
 ```kotlin
 DeviceWithConfigurationView(
     initialDevice = DevicePresets.iPhone16Pro,
-    initialConfiguration = DeviceConfiguration(isDarkMode = true),
+    initialConfiguration = DeviceConfiguration(appearance = Appearance.DARK),
 ) {
     App()
 }
@@ -58,7 +58,7 @@ To preview a device without the configuration panel:
 SimulatedDevicePreview(
     simulatedDevice = SimulatedDevice(
         device = DevicePresets.iPhone16Pro, // A built-in device, or your own
-        configuration = DeviceConfiguration(isDarkMode = true, isPortrait = true)
+        configuration = DeviceConfiguration(appearance = Appearance.DARK, orientation = DeviceOrientation.PORTRAIT)
     )
 ) {
     App()
@@ -68,6 +68,16 @@ SimulatedDevicePreview(
 `DeviceFrameView(device = DevicePresets.galaxyS25) { App() }` draws a device around any content, with no panel and no state.
 
 To use your own device, implement the `Device` interface (or create a `DevicePreset`) and pass it as `initialDevice`, or to `SimulatedDevicePreview` or `DeviceFrameView`. The panel's picker lists the built-in devices.
+
+## Saving settings and sharing links
+
+The device and the panel's settings are kept across reloads and restarts. On the web they are also in the page's URL, so you can share a link to the same preview:
+
+```
+https://your.site/?dp.device=apple-ipad-pro-13-m4&dp.orientation=landscape&dp.appearance=dark
+```
+
+A link's settings win over the kept ones, and the panel's reset button clears both. Apps on the same browser origin share the kept settings: pass `isPersistenceEnabled = false` to `DeviceWithConfigurationView` to turn this off.
 
 ## Customisation
 
