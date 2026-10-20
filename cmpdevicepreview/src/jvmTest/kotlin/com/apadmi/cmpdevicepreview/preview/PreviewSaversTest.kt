@@ -51,8 +51,8 @@ class PreviewSaversTest {
         val simulated = SimulatedDevice(
             pixel,
             DeviceConfiguration(
-                orientation = DeviceOrientation.LANDSCAPE,
-                appearance = Appearance.DARK,
+                orientation = DeviceOrientation.Landscape,
+                appearance = Appearance.Dark,
                 isFrameVisible = false,
                 isSystemUiVisible = false,
                 isKeyboardVisible = true,
@@ -85,7 +85,7 @@ class PreviewSaversTest {
 
     @Test
     fun previewSettingsAreRestored() {
-        val settings = PreviewSettings(backdrop = Backdrop.AUTO, isDotGridVisible = false, isPreviewModeEnabled = false)
+        val settings = PreviewSettings(backdrop = Backdrop.Auto, isDotGridVisible = false, isPreviewModeEnabled = false)
         assertEquals(settings, PreviewSettingsSaver.roundTrip(settings))
     }
 
@@ -128,7 +128,7 @@ class PreviewSaversTest {
     }
     /** A device of your own, which the saver can only restore as the initial device. */
     private class CustomDevice(override val name: String) : Device {
-        override val type: DeviceType = DeviceType.OTHER
+        override val type: DeviceType = DeviceType.Other
         override val portraitSize: Size = Size(400f, 800f)
         override val devicePixelRatio: Float = 2f
     }

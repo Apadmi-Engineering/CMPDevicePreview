@@ -125,13 +125,13 @@ abstract class GenerateDevicePresetsTask : DefaultTask() {
         val brand = spec["brand"]?.let { string(spec, "brand", fileName) }
         val year = spec["year"]?.let { it as? Int ?: throw GradleException("$fileName: \"year\" must be an integer") }
         val type = when (val platform = string(spec, "platform", fileName)) {
-            "android", "fuchsia" -> "ANDROID"
-            "iOS" -> "IOS"
-            "macOS", "windows", "linux" -> "OTHER"
+            "android", "fuchsia" -> "Android"
+            "iOS" -> "Ios"
+            "macOS", "windows", "linux" -> "Other"
             else -> throw GradleException("$fileName: unknown platform \"$platform\"")
         }
         val kind = when (val kind = spec["kind"] ?: "phone") {
-            "phone", "tablet", "foldable", "desktop" -> (kind as String).uppercase()
+            "phone", "tablet", "foldable", "desktop" -> (kind as String).replaceFirstChar { it.uppercaseChar() }
             else -> throw GradleException("$fileName: unknown kind \"$kind\"")
         }
         val size = map(spec["portraitSize"], "portraitSize", fileName)

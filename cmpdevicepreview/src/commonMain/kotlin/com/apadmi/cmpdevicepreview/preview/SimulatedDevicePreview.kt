@@ -68,9 +68,9 @@ internal fun Modifier.dotGrid(
 }
 
 private fun PreviewSettings.isBackdropDark(isDeviceDark: Boolean): Boolean = when (backdrop) {
-    Backdrop.LIGHT -> false
-    Backdrop.DARK -> true
-    Backdrop.AUTO -> isDeviceDark
+    Backdrop.Light -> false
+    Backdrop.Dark -> true
+    Backdrop.Auto -> isDeviceDark
 }
 
 /** The backdrop [settings] asks for: light or dark, with or without dots. */
@@ -139,7 +139,7 @@ internal fun ZoomableDevicePreview(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val isDeviceDark = simulatedDevice.configuration.appearance == Appearance.DARK
+    val isDeviceDark = simulatedDevice.configuration.appearance == Appearance.Dark
     val viewport = remember { PreviewViewport() }
     val zoomGestures = if (isZoomable) {
         Modifier.clipToBounds().onSizeChanged { viewport.resize(it.toSize()) }.zoomAndPan(viewport)

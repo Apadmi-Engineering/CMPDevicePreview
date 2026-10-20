@@ -47,7 +47,7 @@ class DeviceTurnTest {
 
     @Test
     fun theDeviceTurnsBeforeTheContentChangesOrientation() {
-        var orientation by mutableStateOf(DeviceOrientation.PORTRAIT)
+        var orientation by mutableStateOf(DeviceOrientation.Portrait)
         var contentSize = IntSize.Zero
         val scene = ImageComposeScene(width = 1000, height = 600) {
             Box(Modifier.fillMaxSize().background(Color.White)) {
@@ -61,7 +61,7 @@ class DeviceTurnTest {
             val uprightBox = deviceBox(upright)
             assertTrue(contentSize.height > contentSize.width, "portrait content")
 
-            orientation = DeviceOrientation.LANDSCAPE
+            orientation = DeviceOrientation.Landscape
             scene.frame(0)
             scene.frame(16)
             val halfway = scene.frame(16L + TurnMillis / 2)
@@ -82,7 +82,7 @@ class DeviceTurnTest {
 
     @Test
     fun aDesktopWindowStaysLandscapeWhateverIsAsked() {
-        var orientation by mutableStateOf(DeviceOrientation.PORTRAIT)
+        var orientation by mutableStateOf(DeviceOrientation.Portrait)
         var device by mutableStateOf<Device>(DevicePresets.largeDesktopWindow)
         var contentSize = IntSize.Zero
         val scene = ImageComposeScene(width = 1000, height = 600) {
@@ -98,7 +98,7 @@ class DeviceTurnTest {
             val upright = deviceBox(scene.frame(16))
 
             // Asking for landscape neither turns the window nor changes its shape, not even mid-turn.
-            orientation = DeviceOrientation.LANDSCAPE
+            orientation = DeviceOrientation.Landscape
             val settled = 32L + TurnMillis + 66
             for (millis in listOf(32L, 32L + TurnMillis / 2, 32L + TurnMillis + 50, settled)) {
                 val pixels = scene.frame(millis)

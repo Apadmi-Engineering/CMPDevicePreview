@@ -290,7 +290,7 @@ internal fun DeviceFrame(
 
     val screenShape = rememberScreenShape(painter, screenSize, isPortrait, isWindow = !device.hasFrameArtwork, configuration.isFrameVisible)
     val screenModifier = Modifier.screenClip(screenShape)
-        .systemOverlay(systemUiPainter, keyboardInset, screenSize, safeArea, configuration.appearance == Appearance.DARK, layoutDirection)
+        .systemOverlay(systemUiPainter, keyboardInset, screenSize, safeArea, configuration.appearance == Appearance.Dark, layoutDirection)
         .then(if (device.isTouchscreen) Modifier.mouseAsTouch() else Modifier)
 
     // The scale a resized device keeps instead of fitting the space again. Forgotten once another
@@ -351,7 +351,7 @@ internal fun DeviceFrame(
                         SimulatedPlatform(
                             safeArea / configuration.displayScale,
                             keyboardInset / configuration.displayScale,
-                            configuration.appearance == Appearance.DARK,
+                            configuration.appearance == Appearance.Dark,
                             screenShape,
                             content,
                         )

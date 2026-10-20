@@ -47,7 +47,7 @@ To start on a particular device or configuration:
 ```kotlin
 DeviceWithConfigurationView(
     initialDevice = DevicePresets.iPhone16Pro,
-    initialConfiguration = DeviceConfiguration(appearance = Appearance.DARK),
+    initialConfiguration = DeviceConfiguration(appearance = Appearance.Dark),
 ) {
     App()
 }
@@ -58,7 +58,7 @@ To preview a device without the configuration panel:
 SimulatedDevicePreview(
     simulatedDevice = SimulatedDevice(
         device = DevicePresets.iPhone16Pro, // A built-in device, or your own
-        configuration = DeviceConfiguration(appearance = Appearance.DARK, orientation = DeviceOrientation.PORTRAIT)
+        configuration = DeviceConfiguration(appearance = Appearance.Dark, orientation = DeviceOrientation.Portrait)
     )
 ) {
     App()
