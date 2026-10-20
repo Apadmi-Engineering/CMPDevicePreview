@@ -14,7 +14,7 @@ it works automatically.
 | Key | Becomes |
 |---|---|
 | `id`, `name`, `brand`, `year` | `DevicePreset.id`, `name`, `brand`, `year` |
-| `platform` | `DevicePreset.type`: `android` → `ANDROID`, `iOS` → `IOS`, anything else → `OTHER` |
+| `platform` | `DevicePreset.type`: `android` → `Android`, `iOS` → `Ios`, anything else → `Other` |
 | `kind` | `DevicePreset.kind` (`phone` when absent) |
 | `portraitSize`, `devicePixelRatio` | The logical screen size and density |
 | `portraitPadding`, `landscapePadding` | `portraitSafeArea`, `landscapeSafeArea` (landscape defaults to the rotation rule) |

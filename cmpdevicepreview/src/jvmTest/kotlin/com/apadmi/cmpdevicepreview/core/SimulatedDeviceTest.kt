@@ -13,7 +13,7 @@ class SimulatedDeviceTest {
     fun theKeyboardHeightFollowsTheOrientation() {
         val portrait = SimulatedDevice(DevicePresets.iPhone16Pro)
         assertEquals(335f, portrait.currentKeyboardHeight)
-        val landscape = portrait.copy(configuration = DeviceConfiguration(orientation = DeviceOrientation.LANDSCAPE))
+        val landscape = portrait.copy(configuration = DeviceConfiguration(orientation = DeviceOrientation.Landscape))
         assertEquals(208f, landscape.currentKeyboardHeight)
         assertNull(SimulatedDevice(DevicePresets.largeDesktopWindow).currentKeyboardHeight)
     }
@@ -22,11 +22,11 @@ class SimulatedDeviceTest {
     fun aDesktopWindowCannotBeTurned() {
         val desktop = DevicePresets.largeDesktopWindow
         assertFalse(desktop.isRotatable)
-        assertTrue(desktop.isLaidOutInPortrait(DeviceOrientation.LANDSCAPE))
+        assertTrue(desktop.isLaidOutInPortrait(DeviceOrientation.Landscape))
 
         // Asking for landscape changes nothing: the window keeps its natural, wide shape.
         val natural = SimulatedDevice(desktop).currentSize
-        val asked = SimulatedDevice(desktop, DeviceConfiguration(orientation = DeviceOrientation.LANDSCAPE)).currentSize
+        val asked = SimulatedDevice(desktop, DeviceConfiguration(orientation = DeviceOrientation.Landscape)).currentSize
         assertEquals(natural, asked)
         assertTrue(asked.width > asked.height, "a desktop window is wider than tall")
     }
@@ -36,14 +36,14 @@ class SimulatedDeviceTest {
         for (device in listOf(DevicePresets.pixel9, DevicePresets.galaxyTabS11, DevicePresets.pixel10ProFold)) {
             assertTrue(device.isRotatable, device.name)
             val upright = SimulatedDevice(device).currentSize
-            val turned = SimulatedDevice(device, DeviceConfiguration(orientation = DeviceOrientation.LANDSCAPE)).currentSize
+            val turned = SimulatedDevice(device, DeviceConfiguration(orientation = DeviceOrientation.Landscape)).currentSize
             assertEquals(Size(upright.height, upright.width), turned, device.name)
         }
     }
 
     @Test
     fun aDeviceThatDoesNotGiveItsKindCanBeTurned() {
-        assertTrue(CustomDevice(DeviceType.OTHER).isRotatable)
+        assertTrue(CustomDevice(DeviceType.Other).isRotatable)
     }
 
     @Test
@@ -59,15 +59,15 @@ class SimulatedDeviceTest {
         assertTrue(DevicePresets.pixel10ProFold.isTouchscreen)
         assertFalse(DevicePresets.largeDesktopWindow.isTouchscreen)
         // A device that doesn't give its kind is a phone, whatever its platform.
-        assertTrue(CustomDevice(DeviceType.ANDROID).isTouchscreen)
-        assertTrue(CustomDevice(DeviceType.OTHER).isTouchscreen)
+        assertTrue(CustomDevice(DeviceType.Android).isTouchscreen)
+        assertTrue(CustomDevice(DeviceType.Other).isTouchscreen)
     }
 
     @Test
     fun aFreeformWindowHasItsOwnSizeAndCannotBeTurned() {
         val freeform = FreeformDevice(Size(834f, 1112f))
         assertEquals("Freeform", freeform.name)
-        assertEquals(DeviceType.OTHER, freeform.type)
+        assertEquals(DeviceType.Other, freeform.type)
         assertFalse(freeform.isRotatable)
         assertFalse(freeform.isTouchscreen)
         assertEquals(Size(834f, 1112f), freeform.portraitSize)
@@ -75,7 +75,7 @@ class SimulatedDeviceTest {
 
         // Asking for landscape changes nothing: the window is the shape it was resized to.
         val upright = SimulatedDevice(freeform).currentSize
-        val asked = SimulatedDevice(freeform, DeviceConfiguration(orientation = DeviceOrientation.LANDSCAPE)).currentSize
+        val asked = SimulatedDevice(freeform, DeviceConfiguration(orientation = DeviceOrientation.Landscape)).currentSize
         assertEquals(upright, asked)
         assertEquals(834f, asked.width)
         assertEquals(1112f, asked.height)

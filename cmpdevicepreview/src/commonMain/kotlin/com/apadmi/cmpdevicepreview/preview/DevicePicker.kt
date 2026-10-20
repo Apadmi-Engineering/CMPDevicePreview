@@ -99,10 +99,10 @@ private const val RowsAboveSelected = 2
 /** The device kinds the picker can narrow its list to, with null for every device. */
 private val KindFilters: List<Pair<String, DeviceKind?>> = listOf(
     "All" to null,
-    "Phones" to DeviceKind.PHONE,
-    "Tablets" to DeviceKind.TABLET,
-    "Foldables" to DeviceKind.FOLDABLE,
-    "Desktop" to DeviceKind.DESKTOP,
+    "Phones" to DeviceKind.Phone,
+    "Tablets" to DeviceKind.Tablet,
+    "Foldables" to DeviceKind.Foldable,
+    "Desktop" to DeviceKind.Desktop,
 )
 
 /** The devices offered by the configuration view: by platform, then brand, newest first. */
@@ -471,14 +471,14 @@ private fun deviceIcon(device: Device): ImageVector {
     if (device is FreeformDevice) {
         return Icons.Outlined.AspectRatio
     }
-    val isApple = device.type == DeviceType.IOS
+    val isApple = device.type == DeviceType.Ios
     return when (device.kind) {
-        DeviceKind.TABLET -> if (isApple) Icons.Filled.TabletMac else Icons.Filled.TabletAndroid
-        DeviceKind.DESKTOP -> Icons.Filled.Computer
-        DeviceKind.PHONE, DeviceKind.FOLDABLE -> when (device.type) {
-            DeviceType.ANDROID -> Icons.Filled.PhoneAndroid
-            DeviceType.IOS -> Icons.Filled.PhoneIphone
-            DeviceType.OTHER -> Icons.Filled.DeviceHub
+        DeviceKind.Tablet -> if (isApple) Icons.Filled.TabletMac else Icons.Filled.TabletAndroid
+        DeviceKind.Desktop -> Icons.Filled.Computer
+        DeviceKind.Phone, DeviceKind.Foldable -> when (device.type) {
+            DeviceType.Android -> Icons.Filled.PhoneAndroid
+            DeviceType.Ios -> Icons.Filled.PhoneIphone
+            DeviceType.Other -> Icons.Filled.DeviceHub
         }
     }
 }

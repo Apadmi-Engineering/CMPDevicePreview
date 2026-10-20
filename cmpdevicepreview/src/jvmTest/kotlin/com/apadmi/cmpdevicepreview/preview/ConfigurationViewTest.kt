@@ -198,7 +198,7 @@ class ConfigurationViewTest {
             )
         }
         onNode(hasText("Auto") and isSelectable()).performScrollTo().performClick()
-        assertEquals(PreviewSettings(backdrop = Backdrop.AUTO), settings)
+        assertEquals(PreviewSettings(backdrop = Backdrop.Auto), settings)
 
         onNodeWithText("Dot grid").performScrollTo().performClick()
         assertEquals(PreviewSettings(isDotGridVisible = false), settings)
@@ -254,8 +254,8 @@ class ConfigurationViewTest {
                 simulatedDevice = SimulatedDevice(
                     DevicePresets.iPhone16Pro,
                     DeviceConfiguration(
-                        orientation = DeviceOrientation.LANDSCAPE,
-                        appearance = Appearance.DARK,
+                        orientation = DeviceOrientation.Landscape,
+                        appearance = Appearance.Dark,
                         isFrameVisible = false,
                         fontScale = 1.5f,
                         displayScale = 0.85f,
@@ -263,7 +263,7 @@ class ConfigurationViewTest {
                     ),
                 ),
                 onSimulatedDeviceChange = { changedDevice = it },
-                previewSettings = PreviewSettings(backdrop = Backdrop.DARK, isDotGridVisible = false),
+                previewSettings = PreviewSettings(backdrop = Backdrop.Dark, isDotGridVisible = false),
                 onPreviewSettingsChange = { changedSettings = it },
                 modifier = Modifier.width(300.dp).fillMaxSize(),
                 initialSimulatedDevice = SimulatedDevice(DevicePresets.pixel9),
@@ -276,8 +276,8 @@ class ConfigurationViewTest {
 
     @Test
     fun resetAllGoesBackToWhatTheHostStartedWithNotTheLibrarysDefaults() = runComposeUiTest {
-        val started = SimulatedDevice(DevicePresets.pixel9, DeviceConfiguration(appearance = Appearance.DARK, fontScale = 1.3f))
-        val startedSettings = PreviewSettings(backdrop = Backdrop.AUTO)
+        val started = SimulatedDevice(DevicePresets.pixel9, DeviceConfiguration(appearance = Appearance.Dark, fontScale = 1.3f))
+        val startedSettings = PreviewSettings(backdrop = Backdrop.Auto)
         var changedDevice: SimulatedDevice? = null
         var changedSettings: PreviewSettings? = null
         var current by mutableStateOf(SimulatedDevice(DevicePresets.pixel9))

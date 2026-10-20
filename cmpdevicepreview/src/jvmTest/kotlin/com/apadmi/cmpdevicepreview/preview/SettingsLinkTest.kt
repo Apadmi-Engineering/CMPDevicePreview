@@ -24,7 +24,7 @@ class SettingsLinkTest {
 
     private object CustomDevice : Device {
         override val name: String = "Mine"
-        override val type: DeviceType = DeviceType.OTHER
+        override val type: DeviceType = DeviceType.Other
         override val portraitSize: Size = Size(400f, 800f)
         override val devicePixelRatio: Float = 2f
     }
@@ -44,7 +44,7 @@ class SettingsLinkTest {
     @Test
     fun aPresetInLandscapeAndDarkIsWrittenAsALink() {
         val state = PreviewState(
-            SimulatedDevice(iPad, DeviceConfiguration(orientation = DeviceOrientation.LANDSCAPE, appearance = Appearance.DARK)),
+            SimulatedDevice(iPad, DeviceConfiguration(orientation = DeviceOrientation.Landscape, appearance = Appearance.Dark)),
             PreviewSettings(),
         )
         assertEquals("dp.device=apple-ipad-pro-13-m4&dp.orientation=landscape&dp.appearance=dark", encodeSettings(state, initial))
@@ -58,8 +58,8 @@ class SettingsLinkTest {
             SimulatedDevice(
                 pixel,
                 DeviceConfiguration(
-                    orientation = DeviceOrientation.LANDSCAPE,
-                    appearance = Appearance.DARK,
+                    orientation = DeviceOrientation.Landscape,
+                    appearance = Appearance.Dark,
                     isFrameVisible = false,
                     isSystemUiVisible = false,
                     isKeyboardVisible = true,
@@ -68,7 +68,7 @@ class SettingsLinkTest {
                     layoutDirection = LayoutDirection.Rtl,
                 ),
             ),
-            PreviewSettings(backdrop = Backdrop.AUTO, isDotGridVisible = false, isPreviewModeEnabled = false),
+            PreviewSettings(backdrop = Backdrop.Auto, isDotGridVisible = false, isPreviewModeEnabled = false),
         )
         assertEquals(state, state.roundTripped())
     }
@@ -85,7 +85,7 @@ class SettingsLinkTest {
         val darkRtl = PreviewState(
             SimulatedDevice(
                 DevicePresets.pixel9,
-                DeviceConfiguration(appearance = Appearance.DARK, fontScale = 1.3f, layoutDirection = LayoutDirection.Rtl),
+                DeviceConfiguration(appearance = Appearance.Dark, fontScale = 1.3f, layoutDirection = LayoutDirection.Rtl),
             ),
             PreviewSettings(isDotGridVisible = false),
         )
@@ -93,7 +93,7 @@ class SettingsLinkTest {
 
         val lightFollowingTheHost = darkRtl.copy(
             simulatedDevice = darkRtl.simulatedDevice.copy(
-                configuration = darkRtl.simulatedDevice.configuration.copy(appearance = Appearance.LIGHT, layoutDirection = null),
+                configuration = darkRtl.simulatedDevice.configuration.copy(appearance = Appearance.Light, layoutDirection = null),
             ),
         )
         assertEquals("dp.appearance=light&dp.direction=auto", encodeSettings(lightFollowingTheHost, darkRtl))
@@ -102,27 +102,27 @@ class SettingsLinkTest {
 
     @Test
     fun aDeviceThatIsNeitherAPresetNorFreeformIsLeftOut() {
-        val state = PreviewState(SimulatedDevice(CustomDevice, DeviceConfiguration(appearance = Appearance.DARK)), PreviewSettings())
+        val state = PreviewState(SimulatedDevice(CustomDevice, DeviceConfiguration(appearance = Appearance.Dark)), PreviewSettings())
         assertEquals("dp.appearance=dark", encodeSettings(state, initial))
     }
 
     @Test
     fun keysThatAreUnknownAndParamsOfTheHostAreIgnored() {
         assertEquals(
-            DeviceConfiguration(appearance = Appearance.DARK),
+            DeviceConfiguration(appearance = Appearance.Dark),
             configurationOf("dp.nope=1&theme=light&appearance=light&dp.appearance=dark&dp.&dp.orientation"),
         )
     }
 
     @Test
     fun theLastOfARepeatedKeyWins() {
-        assertEquals(Appearance.DARK, configurationOf("dp.appearance=light&dp.appearance=dark").appearance)
+        assertEquals(Appearance.Dark, configurationOf("dp.appearance=light&dp.appearance=dark").appearance)
     }
 
     @Test
     fun aValueThatIsNotValidLeavesThatSettingAsItWas() {
         val state = decoded("dp.appearance=purple&dp.orientation=landscape&dp.keyboard=maybe&dp.bezel=&dp.direction=up&dp.backdrop=neon&dp.dotGrid=2")
-        assertEquals(DeviceConfiguration(orientation = DeviceOrientation.LANDSCAPE), state.simulatedDevice.configuration)
+        assertEquals(DeviceConfiguration(orientation = DeviceOrientation.Landscape), state.simulatedDevice.configuration)
         assertEquals(PreviewSettings(), state.previewSettings)
     }
 
@@ -186,7 +186,7 @@ class SettingsLinkTest {
 
     @Test
     fun aLeadingQuestionMarkIsAccepted() {
-        assertEquals(Appearance.DARK, configurationOf("?dp.appearance=dark").appearance)
+        assertEquals(Appearance.Dark, configurationOf("?dp.appearance=dark").appearance)
     }
 
     @Test

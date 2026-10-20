@@ -111,15 +111,15 @@ private val CommonTextSizeIndices = CommonFontScales.map(FontScaleSteps::indexOf
 
 private val OrientationOptions = DeviceOrientation.entries.map { orientation ->
     when (orientation) {
-        DeviceOrientation.PORTRAIT -> SegmentOption("Portrait", Icons.Outlined.StayCurrentPortrait)
-        DeviceOrientation.LANDSCAPE -> SegmentOption("Landscape", Icons.Outlined.StayCurrentLandscape)
+        DeviceOrientation.Portrait -> SegmentOption("Portrait", Icons.Outlined.StayCurrentPortrait)
+        DeviceOrientation.Landscape -> SegmentOption("Landscape", Icons.Outlined.StayCurrentLandscape)
     }
 }
 
 private val AppearanceOptions = Appearance.entries.map { appearance ->
     when (appearance) {
-        Appearance.LIGHT -> SegmentOption("Light", Icons.Outlined.LightMode)
-        Appearance.DARK -> SegmentOption("Dark", Icons.Outlined.DarkMode)
+        Appearance.Light -> SegmentOption("Light", Icons.Outlined.LightMode)
+        Appearance.Dark -> SegmentOption("Dark", Icons.Outlined.DarkMode)
     }
 }
 
@@ -130,9 +130,9 @@ private val DirectionOptions = listOf(
 
 private val BackdropOptions = Backdrop.entries.map { backdrop ->
     when (backdrop) {
-        Backdrop.LIGHT -> SegmentOption("Light", Icons.Outlined.LightMode)
-        Backdrop.DARK -> SegmentOption("Dark", Icons.Outlined.DarkMode)
-        Backdrop.AUTO -> SegmentOption("Auto", Icons.Outlined.BrightnessAuto)
+        Backdrop.Light -> SegmentOption("Light", Icons.Outlined.LightMode)
+        Backdrop.Dark -> SegmentOption("Dark", Icons.Outlined.DarkMode)
+        Backdrop.Auto -> SegmentOption("Auto", Icons.Outlined.BrightnessAuto)
     }
 }
 
@@ -347,7 +347,7 @@ private fun OrientationSection(
     // A desktop window can't turn, so it shows as landscape.
     SegmentedControl(
         options = OrientationOptions,
-        selectedIndex = (if (device.isRotatable) configuration.orientation else DeviceOrientation.LANDSCAPE).ordinal,
+        selectedIndex = (if (device.isRotatable) configuration.orientation else DeviceOrientation.Landscape).ordinal,
         onSelect = { index -> onChange(configuration.copy(orientation = DeviceOrientation.entries[index])) },
         enabled = device.isRotatable,
     )

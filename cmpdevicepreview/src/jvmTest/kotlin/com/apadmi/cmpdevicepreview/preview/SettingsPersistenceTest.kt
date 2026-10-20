@@ -109,7 +109,7 @@ class SettingsPersistenceTest {
     @Test
     fun whatTheHostStartsWithIsNotKept() = runComposeUiTest {
         val store = FakeSettingsStore()
-        showView(store, initialConfiguration = DeviceConfiguration(appearance = Appearance.DARK))
+        showView(store, initialConfiguration = DeviceConfiguration(appearance = Appearance.Dark))
 
         settle()
 

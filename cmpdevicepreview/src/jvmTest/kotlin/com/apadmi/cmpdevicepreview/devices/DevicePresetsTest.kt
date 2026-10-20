@@ -39,8 +39,8 @@ class DevicePresetsTest {
     fun anIPhoneSpecIsCarriedOver() {
         val iPhone = DevicePresets.iPhone16Pro
         assertEquals("iPhone 16 Pro", iPhone.name)
-        assertEquals(DeviceType.IOS, iPhone.type)
-        assertEquals(DeviceKind.PHONE, iPhone.kind)
+        assertEquals(DeviceType.Ios, iPhone.type)
+        assertEquals(DeviceKind.Phone, iPhone.kind)
         assertEquals(2024, iPhone.year)
         assertEquals(Size(402f, 874f), iPhone.portraitSize)
         assertEquals(3f, iPhone.devicePixelRatio)
@@ -50,10 +50,10 @@ class DevicePresetsTest {
 
     @Test
     fun platformsKindsAndPixelRatiosAreCarriedOver() {
-        assertEquals(DeviceType.ANDROID, DevicePresets.galaxyZFold8.type)
-        assertEquals(DeviceKind.FOLDABLE, DevicePresets.galaxyZFold8.kind)
+        assertEquals(DeviceType.Android, DevicePresets.galaxyZFold8.type)
+        assertEquals(DeviceKind.Foldable, DevicePresets.galaxyZFold8.kind)
         assertEquals(2.625f, DevicePresets.pixel9.devicePixelRatio)
-        assertEquals(DeviceType.OTHER, DevicePresets.largeDesktopWindow.type)
+        assertEquals(DeviceType.Other, DevicePresets.largeDesktopWindow.type)
         assertEquals(DeviceInsets.Zero, DevicePresets.largeDesktopWindow.portraitSafeArea)
     }
 
@@ -112,7 +112,7 @@ class DevicePresetsTest {
     @Test
     fun everyDeviceButADesktopWindowHasSystemUi() {
         for (preset in DevicePresets.all) {
-            assertEquals(preset.kind != DeviceKind.DESKTOP, preset.systemUi != null, preset.id)
+            assertEquals(preset.kind != DeviceKind.Desktop, preset.systemUi != null, preset.id)
         }
     }
 
