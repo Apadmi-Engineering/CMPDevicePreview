@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +18,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.renderComposeScene
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
@@ -36,6 +38,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.LayoutDirection
@@ -53,6 +56,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 private const val AttributionText = "Built with CMPDevicePreview"
 
@@ -76,13 +80,15 @@ class ConfigurationViewTest {
                 previewSettings = PreviewSettings(),
                 onPreviewSettingsChange = {},
                 modifier = Modifier.width(300.dp).fillMaxSize(),
-                panelItems = listOf({
-                    shown += "first"
-                    primary = MaterialTheme.colorScheme.primary
-                    Box(Modifier.fillMaxWidth().onSizeChanged { width = it.width })
+                panel = {
+                    defaults()
+                    item {
+                        shown += "first"
+                        primary = MaterialTheme.colorScheme.primary
+                        Box(Modifier.fillMaxWidth().onSizeChanged { width = it.width })
+                    }
+                    item { shown += "second" }
                 },
-                    { shown += "second" },
-                ),
             )
         }
         assertEquals(listOf("first", "second"), shown)
@@ -100,8 +106,12 @@ class ConfigurationViewTest {
                 previewSettings = PreviewSettings(),
                 onPreviewSettingsChange = {},
                 modifier = Modifier.width(300.dp).fillMaxSize(),
-                panelTitle = "Acme Preview",
-                panelIcon = { Box(Modifier.fillMaxSize().testTag("logo")) },
+                panel = {
+                    defaults {
+                        header.title = "Acme Preview"
+                        header.icon = { Box(Modifier.fillMaxSize().testTag("logo")) }
+                    }
+                },
             )
         }
         onNodeWithText("Acme Preview").assertExists()
@@ -120,7 +130,7 @@ class ConfigurationViewTest {
                 previewSettings = PreviewSettings(),
                 onPreviewSettingsChange = {},
                 modifier = Modifier.width(300.dp).fillMaxSize(),
-                isAttributionVisible = isAttributionVisible,
+                panel = { defaults { attribution.isVisible = isAttributionVisible } },
             )
         }
         onNodeWithText(AttributionText).assertExists()
@@ -442,6 +452,127 @@ class ConfigurationViewTest {
         val value = { text: String -> SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, text) }
         onNodeWithContentDescription("Text size").performScrollTo().assert(value("150%"))
         onNodeWithContentDescription("Display size").performScrollTo().assert(value("Default"))
+    }
+
+    @Test
+    fun controlsAreShownInTheOrderTheyAreWrittenAndNothingElse() = runComposeUiTest {
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9),
+                onSimulatedDeviceChange = {},
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+                panel = {
+                    appearance()
+                    item { Text("Mine") }
+                    orientation()
+                },
+            )
+        }
+        val top = { text: String -> onNodeWithText(text).fetchSemanticsNode().boundsInRoot.top }
+        assertTrue(top("APPEARANCE") < top("Mine"))
+        assertTrue(top("Mine") < top("ORIENTATION"))
+        onNodeWithText("FRAME").assertDoesNotExist()
+        onNodeWithText("Preview mode").assertDoesNotExist()
+        onNodeWithText(AttributionText).assertDoesNotExist()
+        onNodeWithContentDescription("Reset all settings").assertDoesNotExist()
+    }
+
+    @Test
+    fun theTextSizeSliderOnlyOffersSizesInItsRange() = runComposeUiTest {
+        var changed: SimulatedDevice? = null
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9, DeviceConfiguration(fontScale = 3f)),
+                onSimulatedDeviceChange = { changed = it },
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+                panel = { textSize(range = 0.85f..2f) },
+            )
+        }
+        val slider = onNodeWithContentDescription("Text size")
+        slider.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "200%"))
+        slider.performSemanticsAction(SemanticsActions.SetProgress) { it(0f) }
+        assertEquals(0.85f, assertNotNull(changed).configuration.fontScale)
+    }
+
+    @Test
+    fun yourOwnSettingsChangeTheirValues() = runComposeUiTest {
+        var values by mutableStateOf(PanelSettingValues())
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9),
+                onSimulatedDeviceChange = {},
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+                panel = {
+                    section("Debug") {
+                        setting(MockApi)
+                        setting(Environment)
+                    }
+                },
+                settingValues = values,
+                onSettingValuesChange = { values = it },
+            )
+        }
+        onNodeWithText("DEBUG").assertExists()
+        onNodeWithText("Mock API").performClick()
+        assertTrue(values[MockApi])
+
+        onNodeWithText("Dev").performClick()
+        onNodeWithText("São Paulo").performClick()
+        assertEquals("São Paulo", values[Environment])
+        assertTrue(values[MockApi])
+    }
+
+    @Test
+    fun aChoiceShowsItsResetOnlyWhileItIsChanged() = runComposeUiTest {
+        var values by mutableStateOf(PanelSettingValues())
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9),
+                onSimulatedDeviceChange = {},
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+                panel = { setting(Environment) },
+                settingValues = values,
+                onSettingValuesChange = { values = it },
+            )
+        }
+        onNodeWithContentDescription("Reset Environment").assertIsNotEnabled()
+
+        values = values.with(Environment, "Staging")
+        waitForIdle()
+        onNodeWithContentDescription("Reset Environment").assertIsEnabled().performClick()
+        assertEquals(PanelSettingValues(), values)
+    }
+
+    @Test
+    fun resetAllReturnsYourOwnSettingsToTheirDefaults() = runComposeUiTest {
+        var values by mutableStateOf(PanelSettingValues().with(MockApi, true))
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9),
+                onSimulatedDeviceChange = {},
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+                panel = {
+                    defaults()
+                    setting(MockApi)
+                },
+                settingValues = values,
+                onSettingValuesChange = { values = it },
+                initialSimulatedDevice = SimulatedDevice(DevicePresets.pixel9),
+            )
+        }
+        onNodeWithContentDescription("Reset all settings").assertIsEnabled().performClick()
+        assertEquals(PanelSettingValues(), values)
+        onNodeWithContentDescription("Reset all settings").assertIsNotEnabled()
     }
 }
 

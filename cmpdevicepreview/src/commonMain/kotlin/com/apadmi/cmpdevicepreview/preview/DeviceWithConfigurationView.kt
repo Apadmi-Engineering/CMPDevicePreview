@@ -1,3 +1,5 @@
+@file:Suppress("FILE_NAME_MATCH_CLASS")
+
 package com.apadmi.cmpdevicepreview.preview
 
 import androidx.compose.foundation.clickable
@@ -63,6 +65,27 @@ private val SidePanelMinWidth = 880.dp
 /** How far the dark glow around the button that turns preview mode back on reaches from its centre. */
 private val ButtonGlowRadius = 96.dp
 
+/**
+ * What the view hands its configuration panel, beside the device or in the sheet.
+ *
+ * @property spec The panel.
+ * @property state What the panel shows, fitted to it.
+ * @property initial What the panel's reset button returns to.
+ * @property languages The languages the host offers.
+ * @property onSimulatedDeviceChange Applies a changed device or configuration.
+ * @property onPreviewSettingsChange Applies changed preview settings.
+ * @property onSettingValuesChange Applies changed values of settings of your own.
+ */
+private class PanelHostState(
+    val spec: PanelSpec,
+    val state: PreviewState,
+    val initial: PreviewState,
+    val languages: List<PreviewLanguage>,
+    val onSimulatedDeviceChange: (SimulatedDevice) -> Unit,
+    val onPreviewSettingsChange: (PreviewSettings) -> Unit,
+    val onSettingValuesChange: (PanelSettingValues) -> Unit,
+)
+
 // A link's settings are the whole truth, so what it leaves out is the initial setting, not a kept one.
 private fun SettingsStore?.startingState(initial: PreviewState): PreviewState {
     val encoded = this?.let { it.readLink()?.takeIf(String::isNotEmpty) ?: it.readSaved() }
@@ -82,12 +105,10 @@ private fun SettingsStore?.startingState(initial: PreviewState): PreviewState {
  * panel's picker offers the built-in presets.
  * @param initialConfiguration How the device is shown at first.
  * @param initialPreviewSettings How the preview around the device is shown at first.
- * @param panelItems Your own items for the configuration panel, below its settings: see
- * [ConfigurationView].
- * @param panelTitle The title in the configuration panel's header: see [ConfigurationView].
- * @param panelIcon The icon beside the title in the configuration panel's header: see [ConfigurationView].
- * @param isAttributionVisible Whether the configuration panel ends with a "Built with CMPDevicePreview"
- * link to the project's GitHub repository: see [ConfigurationView]. Pass false to hide it.
+ * @param panel What the configuration panel shows, in order: see [PanelScope]. By default it is the
+ * usual panel. A control it leaves out is hidden, and its setting stays as [initialDevice],
+ * [initialConfiguration] and [initialPreviewSettings] set it, whatever a link or the kept settings
+ * say. Inside the device, [PanelSetting.current] reads the value of a setting of your own placed in it.
  * @param isPersistenceEnabled Whether what differs from the initial settings is kept across reloads
  * and restarts, and on the web in the page's URL as `dp.` query parameters, so a link opens the same
  * preview. A link's settings win over the kept ones. Pass false to turn both off.
@@ -102,61 +123,69 @@ public fun DeviceWithConfigurationView(
     initialDevice: Device = DefaultDevice,
     initialConfiguration: DeviceConfiguration = DeviceConfiguration(),
     initialPreviewSettings: PreviewSettings = PreviewSettings(),
-    panelItems: List<@Composable () -> Unit> = emptyList(),
-    panelTitle: String = DefaultPanelTitle,
-    panelIcon: @Composable () -> Unit = DefaultPanelIcon,
-    isAttributionVisible: Boolean = true,
+    panel: PanelScope.() -> Unit = DefaultPanel,
     isPersistenceEnabled: Boolean = true,
     languages: List<PreviewLanguage> = emptyList(),
     content: @Composable () -> Unit,
 ) {
+    val spec by rememberPanelSpec(panel)
     val store = if (isPersistenceEnabled) LocalSettingsStore.current ?: rememberSettingsStore() else null
-    val initial = remember(initialDevice, initialConfiguration, initialPreviewSettings, languages) {
-        PreviewState(
-            SimulatedDevice(initialDevice, initialConfiguration).adaptedToDevice().inLanguages(languages),
-            initialPreviewSettings,
-        )
+    val initial = remember(initialDevice, initialConfiguration, initialPreviewSettings, languages, spec) {
+        val given = PreviewState(SimulatedDevice(initialDevice, initialConfiguration), initialPreviewSettings)
+        given.fittedTo(spec, languages, given)
     }
     val starting = remember(store) { store.startingState(initial) }
     val simulatedDeviceSaver = remember(initialDevice) { simulatedDeviceSaver(initialDevice) }
-    var simulatedDevice by rememberSaveable(stateSaver = simulatedDeviceSaver) {
-        mutableStateOf(starting.simulatedDevice.inLanguages(languages))
-    }
-    var previewSettings by rememberSaveable(stateSaver = PreviewSettingsSaver) {
-        mutableStateOf(starting.previewSettings)
+    var simulatedDevice by rememberSaveable(stateSaver = simulatedDeviceSaver) { mutableStateOf(starting.simulatedDevice) }
+    var previewSettings by rememberSaveable(stateSaver = PreviewSettingsSaver) { mutableStateOf(starting.previewSettings) }
+    var settingValues by rememberSaveable(stateSaver = PanelSettingValuesSaver) { mutableStateOf(starting.settingValues) }
+    // Wherever the state came from, a link, the kept settings or a change of panel, it is shown as the panel allows.
+    val state = remember(simulatedDevice, previewSettings, settingValues, spec, languages, initial) {
+        PreviewState(simulatedDevice, previewSettings, settingValues).fittedTo(spec, languages, initial)
     }
     // Before the return below, so the settings are kept while only the content is shown too.
-    val encoded = remember(simulatedDevice, previewSettings, initial) {
-        encodeSettings(PreviewState(simulatedDevice, previewSettings), initial)
-    }
+    val encoded = remember(state, initial) { encodeSettings(state, initial) }
     LaunchedEffect(store, encoded) {
         if (store != null) {
             delay(SaveDelayMillis)
             store.write(encoded)
         }
     }
-    if (!previewSettings.isPreviewModeEnabled) {
+    if (!state.previewSettings.isPreviewModeEnabled) {
         Box(modifier.fillMaxSize()) {
-            content()
-            PreviewModeButton(
-                onClick = { previewSettings = previewSettings.copy(isPreviewModeEnabled = true) },
-                modifier = Modifier.align(Alignment.BottomEnd).windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp),
-            )
+            CompositionLocalProvider(LocalPanelSettingValues provides state.settingValues, content = content)
+            // With the switch hidden, preview mode stays as the host started it.
+            if (PanelControl.PreviewMode in spec.controls) {
+                PreviewModeButton(
+                    onClick = { previewSettings = state.previewSettings.copy(isPreviewModeEnabled = true) },
+                    modifier = Modifier.align(Alignment.BottomEnd).windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp),
+                )
+            }
         }
         return
     }
-    val onSimulatedDeviceChange: (SimulatedDevice) -> Unit = { simulatedDevice = it }
-    val onPreviewSettingsChange: (PreviewSettings) -> Unit = { previewSettings = it }
-    CompositionLocalProvider(LocalDeviceScreenshots provides rememberDeviceScreenshots()) {
+    val panelState = PanelHostState(
+        spec = spec,
+        state = state,
+        initial = initial,
+        languages = languages,
+        onSimulatedDeviceChange = { simulatedDevice = it },
+        onPreviewSettingsChange = { previewSettings = it },
+        onSettingValuesChange = { settingValues = it },
+    )
+    CompositionLocalProvider(
+        LocalDeviceScreenshots provides rememberDeviceScreenshots(),
+        LocalPanelSettingValues provides state.settingValues,
+    ) {
         BoxWithConstraints(modifier) {
             val isWide = maxWidth >= SidePanelMinWidth
             // The device keeps its place in the composition whichever way the panel is shown, so
             // neither it nor the content is recreated when the view crosses the width above.
             PreviewLayout(isWide) {
                 ZoomableDevicePreview(
-                    simulatedDevice = simulatedDevice,
-                    previewSettings = previewSettings,
-                    onResize = onSimulatedDeviceChange,
+                    simulatedDevice = state.simulatedDevice,
+                    previewSettings = state.previewSettings,
+                    onResize = panelState.onSimulatedDeviceChange,
                     isZoomable = true,
                     content = content,
                 )
@@ -164,33 +193,9 @@ public fun DeviceWithConfigurationView(
                 // while it shows a dialog.
                 Box {
                     if (isWide) {
-                        ConfigurationView(
-                            simulatedDevice = simulatedDevice,
-                            onSimulatedDeviceChange = onSimulatedDeviceChange,
-                            previewSettings = previewSettings,
-                            onPreviewSettingsChange = onPreviewSettingsChange,
-                            modifier = Modifier.fillMaxSize(),
-                            panelItems = panelItems,
-                            panelTitle = panelTitle,
-                            panelIcon = panelIcon,
-                            isAttributionVisible = isAttributionVisible,
-                            initialSimulatedDevice = initial.simulatedDevice,
-                            initialPreviewSettings = initial.previewSettings,
-                            languages = languages,
-                        )
+                        HostedPanel(panelState, Modifier.fillMaxSize())
                     } else {
-                        PanelSheet(
-                            simulatedDevice,
-                            onSimulatedDeviceChange,
-                            previewSettings,
-                            onPreviewSettingsChange,
-                            panelItems,
-                            panelTitle,
-                            panelIcon,
-                            isAttributionVisible,
-                            initial,
-                            languages,
-                        )
+                        PanelSheet(panelState)
                     }
                 }
             }
@@ -232,18 +237,7 @@ private fun PreviewLayout(isWide: Boolean, content: @Composable () -> Unit) {
 /** A button naming the device, which opens the panel in a bottom sheet. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PanelSheet(
-    simulatedDevice: SimulatedDevice,
-    onSimulatedDeviceChange: (SimulatedDevice) -> Unit,
-    previewSettings: PreviewSettings,
-    onPreviewSettingsChange: (PreviewSettings) -> Unit,
-    panelItems: List<@Composable () -> Unit>,
-    panelTitle: String,
-    panelIcon: @Composable () -> Unit,
-    isAttributionVisible: Boolean,
-    initial: PreviewState,
-    languages: List<PreviewLanguage>,
-) {
+private fun PanelSheet(panel: PanelHostState) {
     var isSheetShown by remember { mutableStateOf(false) }
     if (isSheetShown) {
         ModalBottomSheet(
@@ -251,20 +245,7 @@ private fun PanelSheet(
             dragHandle = { BottomSheetDefaults.DragHandle(color = PanelColors.SwitchOff) },
             containerColor = PanelColors.Background,
         ) {
-            ConfigurationView(
-                simulatedDevice = simulatedDevice,
-                onSimulatedDeviceChange = onSimulatedDeviceChange,
-                previewSettings = previewSettings,
-                onPreviewSettingsChange = onPreviewSettingsChange,
-                modifier = Modifier.fillMaxSize(),
-                panelItems = panelItems,
-                panelTitle = panelTitle,
-                panelIcon = panelIcon,
-                isAttributionVisible = isAttributionVisible,
-                initialSimulatedDevice = initial.simulatedDevice,
-                initialPreviewSettings = initial.previewSettings,
-                languages = languages,
-            )
+            HostedPanel(panel, Modifier.fillMaxSize())
         }
     }
     Button(
@@ -277,8 +258,22 @@ private fun PanelSheet(
         ),
     ) {
         Icon(Icons.Outlined.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
-        Text(deviceLabel(simulatedDevice.device), modifier = Modifier.padding(start = 10.dp), fontWeight = FontWeight.Medium)
+        Text(deviceLabel(panel.state.simulatedDevice.device), modifier = Modifier.padding(start = 10.dp), fontWeight = FontWeight.Medium)
     }
+}
+
+@Composable
+private fun HostedPanel(panel: PanelHostState, modifier: Modifier) {
+    ConfigurationPanel(
+        spec = panel.spec,
+        state = panel.state,
+        initial = panel.initial,
+        languages = panel.languages,
+        onSimulatedDeviceChange = panel.onSimulatedDeviceChange,
+        onPreviewSettingsChange = panel.onPreviewSettingsChange,
+        onSettingValuesChange = panel.onSettingValuesChange,
+        modifier = modifier,
+    )
 }
 
 @Composable

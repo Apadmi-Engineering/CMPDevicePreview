@@ -8,6 +8,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
@@ -37,6 +39,7 @@ class SettingsPersistenceTest {
         isPersistenceEnabled: Boolean = true,
         initialConfiguration: DeviceConfiguration = DeviceConfiguration(),
         languages: List<PreviewLanguage> = emptyList(),
+        panel: PanelScope.() -> Unit = DefaultPanel,
     ) {
         setContent {
             CompositionLocalProvider(LocalSettingsStore provides store) {
@@ -44,6 +47,7 @@ class SettingsPersistenceTest {
                     DeviceWithConfigurationView(
                         initialDevice = DevicePresets.pixel9,
                         initialConfiguration = initialConfiguration,
+                        panel = panel,
                         isPersistenceEnabled = isPersistenceEnabled,
                         languages = languages,
                     ) {}
@@ -178,6 +182,37 @@ class SettingsPersistenceTest {
         settle()
 
         assertEquals("dp.language=cy", store.writes.last())
+    }
+
+    @Test
+    fun aLinkCannotChangeASettingWhoseControlIsHidden() = runComposeUiTest {
+        val store = FakeSettingsStore(link = "dp.backdrop=dark&dp.appearance=dark")
+        showView(store, panel = { defaults { backdrop.isVisible = false } })
+        settle()
+
+        // The appearance is in the panel, so the link sets it; the backdrop isn't, so it stays as the host started it.
+        assertSelected("Dark")
+        assertEquals("dp.appearance=dark", store.writes.last())
+    }
+
+    @Test
+    fun aLinkSetsYourOwnSettingAndResetAllClearsIt() = runComposeUiTest {
+        val store = FakeSettingsStore(link = "dp.x.mockApi=1&dp.x.unknown=1")
+        showView(
+            store,
+            panel = {
+                defaults()
+                setting(MockApi)
+            },
+        )
+        settle()
+        onNodeWithText("Mock API").assertIsOn()
+        assertEquals("dp.x.mockApi=1", store.writes.last())
+
+        onNodeWithContentDescription("Reset all settings").performClick()
+        settle()
+        onNodeWithText("Mock API").assertIsOff()
+        assertEquals("", store.writes.last())
     }
 
     private class FakeSettingsStore(var link: String? = null, var saved: String? = null) : SettingsStore {

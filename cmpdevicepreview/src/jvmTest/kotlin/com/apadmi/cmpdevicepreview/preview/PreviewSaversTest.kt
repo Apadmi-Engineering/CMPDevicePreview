@@ -90,6 +90,12 @@ class PreviewSaversTest {
         assertEquals(settings, PreviewSettingsSaver.roundTrip(settings))
     }
 
+    @Test
+    fun customSettingValuesAreRestored() {
+        val values = PanelSettingValues().with(MockApi, true).with(Environment, "Staging")
+        assertEquals(values, PanelSettingValuesSaver.roundTrip(values))
+    }
+
     // StateRestorationTester isn't implemented outside Android, so this saves and restores through a
     // registry of its own, as an Activity being recreated would.
     @OptIn(ExperimentalTestApi::class)
