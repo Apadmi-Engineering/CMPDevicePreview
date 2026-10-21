@@ -124,7 +124,7 @@ public class PanelSetting<T> private constructor(
             key: String,
             title: String,
             options: List<T>,
-            default: T = options.first(),
+            default: T = options.also { require(it.isNotEmpty()) { "The setting \"$key\" has no options" } }.first(),
             note: String? = null,
             icon: ImageVector = Icons.Outlined.Tune,
             label: (T) -> String = { it.toString() },
@@ -133,43 +133,22 @@ public class PanelSetting<T> private constructor(
 }
 
 /**
- * The values of the [PanelSetting]s in a panel, for when you place `ConfigurationView` yourself and
- * hold its state. Each setting not given a value has its default.
+ * The values of the settings of your own in a panel.
  *
  * @property values Each setting's value as a link writes it, by key, leaving out those at their defaults.
  */
-public class PanelSettingValues internal constructor(internal val values: Map<String, String>) {
-    /** Every setting at its default. */
-    public constructor() : this(emptyMap())
-
-    /**
-     * The value of [setting].
-     *
-     * @param setting The setting to read.
-     * @return Its value, or its default when it has none.
-     */
-    public operator fun <T> get(setting: PanelSetting<T>): T =
+internal data class PanelSettingValues(val values: Map<String, String> = emptyMap()) {
+    operator fun <T> get(setting: PanelSetting<T>): T =
         values[setting.key]?.let(setting::optionIndex)?.let(setting.options::get) ?: setting.default
 
-    /**
-     * A copy with [setting] set to [value].
-     *
-     * @param setting The setting to change.
-     * @param value Its new value, one of its options.
-     * @return These values with [setting] changed.
-     */
-    public fun <T> with(setting: PanelSetting<T>, value: T): PanelSettingValues =
-        PanelSettingValues(if (value == setting.default) values - setting.key else values + (setting.key to setting.linkValue(value)))
+    fun <T> with(setting: PanelSetting<T>, value: T): PanelSettingValues {
+        require(value in setting.options) { "$value isn't one of the options of the setting \"${setting.key}\"" }
+        return PanelSettingValues(if (value == setting.default) values - setting.key else values + (setting.key to setting.linkValue(value)))
+    }
 
     // Keeps only the values of these settings that are options of them, as a link writes them.
-    internal fun fittedTo(settings: List<PanelSetting<*>>): PanelSettingValues {
+    fun fittedTo(settings: List<PanelSetting<*>>): PanelSettingValues {
         val fitted = settings.mapNotNull { setting -> values[setting.key]?.let(setting::canonical)?.let { setting.key to it } }.toMap()
         return if (fitted == values) this else PanelSettingValues(fitted)
     }
-
-    override fun equals(other: Any?): Boolean = other is PanelSettingValues && other.values == values
-
-    override fun hashCode(): Int = values.hashCode()
-
-    override fun toString(): String = "PanelSettingValues($values)"
 }

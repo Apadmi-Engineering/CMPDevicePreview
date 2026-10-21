@@ -81,7 +81,7 @@ A link's settings win over the kept ones, and the panel's reset button clears bo
 
 ## Customisation
 
-You choose what the configuration panel shows, in what order, and can add settings and controls of your own. Pass `panel` to `DeviceWithConfigurationView`, or to `ConfigurationView` if you place the panel yourself. A control the panel leaves out keeps the setting the preview started with, and a link or the kept settings can't change it.
+You choose what the configuration panel shows, in what order, and can add settings and controls of your own. Pass `panel` to `DeviceWithConfigurationView`. A control the panel leaves out keeps the setting the preview started with, and a link or the kept settings can't change it.
 
 ### Hiding and configuring the usual controls
 
@@ -159,7 +159,7 @@ panel = {
 
 The header, the attribution and the preview mode switch stay at the top, the end and the foot of the panel wherever you place them. The controls that show their name as a heading (`frame`, `orientation`, `appearance`, `layoutDirection`, `language` and `backdrop`) go at the top level; the others can also go in a `section`.
 
-`panelItems`, `panelTitle`, `panelIcon` and `isAttributionVisible` were replaced by `panel`: use `item { }`, `header.title`, `header.icon` and `attribution.isVisible` as above.
+`panelItems`, `panelTitle`, `panelIcon` and `isAttributionVisible` were replaced by `panel`: use `item { }`, `header.title`, `header.icon` and `attribution.isVisible` as above. Items are set apart like the panel's own controls, so put several in one `item { Column { } }` to keep them together as `panelItems` did. `ConfigurationView` is no longer public, so the panel is placed by `DeviceWithConfigurationView`.
 
 ### Languages
 

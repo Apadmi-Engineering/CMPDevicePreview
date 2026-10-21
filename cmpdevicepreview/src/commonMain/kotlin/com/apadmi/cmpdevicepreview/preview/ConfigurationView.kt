@@ -47,6 +47,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -180,29 +181,9 @@ private class PanelModel(
 
 private fun PanelEntry.isControl(control: PanelControl): Boolean = this is PanelEntry.Control && this.control == control
 
-/**
- * The configuration panel, which picks the device and sets how it and the preview are shown.
- *
- * @param simulatedDevice The device and configuration the panel shows the settings of.
- * @param onSimulatedDeviceChange Called with the new device and configuration when the picker or a
- * setting changes them, fitted to the device. Pass it back as [simulatedDevice] to apply it.
- * @param previewSettings The settings of the preview around the device that the panel shows.
- * @param onPreviewSettingsChange Called with the new settings when the backdrop, the dot grid or
- * preview mode is changed, or everything is reset. Pass them back as [previewSettings] to apply them.
- * @param modifier The modifier for the panel.
- * @param panel What the panel shows, in order, from its header to its footer: see [PanelScope]. By
- * default it is the usual panel.
- * @param settingValues The values of the [PanelSetting]s placed in [panel].
- * @param onSettingValuesChange Called with the new values when one of [panel]'s settings is changed,
- * or everything is reset. Pass them back as [settingValues] to apply them.
- * @param initialSimulatedDevice The device and configuration the reset button in the header returns to.
- * @param initialPreviewSettings The preview settings the reset button in the header returns to.
- * @param languages The languages to choose from for the content inside the device, shown by the
- * panel's language setting. The first is the default: the one shown when
- * [DeviceConfiguration.language] is not one of them. With none, the panel has no language setting.
- */
+// Unlike DeviceWithConfigurationView, this doesn't fit the state to the panel: the caller holds it as given.
 @Composable
-public fun ConfigurationView(
+internal fun ConfigurationView(
     simulatedDevice: SimulatedDevice,
     onSimulatedDeviceChange: (SimulatedDevice) -> Unit,
     previewSettings: PreviewSettings,
@@ -329,20 +310,39 @@ private fun PanelEntries(
     gap: (PanelEntry, PanelEntry) -> Dp
 ) {
     val shown = entries.filter(panel::isShown)
+    val keys = entryKeys(shown)
     shown.forEachIndexed { index, entry ->
-        val space = if (index > 0) gap(shown[index - 1], entry) else 0.dp
-        if (space > 0.dp) {
-            Spacer(Modifier.height(space))
-        }
-        when (entry) {
-            is PanelEntry.Control -> PanelControlView(entry.control, panel)
-            is PanelEntry.Section -> {
-                SectionLabel(entry.title)
-                PanelEntries(entry.entries, panel, ::sectionGap)
+        key(keys[index]) {
+            val space = if (index > 0) gap(shown[index - 1], entry) else 0.dp
+            if (space > 0.dp) {
+                Spacer(Modifier.height(space))
             }
-            is PanelEntry.Setting -> SettingView(entry.setting, panel.state.settingValues, panel.onSettingValuesChange)
-            is PanelEntry.Item -> entry.content()
+            when (entry) {
+                is PanelEntry.Control -> PanelControlView(entry.control, panel)
+                is PanelEntry.Section -> {
+                    SectionLabel(entry.title)
+                    PanelEntries(entry.entries, panel, ::sectionGap)
+                }
+                is PanelEntry.Setting -> SettingView(entry.setting, panel.state.settingValues, panel.onSettingValuesChange)
+                is PanelEntry.Item -> entry.content()
+            }
         }
+    }
+}
+
+// Strings hash the same after a restore; sections and items, which can repeat, are counted to tell them apart.
+private fun entryKeys(entries: List<PanelEntry>): List<String> {
+    val counts = mutableMapOf<String, Int>()
+    return entries.map { entry ->
+        val identity = when (entry) {
+            is PanelEntry.Control -> "control:${entry.control.name}"
+            is PanelEntry.Setting -> "setting:${entry.setting.key}"
+            is PanelEntry.Section -> "section:${entry.title}"
+            is PanelEntry.Item -> "item"
+        }
+        val count = counts.getOrElse(identity) { 0 }
+        counts[identity] = count + 1
+        "$identity#$count"
     }
 }
 

@@ -120,7 +120,11 @@ public sealed interface PanelScope : PanelSectionScope {
     /** The "Built with CMPDevicePreview" link to the project's GitHub repository, after the settings wherever it is placed. */
     public fun attribution()
 
-    /** The switch at the foot of the panel, wherever it is placed, that shows just the app. */
+    /**
+     * The switch at the foot of the panel, wherever it is placed, that shows just the app. Left out,
+     * preview mode stays as the host started it: started off, only the app is shown, with no way back
+     * to the panel.
+     */
     public fun previewMode()
 }
 
@@ -172,7 +176,7 @@ public sealed interface DefaultPanelScope {
     /** The link to the project's repository. */
     public val attribution: PanelControlOptions
 
-    /** The preview mode switch at the foot of the panel. */
+    /** The preview mode switch at the foot of the panel: see [PanelScope.previewMode]. */
     public val previewMode: PanelControlOptions
 }
 

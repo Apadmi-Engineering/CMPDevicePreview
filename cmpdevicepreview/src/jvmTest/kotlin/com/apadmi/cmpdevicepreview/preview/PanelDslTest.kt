@@ -199,6 +199,16 @@ class PanelDslTest {
     }
 
     @Test
+    fun aChoiceWithNoOptionsIsAnError() {
+        assertFailsWith<IllegalArgumentException> { PanelSetting.choice(key = "env", title = "Environment", options = emptyList<String>()) }
+    }
+
+    @Test
+    fun aValueThatIsNotAnOptionIsAnError() {
+        assertFailsWith<IllegalArgumentException> { PanelSettingValues().with(Environment, "Prod") }
+    }
+
+    @Test
     fun aSettingsValueIsItsDefaultUntilItIsChanged() {
         val values = PanelSettingValues()
         assertFalse(values[MockApi])

@@ -112,9 +112,9 @@ private fun SettingsStore?.startingState(initial: PreviewState): PreviewState {
  * @param isPersistenceEnabled Whether what differs from the initial settings is kept across reloads
  * and restarts, and on the web in the page's URL as `dp.` query parameters, so a link opens the same
  * preview. A link's settings win over the kept ones. Pass false to turn both off.
- * @param languages The languages the panel offers for the content inside the device: see
- * [ConfigurationView]. With none, the panel has no language setting, whatever a link or the kept
- * settings say.
+ * @param languages The languages the panel offers for the content inside the device. The first is
+ * the default: the one shown when [DeviceConfiguration.language] is not one of them. With none, the
+ * panel has no language setting, whatever a link or the kept settings say.
  * @param content What is shown inside the simulated device, or on its own when preview mode is off.
  */
 @Composable
