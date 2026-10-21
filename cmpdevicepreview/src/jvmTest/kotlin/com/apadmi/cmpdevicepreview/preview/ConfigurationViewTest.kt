@@ -455,6 +455,32 @@ class ConfigurationViewTest {
     }
 
     @Test
+    fun thePreviewModeSwitchIsLastUnlessPlacedElsewhere() = runComposeUiTest {
+        var panel: PanelScope.() -> Unit by mutableStateOf(DefaultPanel)
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9),
+                onSimulatedDeviceChange = {},
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+                panel = panel,
+            )
+        }
+        // Unclipped, as the end of the panel is below the window.
+        val top = { text: String -> onNodeWithText(text).fetchSemanticsNode().positionInRoot.y }
+        assertTrue(top("Dot grid") < top("Preview mode"))
+        assertTrue(top("Preview mode") < top(AttributionText))
+
+        panel = {
+            previewMode()
+            defaults()
+        }
+        waitForIdle()
+        assertTrue(top("Preview mode") < top("FRAME"))
+    }
+
+    @Test
     fun controlsAreShownInTheOrderTheyAreWrittenAndNothingElse() = runComposeUiTest {
         setContent {
             ConfigurationView(

@@ -41,7 +41,6 @@ import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.UnfoldMore
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.ZoomIn
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -222,7 +221,6 @@ internal fun ConfigurationPanel(
     modifier: Modifier = Modifier,
 ) {
     val simulatedDevice = state.simulatedDevice
-    val previewSettings = state.previewSettings
     // Every change is fitted to the device, whichever setting it comes from.
     val update = { changed: SimulatedDevice -> onSimulatedDeviceChange(changed.adaptedToDevice()) }
 
@@ -276,27 +274,15 @@ internal fun ConfigurationPanel(
                     Attribution()
                 }
             }
-
-            if (PanelControl.PreviewMode in spec.controls) {
-                HorizontalDivider(color = PanelColors.Border)
-                ToggleRow(
-                    icon = Icons.Outlined.Visibility,
-                    title = "Preview mode",
-                    note = "Off shows just the app, with a button to turn it back on",
-                    checked = previewSettings.isPreviewModeEnabled,
-                    onCheckedChange = { onPreviewSettingsChange(previewSettings.copy(isPreviewModeEnabled = it)) },
-                    modifier = Modifier.padding(8.dp),
-                )
-            }
         }
     }
 }
 
-// As the panel was laid out before it could be changed: headings 20 dp apart, more under the frame, and a row
-// close under what it follows, as the dot grid is under the backdrop.
+// Headings 20 dp apart, more under the frame, and a row close under the heading it follows, as the dot grid is
+// under the backdrop.
 private fun topLevelGap(previous: PanelEntry, entry: PanelEntry): Dp = when {
     previous.isControl(PanelControl.Frame) -> 24.dp
-    entry.isRow -> 8.dp
+    entry.isRow && previous is PanelEntry.Control && !previous.isRow -> 8.dp
     else -> 20.dp
 }
 
@@ -375,8 +361,15 @@ private fun PanelControlView(control: PanelControl, panel: PanelModel) {
             checked = previewSettings.isDotGridVisible,
             onCheckedChange = { panel.onPreviewSettingsChange(previewSettings.copy(isDotGridVisible = it)) },
         )
+        PanelControl.PreviewMode -> ToggleRow(
+            icon = Icons.Outlined.Visibility,
+            title = "Preview mode",
+            note = "Off shows just the app, with a button to turn it back on",
+            checked = previewSettings.isPreviewModeEnabled,
+            onCheckedChange = { panel.onPreviewSettingsChange(previewSettings.copy(isPreviewModeEnabled = it)) },
+        )
         // Drawn around the entries, wherever they are placed.
-        PanelControl.Header, PanelControl.Attribution, PanelControl.PreviewMode -> Unit
+        PanelControl.Header, PanelControl.Attribution -> Unit
     }
 }
 

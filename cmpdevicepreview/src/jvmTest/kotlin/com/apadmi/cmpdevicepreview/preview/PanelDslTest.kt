@@ -23,6 +23,7 @@ class PanelDslTest {
         PanelControl.Keyboard,
         PanelControl.Backdrop,
         PanelControl.DotGrid,
+        PanelControl.PreviewMode,
     )
 
     // The panel's own controls in the order they are drawn, sections and all.
@@ -54,7 +55,7 @@ class PanelDslTest {
                 previewMode.isVisible = false
             }
         }
-        assertEquals(usualOrder - PanelControl.Backdrop, panel.entries.controls())
+        assertEquals(usualOrder - PanelControl.Backdrop - PanelControl.PreviewMode, panel.entries.controls())
         assertFalse(PanelControl.Backdrop in panel.controls)
         assertFalse(PanelControl.PreviewMode in panel.controls)
         assertNull(panel.header)
@@ -85,6 +86,15 @@ class PanelDslTest {
         assertEquals(listOf(PanelControl.Appearance, PanelControl.Keyboard, PanelControl.TextSize, PanelControl.Frame), panel.entries.controls())
         assertEquals(setOf(PanelControl.Appearance, PanelControl.Keyboard, PanelControl.TextSize, PanelControl.Frame), panel.controls)
         assertNull(panel.header)
+    }
+
+    @Test
+    fun thePreviewModeSwitchCanGoInASection() {
+        val panel = buildPanel {
+            section("More") { previewMode() }
+        }
+        assertEquals(listOf(PanelControl.PreviewMode), panel.entries.controls())
+        assertEquals(listOf("More"), panel.entries.sectionTitles())
     }
 
     @Test

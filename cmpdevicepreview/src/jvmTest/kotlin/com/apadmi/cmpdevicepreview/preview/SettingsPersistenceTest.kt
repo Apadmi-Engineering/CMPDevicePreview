@@ -100,7 +100,7 @@ class SettingsPersistenceTest {
         showView(store)
 
         onNode(hasText("Landscape") and isSelectable()).performClick()
-        onNodeWithText("Preview mode").performClick()
+        onNodeWithText("Preview mode").performScrollTo().performClick()
         settle()
 
         assertEquals("dp.orientation=landscape&dp.preview=0", store.writes.last())

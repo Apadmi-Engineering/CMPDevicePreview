@@ -157,7 +157,7 @@ panel = {
 }
 ```
 
-The header, the attribution and the preview mode switch stay at the top, the end and the foot of the panel wherever you place them. A `section` can hold `textSize`, `displaySize`, `bezel`, `systemUi`, `keyboard`, `dotGrid`, settings and items; the other controls go at the top level, under headings of their own.
+The header and the attribution stay at the top and the end of the panel wherever you place them. A `section` can hold `textSize`, `displaySize`, `bezel`, `systemUi`, `keyboard`, `dotGrid`, `previewMode`, settings and items; the other controls go at the top level, under headings of their own.
 
 ### Languages
 

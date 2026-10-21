@@ -182,7 +182,7 @@ class DeviceWithConfigurationViewTest {
         }
         onNodeWithContentDescription(restoreButton).assertDoesNotExist()
 
-        onNodeWithText("Preview mode").performClick()
+        onNodeWithText("Preview mode").performScrollTo().performClick()
         waitForIdle()
         onNodeWithText("Device Preview").assertDoesNotExist()
         onNodeWithText("The app").assertExists()
@@ -238,7 +238,7 @@ class DeviceWithConfigurationViewTest {
             }
         }
         onNodeWithText("Landscape").performClick()
-        onNodeWithText("Preview mode").performClick()
+        onNodeWithText("Preview mode").performScrollTo().performClick()
         waitForIdle()
         onNodeWithContentDescription(restoreButton).performClick()
         waitForIdle()

@@ -23,6 +23,7 @@ private val DefaultBody: List<PanelEntry> = listOf(
     ),
     PanelEntry.Control(PanelControl.Backdrop),
     PanelEntry.Control(PanelControl.DotGrid),
+    PanelEntry.Control(PanelControl.PreviewMode),
 )
 
 /**
@@ -45,8 +46,8 @@ internal enum class PanelControl(val isRow: Boolean = false) {
     Keyboard(isRow = true),
     Backdrop,
     DotGrid(isRow = true),
+    PreviewMode(isRow = true),
     Attribution,
-    PreviewMode,
     ;
 
     val dslName: String
@@ -147,6 +148,8 @@ private abstract class EntriesBuilder(protected val placements: PanelPlacements)
 
     override fun dotGrid() = add(PanelControl.DotGrid)
 
+    override fun previewMode() = add(PanelControl.PreviewMode)
+
     override fun setting(setting: PanelSetting<*>) {
         placements.place(setting)
         entries += PanelEntry.Setting(setting)
@@ -197,8 +200,6 @@ private class PanelBuilder : EntriesBuilder(PanelPlacements()), PanelScope {
     override fun backdrop() = add(PanelControl.Backdrop)
 
     override fun attribution() = placements.place(PanelControl.Attribution)
-
-    override fun previewMode() = placements.place(PanelControl.PreviewMode)
 
     fun build(): PanelSpec {
         val placed = placements.controls.toSet()
@@ -265,8 +266,8 @@ private class DefaultPanelOptions : DefaultPanelScope {
     override val keyboard: ControlOptions = ControlOptions()
     override val backdrop: ControlOptions = ControlOptions()
     override val dotGrid: ControlOptions = ControlOptions()
-    override val attribution: ControlOptions = ControlOptions()
     override val previewMode: ControlOptions = ControlOptions()
+    override val attribution: ControlOptions = ControlOptions()
     private val byControl: Map<PanelControl, ControlOptions> = mapOf(
         PanelControl.Header to header,
         PanelControl.Frame to frame,
@@ -281,8 +282,8 @@ private class DefaultPanelOptions : DefaultPanelScope {
         PanelControl.Keyboard to keyboard,
         PanelControl.Backdrop to backdrop,
         PanelControl.DotGrid to dotGrid,
-        PanelControl.Attribution to attribution,
         PanelControl.PreviewMode to previewMode,
+        PanelControl.Attribution to attribution,
     )
 
     fun shown(except: Set<PanelControl>): Set<PanelControl> =

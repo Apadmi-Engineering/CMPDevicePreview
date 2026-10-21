@@ -41,6 +41,12 @@ public sealed interface PanelSectionScope {
     public fun dotGrid()
 
     /**
+     * The switch that shows just the app, with a button to bring the preview back. Left out, preview
+     * mode stays as the host started it: started off, only the app is shown, with no way back to the panel.
+     */
+    public fun previewMode()
+
+    /**
      * A setting of your own, shown like the panel's.
      *
      * @param setting The setting, whose key must differ from those of the panel's other settings.
@@ -56,7 +62,7 @@ public sealed interface PanelSectionScope {
 }
 
 /**
- * The configuration panel, from its header to its footer. Write it out in full, or call [defaults]
+ * The configuration panel, from top to bottom. Write it out in full, or call [defaults]
  * for the usual panel and add to it:
  * ```
  * panel = {
@@ -119,13 +125,6 @@ public sealed interface PanelScope : PanelSectionScope {
 
     /** The "Built with CMPDevicePreview" link to the project's GitHub repository, after the settings wherever it is placed. */
     public fun attribution()
-
-    /**
-     * The switch at the foot of the panel, wherever it is placed, that shows just the app. Left out,
-     * preview mode stays as the host started it: started off, only the app is shown, with no way back
-     * to the panel.
-     */
-    public fun previewMode()
 }
 
 /**
@@ -173,11 +172,11 @@ public sealed interface DefaultPanelScope {
     /** The dot grid switch. */
     public val dotGrid: PanelControlOptions
 
+    /** The preview mode switch: see [PanelSectionScope.previewMode]. */
+    public val previewMode: PanelControlOptions
+
     /** The link to the project's repository. */
     public val attribution: PanelControlOptions
-
-    /** The preview mode switch at the foot of the panel: see [PanelScope.previewMode]. */
-    public val previewMode: PanelControlOptions
 }
 
 /** Whether one of the usual panel's controls is shown. */
