@@ -9,6 +9,13 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.window.core.layout.WindowSizeClass
+import com.apadmi.cmpdevicepreview.sample.resources.Res
+import com.apadmi.cmpdevicepreview.sample.resources.layout_compact
+import com.apadmi.cmpdevicepreview.sample.resources.layout_compact_height
+import com.apadmi.cmpdevicepreview.sample.resources.layout_expanded
+import com.apadmi.cmpdevicepreview.sample.resources.layout_large
+import com.apadmi.cmpdevicepreview.sample.resources.layout_medium
+import org.jetbrains.compose.resources.StringResource
 
 /**
  * The app's layouts, one per Material window size class it handles, labelled with that class.
@@ -17,21 +24,21 @@ import androidx.window.core.layout.WindowSizeClass
  * @property detailPaneWidth The width of the detail pane beside the content, or null when the
  * layout has no detail pane.
  */
-enum class AppLayout(val label: String, val detailPaneWidth: Dp? = null) {
+enum class AppLayout(val label: StringResource, val detailPaneWidth: Dp? = null) {
     /** Compact width: a single column and a bottom navigation bar. */
-    Phone("Compact"),
+    Phone(Res.string.layout_compact),
 
     /** Compact height, as on a phone turned sideways: a rail, and content side by side. */
-    PhoneLandscape("Compact height"),
+    PhoneLandscape(Res.string.layout_compact_height),
 
     /** Medium width: a rail and a grid. */
-    Tablet("Medium"),
+    Tablet(Res.string.layout_medium),
 
     /** Expanded width: a rail, a grid and a detail pane. */
-    Desktop("Expanded", detailPaneWidth = 360.dp),
+    Desktop(Res.string.layout_expanded, detailPaneWidth = 360.dp),
 
     /** Large width: a navigation drawer, a grid and a wider detail pane. */
-    LargeDesktop("Large", detailPaneWidth = 440.dp),
+    LargeDesktop(Res.string.layout_large, detailPaneWidth = 440.dp),
     ;
 
     val hasDetailPane: Boolean
