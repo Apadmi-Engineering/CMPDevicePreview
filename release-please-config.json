@@ -8,6 +8,8 @@
   "bump-patch-for-minor-pre-major": true,
   "prerelease": true,
   "packages": {
-    ".": {}
+    ".": {
+      "exclude-paths": ["sample"]
+    }
   }
 }
