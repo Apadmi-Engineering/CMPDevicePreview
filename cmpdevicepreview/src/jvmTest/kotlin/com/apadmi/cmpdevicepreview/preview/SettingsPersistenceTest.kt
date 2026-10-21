@@ -14,13 +14,21 @@ import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.apadmi.cmpdevicepreview.core.Appearance
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
+import com.apadmi.cmpdevicepreview.core.PreviewLanguage
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
 import kotlin.test.Test
 import kotlin.test.assertEquals
+
+private val Languages = listOf(
+    PreviewLanguage("en", "English"),
+    PreviewLanguage("cy", "Cymraeg"),
+    PreviewLanguage("pt", "Português"),
+)
 
 @OptIn(ExperimentalTestApi::class)
 class SettingsPersistenceTest {
@@ -28,6 +36,7 @@ class SettingsPersistenceTest {
         store: FakeSettingsStore,
         isPersistenceEnabled: Boolean = true,
         initialConfiguration: DeviceConfiguration = DeviceConfiguration(),
+        languages: List<PreviewLanguage> = emptyList(),
     ) {
         setContent {
             CompositionLocalProvider(LocalSettingsStore provides store) {
@@ -36,6 +45,7 @@ class SettingsPersistenceTest {
                         initialDevice = DevicePresets.pixel9,
                         initialConfiguration = initialConfiguration,
                         isPersistenceEnabled = isPersistenceEnabled,
+                        languages = languages,
                     ) {}
                 }
             }
@@ -109,7 +119,7 @@ class SettingsPersistenceTest {
     @Test
     fun whatTheHostStartsWithIsNotKept() = runComposeUiTest {
         val store = FakeSettingsStore()
-        showView(store, initialConfiguration = DeviceConfiguration(appearance = Appearance.DARK))
+        showView(store, initialConfiguration = DeviceConfiguration(appearance = Appearance.Dark))
 
         settle()
 
@@ -127,6 +137,47 @@ class SettingsPersistenceTest {
 
         assertEquals(0, store.reads)
         assertEquals(emptyList(), store.writes)
+    }
+
+    @Test
+    fun aKeptLanguageTheHostOffersIsShownWithoutRegardToCase() = runComposeUiTest {
+        showView(FakeSettingsStore(saved = "dp.language=CY"), languages = Languages)
+
+        onNodeWithText("Cymraeg").assertExists()
+    }
+
+    @Test
+    fun aKeptLanguageTheHostDoesNotOfferFallsBackToTheFirstAndIsNotKept() = runComposeUiTest {
+        val store = FakeSettingsStore(saved = "dp.language=fr")
+        showView(store, languages = Languages)
+        settle()
+
+        onNodeWithText("English").assertExists()
+        assertEquals("", store.writes.last())
+    }
+
+    @Test
+    fun aKeptLanguageIsIgnoredWhenTheHostOffersNone() = runComposeUiTest {
+        val store = FakeSettingsStore(saved = "dp.language=cy")
+        showView(store)
+        settle()
+
+        onNodeWithText("LANGUAGE").assertDoesNotExist()
+        assertEquals("", store.writes.last())
+    }
+
+    @Test
+    fun aChosenLanguageIsKeptAndTheFirstIsWhatTheHostStartsWith() = runComposeUiTest {
+        val store = FakeSettingsStore()
+        showView(store, languages = Languages)
+        settle()
+        assertEquals("", store.writes.last())
+
+        onNodeWithText("English").performScrollTo().performClick()
+        onNodeWithText("Cymraeg").performClick()
+        settle()
+
+        assertEquals("dp.language=cy", store.writes.last())
     }
 
     private class FakeSettingsStore(var link: String? = null, var saved: String? = null) : SettingsStore {

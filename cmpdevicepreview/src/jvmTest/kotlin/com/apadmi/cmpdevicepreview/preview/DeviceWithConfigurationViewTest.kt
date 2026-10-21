@@ -159,7 +159,7 @@ class DeviceWithConfigurationViewTest {
                 DeviceWithConfigurationView(
                     initialDevice = DevicePresets.pixel9,
                     isPersistenceEnabled = false,
-                    initialConfiguration = DeviceConfiguration(appearance = Appearance.DARK),
+                    initialConfiguration = DeviceConfiguration(appearance = Appearance.Dark),
                 ) {}
             }
         }

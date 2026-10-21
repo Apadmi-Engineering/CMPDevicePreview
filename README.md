@@ -47,7 +47,7 @@ To start on a particular device or configuration:
 ```kotlin
 DeviceWithConfigurationView(
     initialDevice = DevicePresets.iPhone16Pro,
-    initialConfiguration = DeviceConfiguration(appearance = Appearance.DARK),
+    initialConfiguration = DeviceConfiguration(appearance = Appearance.Dark),
 ) {
     App()
 }
@@ -58,7 +58,7 @@ To preview a device without the configuration panel:
 SimulatedDevicePreview(
     simulatedDevice = SimulatedDevice(
         device = DevicePresets.iPhone16Pro, // A built-in device, or your own
-        configuration = DeviceConfiguration(appearance = Appearance.DARK, orientation = DeviceOrientation.PORTRAIT)
+        configuration = DeviceConfiguration(appearance = Appearance.Dark, orientation = DeviceOrientation.Portrait)
     )
 ) {
     App()
@@ -121,10 +121,27 @@ DeviceWithConfigurationView(
 }
 ```
 
+### Languages
+
+To let the panel switch the language of your app, pass `languages`. The first is the default, and without any the panel has no language setting:
+```kotlin
+DeviceWithConfigurationView(
+    languages = listOf(
+        PreviewLanguage("en", "English"),
+        PreviewLanguage("cy", "Cymraeg"),
+    ),
+) {
+    App()
+}
+```
+
+Inside the device, `stringResource` and the rest of [Compose Resources](https://kotlinlang.org/docs/multiplatform/compose-multiplatform-resources.html) read the chosen language, from your `values-cy` folder and so on.
+
 ## Platform differences
 
 - **Android** can't override the window insets or the dark mode its host reports, so the app inside the device sees the real ones. Its dialogs, bottom sheets and menus are windows of their own, so they aren't kept to the device's screen.
 - **Screenshots** of the device are saved from the web and desktop builds only, and leave out an open dialog, bottom sheet or menu.
+- **Languages** only change Compose Resources: Android's own `R.string` and what the system localises follow the host's language.
 
 ## Credits
 

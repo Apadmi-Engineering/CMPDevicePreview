@@ -1,0 +1,87 @@
+<resources>
+    <!-- What reads the same as the English is left out, and falls back to it. -->
+    <string name="tab_explore">Archwilio</string>
+    <string name="tab_saved">Wedi'u cadw</string>
+    <string name="tab_profile">Proffil</string>
+
+    <string name="layout_compact">Cryno</string>
+    <string name="layout_compact_height">Uchder cryno</string>
+    <string name="layout_medium">Canolig</string>
+    <string name="layout_expanded">Estynedig</string>
+    <string name="layout_large">Mawr</string>
+
+    <string name="category_all">Pob un</string>
+    <string name="category_mountains">Mynyddoedd</string>
+    <string name="category_coast">Arfordir</string>
+    <string name="category_city">Dinas</string>
+    <string name="category_desert">Anialwch</string>
+
+    <string name="explore_title">Ble nesaf?</string>
+    <plurals name="explore_places">
+        <item quantity="two">%1$d le i'w archwilio</item>
+        <item quantity="other">%1$d lle i'w archwilio</item>
+    </plurals>
+    <string name="search_placeholder">Chwilio cyrchfannau</string>
+    <string name="search_clear">Clirio</string>
+    <string name="no_results_title">Heb ddod o hyd i unrhyw gyrchfan</string>
+    <string name="no_results_message">Dim byd yn cyfateb i “%1$s”.</string>
+    <string name="popular">Poblogaidd</string>
+    <string name="featured">NODWEDDOL</string>
+
+    <string name="back">Yn ôl</string>
+    <string name="button_save">Cadw</string>
+    <string name="button_saved">Wedi'i gadw</string>
+    <string name="save_remove">Tynnu o'r rhai a gadwyd</string>
+    <string name="detail_rating">Sgôr: %1$s</string>
+    <string name="price_from">o £%1$d</string>
+    <plurals name="nights">
+        <item quantity="other">%1$d noson</item>
+    </plurals>
+
+    <plurals name="saved_places">
+        <item quantity="two">%1$d le ar eich rhestr</item>
+        <item quantity="other">%1$d lle ar eich rhestr</item>
+    </plurals>
+    <string name="empty_saved_title">Dim byd wedi'i gadw eto</string>
+    <string name="empty_saved_message">Tapiwch y galon ar gyrchfan i'w gadw yma.</string>
+
+    <string name="profile_since">Yn archwilio ers 2021</string>
+    <string name="stat_trips">Teithiau</string>
+    <string name="stat_countries">Gwledydd</string>
+    <string name="setting_reminders">Nodiadau atgoffa teithiau</string>
+    <string name="setting_currency">Arian cyfred</string>
+    <string name="setting_transport">Dewis cludiant</string>
+    <string name="transport_train">Trên</string>
+    <string name="transport_plane">Awyren</string>
+    <string name="transport_coach">Bws</string>
+    <string name="transport_bicycle">Beic</string>
+    <string name="sign_out">Allgofnodi</string>
+    <string name="sign_out_title">Allgofnodi?</string>
+    <string name="sign_out_message">Mae eich lleoedd wedi'u cadw yn aros ar y ddyfais hon, yn barod ar gyfer pan fyddwch yn mewngofnodi eto.</string>
+    <string name="cancel">Canslo</string>
+
+    <string name="destination_lofoten_country">Norwy</string>
+    <string name="destination_lofoten_blurb">Mae copaon gwenithfaen yn codi'n syth o'r môr, gyda chabanau pysgota coch ar hyd y lan a haul hanner nos yn yr haf.</string>
+    <string name="destination_santorini_country">Gwlad Groeg</string>
+    <string name="destination_santorini_blurb">Pentrefi gwyngalchog ar ymyl caldera dan ddŵr, a machlud haul dros y Môr Aegeaidd o derasau Oia.</string>
+    <string name="destination_kyoto_country">Japan</string>
+    <string name="destination_kyoto_blurb">Temlau, tai te a gerddi mwsogl, gyda lonydd wedi'u goleuo gan lusernau yn Gion ar ôl iddi nosi.</string>
+    <string name="destination_patagonia_country">Yr Ariannin</string>
+    <string name="destination_patagonia_blurb">Rhewlifau, llynnoedd turquoise a thyrau gwenithfaen Fitz Roy ar ddiwedd y byd.</string>
+    <string name="destination_merzouga_country">Moroco</string>
+    <string name="destination_merzouga_blurb">Mae twyni Erg Chebbi yn tywynnu'n oren ar doriad gwawr; nosweithiau mewn gwersyll o dan awyr yn llawn sêr.</string>
+    <string name="destination_banff_blurb">Llynnoedd a fwydir gan rewlifau, lliw jâd, o dan Fynyddoedd Creigiog Canada.</string>
+    <string name="destination_amalfi_coast_name">Arfordir Amalfi</string>
+    <string name="destination_amalfi_coast_country">Yr Eidal</string>
+    <string name="destination_amalfi_coast_blurb">Trefi lliw pastel wedi'u pentyrru ar glogwyni uwchben Môr Tyrrhenia, wedi'u cysylltu gan ffordd arfordirol droellog.</string>
+    <string name="destination_thingvellir_country">Gwlad yr Iâ</string>
+    <string name="destination_thingvellir_blurb">Dyffryn hollt rhwng dau gyfandir, gyda'r goleuadau gogleddol uwchben yn y gaeaf.</string>
+    <string name="destination_lisbon_country">Portiwgal</string>
+    <string name="destination_lisbon_blurb">Mae tramiau melyn yn dringo llethrau teils i fannau gwylio dros afon Tagus.</string>
+    <string name="destination_wadi_rum_country">Yr Iorddonen</string>
+    <string name="destination_wadi_rum_blurb">Tywod coch a mynyddoedd tywodfaen, Dyffryn y Lleuad, a welir orau mewn jîp ar fachlud haul.</string>
+    <string name="destination_cape_town_country">De Affrica</string>
+    <string name="destination_cape_town_blurb">Table Mountain uwchben dau gefnfor, gyda phengwiniaid ar Draeth Boulders.</string>
+    <string name="destination_hoi_an_country">Fietnam</string>
+    <string name="destination_hoi_an_blurb">Llusernau sidan dros afon Thu Bồn mewn hen borthladd masnachu o siopdai melyn.</string>
+</resources>

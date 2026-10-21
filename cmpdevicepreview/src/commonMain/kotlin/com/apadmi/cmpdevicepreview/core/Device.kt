@@ -15,7 +15,7 @@ public interface Device {
 
     /** Desktop devices can't be turned and don't take touch input; every other kind can and does. */
     public val kind: DeviceKind
-        get() = DeviceKind.PHONE
+        get() = DeviceKind.Phone
 
     /** The screen outline and body artwork, or null for a plain rectangular window. */
     public val frame: DeviceFrame?
@@ -42,10 +42,10 @@ public interface Device {
 
 /** The broad category of a simulated device. */
 public enum class DeviceKind {
-    PHONE,
-    TABLET,
-    FOLDABLE,
-    DESKTOP,
+    Phone,
+    Tablet,
+    Foldable,
+    Desktop,
     ;
 }
 
@@ -55,9 +55,9 @@ public enum class DeviceKind {
  * @property displayName The platform's name as the device picker shows it.
  */
 public enum class DeviceType(public val displayName: String) {
-    ANDROID("Android"),
-    IOS("iOS"),
-    OTHER("Other"),
+    Android("Android"),
+    Ios("iOS"),
+    Other("Other"),
     ;
 
     override fun toString(): String = displayName

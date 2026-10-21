@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
+import com.apadmi.cmpdevicepreview.core.PreviewLanguage
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 import kotlinx.coroutines.delay
@@ -90,6 +91,9 @@ private fun SettingsStore?.startingState(initial: PreviewState): PreviewState {
  * @param isPersistenceEnabled Whether what differs from the initial settings is kept across reloads
  * and restarts, and on the web in the page's URL as `dp.` query parameters, so a link opens the same
  * preview. A link's settings win over the kept ones. Pass false to turn both off.
+ * @param languages The languages the panel offers for the content inside the device: see
+ * [ConfigurationView]. With none, the panel has no language setting, whatever a link or the kept
+ * settings say.
  * @param content What is shown inside the simulated device, or on its own when preview mode is off.
  */
 @Composable
@@ -103,16 +107,20 @@ public fun DeviceWithConfigurationView(
     panelIcon: @Composable () -> Unit = DefaultPanelIcon,
     isAttributionVisible: Boolean = true,
     isPersistenceEnabled: Boolean = true,
+    languages: List<PreviewLanguage> = emptyList(),
     content: @Composable () -> Unit,
 ) {
     val store = if (isPersistenceEnabled) LocalSettingsStore.current ?: rememberSettingsStore() else null
-    val initial = remember(initialDevice, initialConfiguration, initialPreviewSettings) {
-        PreviewState(SimulatedDevice(initialDevice, initialConfiguration).adaptedToDevice(), initialPreviewSettings)
+    val initial = remember(initialDevice, initialConfiguration, initialPreviewSettings, languages) {
+        PreviewState(
+            SimulatedDevice(initialDevice, initialConfiguration).adaptedToDevice().inLanguages(languages),
+            initialPreviewSettings,
+        )
     }
     val starting = remember(store) { store.startingState(initial) }
     val simulatedDeviceSaver = remember(initialDevice) { simulatedDeviceSaver(initialDevice) }
     var simulatedDevice by rememberSaveable(stateSaver = simulatedDeviceSaver) {
-        mutableStateOf(starting.simulatedDevice)
+        mutableStateOf(starting.simulatedDevice.inLanguages(languages))
     }
     var previewSettings by rememberSaveable(stateSaver = PreviewSettingsSaver) {
         mutableStateOf(starting.previewSettings)
@@ -168,6 +176,7 @@ public fun DeviceWithConfigurationView(
                             isAttributionVisible = isAttributionVisible,
                             initialSimulatedDevice = initial.simulatedDevice,
                             initialPreviewSettings = initial.previewSettings,
+                            languages = languages,
                         )
                     } else {
                         PanelSheet(
@@ -180,6 +189,7 @@ public fun DeviceWithConfigurationView(
                             panelIcon,
                             isAttributionVisible,
                             initial,
+                            languages,
                         )
                     }
                 }
@@ -232,6 +242,7 @@ private fun PanelSheet(
     panelIcon: @Composable () -> Unit,
     isAttributionVisible: Boolean,
     initial: PreviewState,
+    languages: List<PreviewLanguage>,
 ) {
     var isSheetShown by remember { mutableStateOf(false) }
     if (isSheetShown) {
@@ -252,6 +263,7 @@ private fun PanelSheet(
                 isAttributionVisible = isAttributionVisible,
                 initialSimulatedDevice = initial.simulatedDevice,
                 initialPreviewSettings = initial.previewSettings,
+                languages = languages,
             )
         }
     }

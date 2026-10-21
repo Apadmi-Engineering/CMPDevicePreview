@@ -1,0 +1,92 @@
+<resources>
+    <!-- What reads the same as the English is left out, and falls back to it. -->
+    <string name="tab_explore">Explorar</string>
+    <string name="tab_saved">Guardados</string>
+    <string name="tab_profile">Perfil</string>
+
+    <string name="layout_compact">Compacto</string>
+    <string name="layout_compact_height">Altura compacta</string>
+    <string name="layout_medium">Médio</string>
+    <string name="layout_expanded">Expandido</string>
+    <string name="layout_large">Grande</string>
+
+    <string name="category_all">Todos</string>
+    <string name="category_mountains">Montanhas</string>
+    <string name="category_coast">Costa</string>
+    <string name="category_city">Cidade</string>
+    <string name="category_desert">Deserto</string>
+
+    <string name="explore_title">Qual o próximo destino?</string>
+    <plurals name="explore_places">
+        <item quantity="one">%1$d lugar para explorar</item>
+        <item quantity="other">%1$d lugares para explorar</item>
+    </plurals>
+    <string name="search_placeholder">Pesquisar destinos</string>
+    <string name="search_clear">Limpar</string>
+    <string name="no_results_title">Nenhum destino encontrado</string>
+    <string name="no_results_message">Nada corresponde a “%1$s”.</string>
+    <string name="popular">Populares</string>
+    <string name="featured">EM DESTAQUE</string>
+
+    <string name="back">Voltar</string>
+    <string name="button_save">Guardar</string>
+    <string name="button_saved">Guardado</string>
+    <string name="save_remove">Remover dos guardados</string>
+    <string name="detail_rating">Avaliação: %1$s</string>
+    <string name="price_from">desde £%1$d</string>
+    <plurals name="nights">
+        <item quantity="one">%1$d noite</item>
+        <item quantity="other">%1$d noites</item>
+    </plurals>
+
+    <plurals name="saved_places">
+        <item quantity="one">%1$d lugar na sua lista</item>
+        <item quantity="other">%1$d lugares na sua lista</item>
+    </plurals>
+    <string name="empty_saved_title">Ainda nada guardado</string>
+    <string name="empty_saved_message">Toque no coração num destino para o guardar aqui.</string>
+
+    <string name="profile_since">Explora desde 2021</string>
+    <string name="stat_trips">Viagens</string>
+    <string name="stat_countries">Países</string>
+    <string name="setting_reminders">Lembretes de viagens</string>
+    <string name="setting_currency">Moeda</string>
+    <string name="setting_transport">Preferência de transporte</string>
+    <string name="transport_train">Comboio</string>
+    <string name="transport_plane">Avião</string>
+    <string name="transport_car">Carro</string>
+    <string name="transport_coach">Autocarro</string>
+    <string name="transport_bicycle">Bicicleta</string>
+    <string name="sign_out">Sair</string>
+    <string name="sign_out_title">Sair?</string>
+    <string name="sign_out_message">Os seus lugares guardados ficam neste dispositivo, prontos para quando voltar a iniciar sessão.</string>
+    <string name="cancel">Cancelar</string>
+
+    <string name="destination_lofoten_country">Noruega</string>
+    <string name="destination_lofoten_blurb">Picos de granito erguem-se diretamente do mar, com cabanas de pesca vermelhas ao longo da costa e o sol da meia-noite no verão.</string>
+    <string name="destination_santorini_country">Grécia</string>
+    <string name="destination_santorini_blurb">Aldeias caiadas de branco à beira de uma caldeira inundada, e pores do sol sobre o Egeu a partir dos terraços de Oia.</string>
+    <string name="destination_kyoto_name">Quioto</string>
+    <string name="destination_kyoto_country">Japão</string>
+    <string name="destination_kyoto_blurb">Templos, casas de chá e jardins de musgo, com ruelas iluminadas por lanternas em Gion depois de anoitecer.</string>
+    <string name="destination_patagonia_name">Patagónia</string>
+    <string name="destination_patagonia_blurb">Glaciares, lagos turquesa e as torres de granito do Fitz Roy no fim do mundo.</string>
+    <string name="destination_merzouga_country">Marrocos</string>
+    <string name="destination_merzouga_blurb">As dunas de Erg Chebbi brilham em laranja ao amanhecer; noites num acampamento sob um céu cheio de estrelas.</string>
+    <string name="destination_banff_country">Canadá</string>
+    <string name="destination_banff_blurb">Lagos alimentados por glaciares, da cor do jade, sob as Montanhas Rochosas canadianas.</string>
+    <string name="destination_amalfi_coast_name">Costa Amalfitana</string>
+    <string name="destination_amalfi_coast_country">Itália</string>
+    <string name="destination_amalfi_coast_blurb">Vilas de tons pastel empilhadas em falésias sobre o Mar Tirreno, ligadas por uma estrada costeira sinuosa.</string>
+    <string name="destination_thingvellir_country">Islândia</string>
+    <string name="destination_thingvellir_blurb">Um vale de fenda entre dois continentes, com a aurora boreal por cima no inverno.</string>
+    <string name="destination_lisbon_name">Lisboa</string>
+    <string name="destination_lisbon_blurb">Elétricos amarelos sobem encostas de azulejos até miradouros sobre o Tejo.</string>
+    <string name="destination_wadi_rum_country">Jordânia</string>
+    <string name="destination_wadi_rum_blurb">Areia vermelha e montanhas de arenito, o Vale da Lua, melhor visto de jipe ao pôr do sol.</string>
+    <string name="destination_cape_town_name">Cidade do Cabo</string>
+    <string name="destination_cape_town_country">África do Sul</string>
+    <string name="destination_cape_town_blurb">A Montanha da Mesa sobre dois oceanos, com pinguins na praia de Boulders.</string>
+    <string name="destination_hoi_an_country">Vietname</string>
+    <string name="destination_hoi_an_blurb">Lanternas de seda sobre o rio Thu Bồn num antigo porto comercial de casas-loja amarelas.</string>
+</resources>

@@ -48,7 +48,7 @@ class DeviceFrameViewTest {
         device: Device = iPhone,
         isSystemUiVisible: Boolean = true,
         isKeyboardVisible: Boolean = false,
-        appearance: Appearance = Appearance.LIGHT,
+        appearance: Appearance = Appearance.Light,
         background: Color = Color.White,
         layoutDirection: LayoutDirection = LayoutDirection.Ltr,
         deviceLayoutDirection: LayoutDirection? = null,
@@ -111,19 +111,19 @@ class DeviceFrameViewTest {
 
     @Test
     fun theStatusBarIconsContrastWithTheTheme() {
-        val dark = render(appearance = Appearance.DARK, background = Color.Black)
+        val dark = render(appearance = Appearance.Dark, background = Color.Black)
         assertTrue(lightPixels(dark, 30..61, 25..37) > 0, "white clock in dark mode")
         assertEquals(0, lightPixels(dark, 0..401, 100..100), "the content below the bar is untouched")
 
-        val light = render(appearance = Appearance.LIGHT, background = Color.White)
+        val light = render(appearance = Appearance.Light, background = Color.White)
         assertTrue(darkPixels(light, 30..61, 25..37) > 0, "dark clock in light mode")
     }
 
     @Test
     fun theStatusBarFollowsTheLayoutDirection() {
         // The gap between the clock and the status icons in LTR; the battery in RTL.
-        assertEquals(0, lightPixels(render(appearance = Appearance.DARK, background = Color.Black), 75..95, 20..45))
-        val rtl = render(appearance = Appearance.DARK, background = Color.Black, layoutDirection = LayoutDirection.Rtl)
+        assertEquals(0, lightPixels(render(appearance = Appearance.Dark, background = Color.Black), 75..95, 20..45))
+        val rtl = render(appearance = Appearance.Dark, background = Color.Black, layoutDirection = LayoutDirection.Rtl)
         assertTrue(lightPixels(rtl, 75..95, 20..45) > 0)
     }
 
@@ -139,7 +139,7 @@ class DeviceFrameViewTest {
         val pixels = render(
             isSystemUiVisible = false,
             isKeyboardVisible = true,
-            appearance = Appearance.DARK,
+            appearance = Appearance.Dark,
             background = Color.Black,
             captured = captured,
         )
@@ -152,13 +152,13 @@ class DeviceFrameViewTest {
 
     @Test
     fun composeApisDescribeTheSimulatedDevice() {
-        val captured = Captured().also { render(appearance = Appearance.DARK, captured = it) }
+        val captured = Captured().also { render(appearance = Appearance.Dark, captured = it) }
         assertEquals(62, captured.statusBarTop)
         assertEquals(true, captured.isDark)
         // The padding modifiers read the same insets: 874 less the status bar and home indicator.
         assertEquals(874 - 62 - 34, captured.paddedHeight)
 
-        val light = Captured().also { render(appearance = Appearance.LIGHT, isKeyboardVisible = true, captured = it) }
+        val light = Captured().also { render(appearance = Appearance.Light, isKeyboardVisible = true, captured = it) }
         assertEquals(false, light.isDark)
         assertEquals(874 - 62 - 335, light.paddedHeight, "the raised keyboard pads the content too")
         // The window is the device's screen, so window size classes follow the device.
@@ -181,9 +181,9 @@ class DeviceFrameViewTest {
     @Test
     fun aLargerDisplaySizeShrinksTheWindowButNotTheBars() {
         val default = Captured()
-        val defaultPixels = render(appearance = Appearance.DARK, background = Color.Black, captured = default)
+        val defaultPixels = render(appearance = Appearance.Dark, background = Color.Black, captured = default)
         val larger = Captured()
-        val largerPixels = render(appearance = Appearance.DARK, background = Color.Black, displayScale = 1.25f, captured = larger)
+        val largerPixels = render(appearance = Appearance.Dark, background = Color.Black, displayScale = 1.25f, captured = larger)
 
         assertEquals(DpSize(402.dp / 1.25f, 874.dp / 1.25f), larger.windowSize)
         assertEquals(1.25f, larger.density)
@@ -195,14 +195,14 @@ class DeviceFrameViewTest {
     @Test
     fun theDeviceHasItsOwnLayoutDirection() {
         val rtl = Captured()
-        val pixels = render(appearance = Appearance.DARK, background = Color.Black, deviceLayoutDirection = LayoutDirection.Rtl, captured = rtl)
+        val pixels = render(appearance = Appearance.Dark, background = Color.Black, deviceLayoutDirection = LayoutDirection.Rtl, captured = rtl)
         assertEquals(LayoutDirection.Rtl, rtl.layoutDirection)
         // The status bar mirrors with it: the battery is where LTR has a gap.
         assertTrue(lightPixels(pixels, 75..95, 20..45) > 0)
 
         val ltr = Captured()
         val hostRtl = render(
-            appearance = Appearance.DARK,
+            appearance = Appearance.Dark,
             background = Color.Black,
             layoutDirection = LayoutDirection.Rtl,
             deviceLayoutDirection = LayoutDirection.Ltr,
@@ -216,7 +216,7 @@ class DeviceFrameViewTest {
     fun aDeviceWithoutArtworkIsDrawnAsABorderedWindow() {
         val window = object : Device {
             override val name = "Window"
-            override val type = DeviceType.OTHER
+            override val type = DeviceType.Other
             override val portraitSize = Size(200f, 100f)
 
             @Suppress("NULLABLE_PROPERTY_TYPE")  // Null means the host's density; the autofix would make it 0.

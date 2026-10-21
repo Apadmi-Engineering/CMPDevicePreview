@@ -43,6 +43,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.apadmi.cmpdevicepreview.sample.resources.Res
+import com.apadmi.cmpdevicepreview.sample.resources.app_name
+import com.apadmi.cmpdevicepreview.sample.resources.tab_explore
+import com.apadmi.cmpdevicepreview.sample.resources.tab_profile
+import com.apadmi.cmpdevicepreview.sample.resources.tab_saved
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * A top-level destination of the sample app, shown as an item in its navigation bar or rail.
@@ -52,22 +59,22 @@ import androidx.compose.ui.unit.dp
  * @property selectedIcon The icon shown while the destination is selected.
  */
 enum class Tab(
-    val label: String,
+    val label: StringResource,
     val icon: ImageVector,
     val selectedIcon: ImageVector
 ) {
     Explore(
-        "Explore",
+        Res.string.tab_explore,
         Icons.Outlined.Explore,
         Icons.Rounded.Explore
     ),
     Saved(
-        "Saved",
+        Res.string.tab_saved,
         Icons.Outlined.FavoriteBorder,
         Icons.Rounded.Favorite
     ),
     Profile(
-        "Profile",
+        Res.string.tab_profile,
         Icons.Outlined.Person,
         Icons.Rounded.Person
     ),
@@ -86,11 +93,16 @@ class WanderState {
     /** The destination shown in place of the tab, on the layouts without a detail pane. */
     var opened by mutableStateOf<Destination?>(null)
 
-    val results: List<Destination>
-        get() = destinations.filter { destination ->
+    // Matches what is searched for against the names and countries as they read in the current language.
+    @Composable
+    fun searchResults(): List<Destination> {
+        val texts = destinations.map { listOf(stringResource(it.name), stringResource(it.country)) }
+        val search = query.trim()
+        return destinations.filterIndexed { index, destination ->
             (category == null || destination.category == category) &&
-                    (query.isBlank() || listOf(destination.name, destination.country).any { it.contains(query.trim(), ignoreCase = true) })
+                    (search.isEmpty() || texts[index].any { it.contains(search, ignoreCase = true) })
         }
+    }
 
     fun toggleSaved(destination: Destination) {
         saved = if (destination.id in saved) saved - destination.id else saved + destination.id
@@ -173,7 +185,7 @@ private fun PhoneApp(state: WanderState) {
                         selected = selected,
                         onClick = { state.showTab(tab) },
                         icon = { Icon(if (selected) tab.selectedIcon else tab.icon, contentDescription = null) },
-                        label = { Text(tab.label) },
+                        label = { Text(stringResource(tab.label)) },
                     )
                 }
             }
@@ -199,7 +211,7 @@ private fun RailApp(state: WanderState, layout: AppLayout) {
                     selected = selected,
                     onClick = { state.showTab(tab) },
                     icon = { Icon(if (selected) tab.selectedIcon else tab.icon, contentDescription = null) },
-                    label = { Text(tab.label) },
+                    label = { Text(stringResource(tab.label)) },
                 )
             }
             Spacer(Modifier.weight(1f))
@@ -230,7 +242,7 @@ private fun DrawerApp(state: WanderState) {
                 Row(Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
                     AppMark()
                     Text(
-                        "Wander",
+                        stringResource(Res.string.app_name),
                         modifier = Modifier.padding(start = 12.dp),
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.titleLarge,
@@ -240,7 +252,7 @@ private fun DrawerApp(state: WanderState) {
                 for (tab in Tab.entries) {
                     val selected = state.tab == tab
                     NavigationDrawerItem(
-                        label = { Text(tab.label) },
+                        label = { Text(stringResource(tab.label)) },
                         selected = selected,
                         onClick = { state.showTab(tab) },
                         icon = { Icon(if (selected) tab.selectedIcon else tab.icon, contentDescription = null) },

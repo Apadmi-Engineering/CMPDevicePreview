@@ -1,0 +1,104 @@
+<resources>
+    <string name="app_name">Wander</string>
+
+    <string name="tab_explore">Explore</string>
+    <string name="tab_saved">Saved</string>
+    <string name="tab_profile">Profile</string>
+
+    <string name="layout_compact">Compact</string>
+    <string name="layout_compact_height">Compact height</string>
+    <string name="layout_medium">Medium</string>
+    <string name="layout_expanded">Expanded</string>
+    <string name="layout_large">Large</string>
+    <string name="breakpoint_badge">%1$s · %2$d × %3$d dp</string>
+
+    <string name="category_all">All</string>
+    <string name="category_mountains">Mountains</string>
+    <string name="category_coast">Coast</string>
+    <string name="category_city">City</string>
+    <string name="category_desert">Desert</string>
+
+    <string name="explore_title">Where to next?</string>
+    <plurals name="explore_places">
+        <item quantity="one">%1$d place to explore</item>
+        <item quantity="other">%1$d places to explore</item>
+    </plurals>
+    <string name="search_placeholder">Search destinations</string>
+    <string name="search_clear">Clear</string>
+    <string name="no_results_title">No destinations found</string>
+    <string name="no_results_message">Nothing matches “%1$s”.</string>
+    <string name="popular">Popular</string>
+    <string name="featured">FEATURED</string>
+
+    <string name="back">Back</string>
+    <string name="button_save">Save</string>
+    <string name="button_saved">Saved</string>
+    <string name="save_remove">Remove from saved</string>
+    <string name="detail_place">%1$s · %2$s</string>
+    <string name="detail_rating">%1$s rating</string>
+    <string name="price_from">from £%1$d</string>
+    <plurals name="nights">
+        <item quantity="one">%1$d night</item>
+        <item quantity="other">%1$d nights</item>
+    </plurals>
+
+    <plurals name="saved_places">
+        <item quantity="one">%1$d place on your list</item>
+        <item quantity="other">%1$d places on your list</item>
+    </plurals>
+    <string name="empty_saved_title">Nothing saved yet</string>
+    <string name="empty_saved_message">Tap the heart on a destination to keep it here.</string>
+
+    <string name="profile_since">Exploring since 2021</string>
+    <string name="stat_trips">Trips</string>
+    <string name="stat_countries">Countries</string>
+    <string name="setting_reminders">Trip reminders</string>
+    <string name="setting_currency">Currency</string>
+    <string name="setting_transport">Transport Preference</string>
+    <string name="transport_train">Train</string>
+    <string name="transport_plane">Plane</string>
+    <string name="transport_car">Car</string>
+    <string name="transport_coach">Coach</string>
+    <string name="transport_bicycle">Bicycle</string>
+    <string name="sign_out">Sign out</string>
+    <string name="sign_out_title">Sign out?</string>
+    <string name="sign_out_message">Your saved places stay on this device, ready for when you sign back in.</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="destination_lofoten_name">Lofoten</string>
+    <string name="destination_lofoten_country">Norway</string>
+    <string name="destination_lofoten_blurb">Granite peaks rise straight out of the sea, with red fishing cabins along the shore and the midnight sun in summer.</string>
+    <string name="destination_santorini_name">Santorini</string>
+    <string name="destination_santorini_country">Greece</string>
+    <string name="destination_santorini_blurb">Whitewashed villages on the rim of a flooded caldera, and sunsets over the Aegean from Oia's terraces.</string>
+    <string name="destination_kyoto_name">Kyoto</string>
+    <string name="destination_kyoto_country">Japan</string>
+    <string name="destination_kyoto_blurb">Temples, tea houses and moss gardens, with lantern-lit lanes in Gion after dark.</string>
+    <string name="destination_patagonia_name">Patagonia</string>
+    <string name="destination_patagonia_country">Argentina</string>
+    <string name="destination_patagonia_blurb">Glaciers, turquoise lakes and the granite towers of Fitz Roy at the end of the world.</string>
+    <string name="destination_merzouga_name">Merzouga</string>
+    <string name="destination_merzouga_country">Morocco</string>
+    <string name="destination_merzouga_blurb">The dunes of Erg Chebbi glow orange at dawn; nights in a camp under a sky full of stars.</string>
+    <string name="destination_banff_name">Banff</string>
+    <string name="destination_banff_country">Canada</string>
+    <string name="destination_banff_blurb">Glacier-fed lakes the colour of jade beneath the Canadian Rockies.</string>
+    <string name="destination_amalfi_coast_name">Amalfi Coast</string>
+    <string name="destination_amalfi_coast_country">Italy</string>
+    <string name="destination_amalfi_coast_blurb">Pastel towns stacked on cliffs above the Tyrrhenian Sea, linked by a winding coast road.</string>
+    <string name="destination_thingvellir_name">Þingvellir</string>
+    <string name="destination_thingvellir_country">Iceland</string>
+    <string name="destination_thingvellir_blurb">A rift valley between two continents, with the northern lights overhead in winter.</string>
+    <string name="destination_lisbon_name">Lisbon</string>
+    <string name="destination_lisbon_country">Portugal</string>
+    <string name="destination_lisbon_blurb">Yellow trams climb tiled hillsides to viewpoints over the Tagus.</string>
+    <string name="destination_wadi_rum_name">Wadi Rum</string>
+    <string name="destination_wadi_rum_country">Jordan</string>
+    <string name="destination_wadi_rum_blurb">Red sand and sandstone mountains, the Valley of the Moon, best seen by jeep at sunset.</string>
+    <string name="destination_cape_town_name">Cape Town</string>
+    <string name="destination_cape_town_country">South Africa</string>
+    <string name="destination_cape_town_blurb">Table Mountain above two oceans, with penguins on Boulders Beach.</string>
+    <string name="destination_hoi_an_name">Hội An</string>
+    <string name="destination_hoi_an_country">Vietnam</string>
+    <string name="destination_hoi_an_blurb">Silk lanterns over the Thu Bồn river in an old trading port of yellow shophouses.</string>
+</resources>

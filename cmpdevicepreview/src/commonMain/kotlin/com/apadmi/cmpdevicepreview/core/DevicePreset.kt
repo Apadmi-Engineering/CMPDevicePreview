@@ -33,7 +33,7 @@ public data class DevicePreset(
     override val type: DeviceType,
     override val portraitSize: Size,
     override val devicePixelRatio: Float,
-    override val kind: DeviceKind = DeviceKind.PHONE,
+    override val kind: DeviceKind = DeviceKind.Phone,
     val brand: String? = null,
     val year: Int? = null,
     override val portraitSafeArea: DeviceInsets = DeviceInsets.Zero,

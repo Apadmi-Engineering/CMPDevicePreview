@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.GridOn
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Keyboard
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.SignalCellularAlt
@@ -87,6 +88,7 @@ import com.apadmi.cmpdevicepreview.core.DeviceOrientation
 import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.FontScaleSteps
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
+import com.apadmi.cmpdevicepreview.core.PreviewLanguage
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 import com.apadmi.cmpdevicepreview.core.currentContentSize
@@ -111,15 +113,15 @@ private val CommonTextSizeIndices = CommonFontScales.map(FontScaleSteps::indexOf
 
 private val OrientationOptions = DeviceOrientation.entries.map { orientation ->
     when (orientation) {
-        DeviceOrientation.PORTRAIT -> SegmentOption("Portrait", Icons.Outlined.StayCurrentPortrait)
-        DeviceOrientation.LANDSCAPE -> SegmentOption("Landscape", Icons.Outlined.StayCurrentLandscape)
+        DeviceOrientation.Portrait -> SegmentOption("Portrait", Icons.Outlined.StayCurrentPortrait)
+        DeviceOrientation.Landscape -> SegmentOption("Landscape", Icons.Outlined.StayCurrentLandscape)
     }
 }
 
 private val AppearanceOptions = Appearance.entries.map { appearance ->
     when (appearance) {
-        Appearance.LIGHT -> SegmentOption("Light", Icons.Outlined.LightMode)
-        Appearance.DARK -> SegmentOption("Dark", Icons.Outlined.DarkMode)
+        Appearance.Light -> SegmentOption("Light", Icons.Outlined.LightMode)
+        Appearance.Dark -> SegmentOption("Dark", Icons.Outlined.DarkMode)
     }
 }
 
@@ -130,9 +132,9 @@ private val DirectionOptions = listOf(
 
 private val BackdropOptions = Backdrop.entries.map { backdrop ->
     when (backdrop) {
-        Backdrop.LIGHT -> SegmentOption("Light", Icons.Outlined.LightMode)
-        Backdrop.DARK -> SegmentOption("Dark", Icons.Outlined.DarkMode)
-        Backdrop.AUTO -> SegmentOption("Auto", Icons.Outlined.BrightnessAuto)
+        Backdrop.Light -> SegmentOption("Light", Icons.Outlined.LightMode)
+        Backdrop.Dark -> SegmentOption("Dark", Icons.Outlined.DarkMode)
+        Backdrop.Auto -> SegmentOption("Auto", Icons.Outlined.BrightnessAuto)
     }
 }
 
@@ -161,6 +163,9 @@ internal val DefaultPanelIcon: @Composable () -> Unit = { DevicePreviewLogo() }
  * the project's GitHub repository. Pass false to hide it.
  * @param initialSimulatedDevice The device and configuration the reset button in the header returns to.
  * @param initialPreviewSettings The preview settings the reset button in the header returns to.
+ * @param languages The languages to choose from for the content inside the device, shown in a
+ * language setting after the layout direction. The first is the default: the one shown when
+ * [DeviceConfiguration.language] is not one of them. With none, the panel has no language setting.
  */
 @Composable
 public fun ConfigurationView(
@@ -175,6 +180,7 @@ public fun ConfigurationView(
     isAttributionVisible: Boolean = true,
     initialSimulatedDevice: SimulatedDevice = SimulatedDevice(DefaultDevice),
     initialPreviewSettings: PreviewSettings = PreviewSettings(),
+    languages: List<PreviewLanguage> = emptyList(),
 ) {
     val device = simulatedDevice.device
     val initialDevice = remember(initialSimulatedDevice) { initialSimulatedDevice.adaptedToDevice() }
@@ -233,6 +239,10 @@ public fun ConfigurationView(
                 Spacer(Modifier.height(20.dp))
                 LayoutDirectionSection(simulatedDevice.configuration, updateConfiguration)
                 Spacer(Modifier.height(20.dp))
+                if (languages.isNotEmpty()) {
+                    LanguageSection(languages, simulatedDevice.configuration, updateConfiguration)
+                    Spacer(Modifier.height(20.dp))
+                }
                 DisplaySection(simulatedDevice, updateConfiguration)
                 Spacer(Modifier.height(20.dp))
                 BackdropSection(previewSettings, onPreviewSettingsChange)
@@ -347,7 +357,7 @@ private fun OrientationSection(
     // A desktop window can't turn, so it shows as landscape.
     SegmentedControl(
         options = OrientationOptions,
-        selectedIndex = (if (device.isRotatable) configuration.orientation else DeviceOrientation.LANDSCAPE).ordinal,
+        selectedIndex = (if (device.isRotatable) configuration.orientation else DeviceOrientation.Landscape).ordinal,
         onSelect = { index -> onChange(configuration.copy(orientation = DeviceOrientation.entries[index])) },
         enabled = device.isRotatable,
     )
@@ -408,6 +418,29 @@ private fun LayoutDirectionSection(configuration: DeviceConfiguration, onChange:
         onSelect = { index ->
             onChange(configuration.copy(layoutDirection = if (index == 1) LayoutDirection.Rtl else LayoutDirection.Ltr))
         },
+    )
+}
+
+@Composable
+private fun LanguageSection(
+    languages: List<PreviewLanguage>,
+    configuration: DeviceConfiguration,
+    onChange: (DeviceConfiguration) -> Unit
+) {
+    val selectedIndex = languages.indexOfFirst { it.tag.equals(configuration.language, ignoreCase = true) }.coerceAtLeast(0)
+    SectionLabel("Language") {
+        ResetButton(
+            title = "Language",
+            isShown = selectedIndex != 0,
+            onClick = { onChange(configuration.copy(language = languages.first().tag)) },
+        )
+    }
+    PanelDropdown(
+        icon = Icons.Outlined.Language,
+        options = languages.map(PreviewLanguage::name),
+        selectedIndex = selectedIndex,
+        onSelect = { index -> onChange(configuration.copy(language = languages[index].tag)) },
+        label = "language",
     )
 }
 

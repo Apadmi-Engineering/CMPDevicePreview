@@ -58,11 +58,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
+import com.apadmi.cmpdevicepreview.sample.resources.Res
+import com.apadmi.cmpdevicepreview.sample.resources.cancel
+import com.apadmi.cmpdevicepreview.sample.resources.empty_saved_message
+import com.apadmi.cmpdevicepreview.sample.resources.empty_saved_title
+import com.apadmi.cmpdevicepreview.sample.resources.profile_since
+import com.apadmi.cmpdevicepreview.sample.resources.saved_places
+import com.apadmi.cmpdevicepreview.sample.resources.setting_currency
+import com.apadmi.cmpdevicepreview.sample.resources.setting_reminders
+import com.apadmi.cmpdevicepreview.sample.resources.setting_transport
+import com.apadmi.cmpdevicepreview.sample.resources.sign_out
+import com.apadmi.cmpdevicepreview.sample.resources.sign_out_message
+import com.apadmi.cmpdevicepreview.sample.resources.sign_out_title
+import com.apadmi.cmpdevicepreview.sample.resources.stat_countries
+import com.apadmi.cmpdevicepreview.sample.resources.stat_trips
+import com.apadmi.cmpdevicepreview.sample.resources.tab_saved
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 import kotlinx.coroutines.launch
 
 private val currencies = listOf("GBP", "EUR", "USD", "JPY")
-private val transports = listOf("Train", "Plane", "Car", "Coach", "Bicycle")
 
 /**
  * The saved destinations: a list on a phone, a grid with more room.
@@ -82,20 +97,22 @@ fun SavedScreen(
     val title: @Composable () -> Unit = {
         Column {
             Text(
-                "Saved",
+                stringResource(Res.string.tab_saved),
                 color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                "${saved.size} ${if (saved.size == 1) "place" else "places"} on your list",
+                pluralStringResource(Res.plurals.saved_places, saved.size, saved.size),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
     val empty: @Composable () -> Unit = {
         EmptyState(
-            Icons.Outlined.FavoriteBorder, "Nothing saved yet", "Tap the heart on a destination to keep it here.",
+            Icons.Outlined.FavoriteBorder,
+            stringResource(Res.string.empty_saved_title),
+            stringResource(Res.string.empty_saved_message),
             Modifier.fillMaxWidth(),
         )
     }
@@ -143,7 +160,7 @@ fun ProfileScreen(state: WanderState, modifier: Modifier = Modifier) {
     var reminders by remember { mutableStateOf(true) }
     var currency by remember { mutableStateOf(currencies.first()) }
     var isPickingCurrency by remember { mutableStateOf(false) }
-    var transport by remember { mutableStateOf(transports.first()) }
+    var transport by remember { mutableStateOf(Transport.entries.first()) }
     var isPickingTransport by remember { mutableStateOf(false) }
     var isSigningOut by remember { mutableStateOf(false) }
     Box(modifier.fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
@@ -170,21 +187,21 @@ fun ProfileScreen(state: WanderState, modifier: Modifier = Modifier) {
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                     )
-                    Text("Exploring since 2021", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(Res.string.profile_since), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Stat("14", "Trips", Modifier.weight(1f))
-                Stat("9", "Countries", Modifier.weight(1f))
-                Stat("${state.saved.size}", "Saved", Modifier.weight(1f))
+                Stat("14", stringResource(Res.string.stat_trips), Modifier.weight(1f))
+                Stat("9", stringResource(Res.string.stat_countries), Modifier.weight(1f))
+                Stat("${state.saved.size}", stringResource(Res.string.tab_saved), Modifier.weight(1f))
             }
             Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
                 Column {
-                    SettingRow(Icons.Rounded.NotificationsActive, "Trip reminders") {
+                    SettingRow(Icons.Rounded.NotificationsActive, stringResource(Res.string.setting_reminders)) {
                         Switch(checked = reminders, onCheckedChange = { reminders = it })
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    SettingRow(Icons.Rounded.Payments, "Currency", onClick = { isPickingCurrency = true }) {
+                    SettingRow(Icons.Rounded.Payments, stringResource(Res.string.setting_currency), onClick = { isPickingCurrency = true }) {
                         // The menu opens from the value, at the screen's edge.
                         Box {
                             SettingValue(currency)
@@ -207,13 +224,17 @@ fun ProfileScreen(state: WanderState, modifier: Modifier = Modifier) {
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    SettingRow(Icons.Rounded.Commute, "Transport Preference", onClick = { isPickingTransport = true }) {
-                        SettingValue(transport)
+                    SettingRow(
+                        Icons.Rounded.Commute,
+                        stringResource(Res.string.setting_transport),
+                        onClick = { isPickingTransport = true },
+                    ) {
+                        SettingValue(stringResource(transport.label))
                     }
                 }
             }
             OutlinedButton(onClick = { isSigningOut = true }, modifier = Modifier.fillMaxWidth()) {
-                Text("Sign out")
+                Text(stringResource(Res.string.sign_out))
             }
         }
     }
@@ -224,10 +245,10 @@ fun ProfileScreen(state: WanderState, modifier: Modifier = Modifier) {
         AlertDialog(
             onDismissRequest = { isSigningOut = false },
             icon = { Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null) },
-            title = { Text("Sign out?") },
-            text = { Text("Your saved places stay on this device, ready for when you sign back in.") },
-            confirmButton = { TextButton(onClick = { isSigningOut = false }) { Text("Sign out") } },
-            dismissButton = { TextButton(onClick = { isSigningOut = false }) { Text("Cancel") } },
+            title = { Text(stringResource(Res.string.sign_out_title)) },
+            text = { Text(stringResource(Res.string.sign_out_message)) },
+            confirmButton = { TextButton(onClick = { isSigningOut = false }) { Text(stringResource(Res.string.sign_out)) } },
+            dismissButton = { TextButton(onClick = { isSigningOut = false }) { Text(stringResource(Res.string.cancel)) } },
         )
     }
 }
@@ -236,23 +257,23 @@ fun ProfileScreen(state: WanderState, modifier: Modifier = Modifier) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TransportSheet(
-    transport: String,
-    onPick: (String) -> Unit,
+    transport: Transport,
+    onPick: (Transport) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Text(
-            "Transport Preference",
+            stringResource(Res.string.setting_transport),
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
             color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )
-        for (option in transports) {
+        for (option in Transport.entries) {
             ListItem(
-                headlineContent = { Text(option) },
+                headlineContent = { Text(stringResource(option.label)) },
                 trailingContent = if (option == transport) {
                     { Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                 } else {

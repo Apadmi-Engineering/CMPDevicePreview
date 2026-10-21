@@ -13,7 +13,7 @@ public data class FreeformDevice(val size: Size) : Device {
         get() = "Freeform"
 
     override val type: DeviceType
-        get() = DeviceType.OTHER
+        get() = DeviceType.Other
 
     override val portraitSize: Size
         get() = size
@@ -22,5 +22,5 @@ public data class FreeformDevice(val size: Size) : Device {
         get() = null
 
     override val kind: DeviceKind
-        get() = DeviceKind.DESKTOP
+        get() = DeviceKind.Desktop
 }

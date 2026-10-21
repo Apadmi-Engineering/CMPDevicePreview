@@ -4,7 +4,7 @@ import androidx.compose.ui.geometry.Size
 
 /** Whether the device can be turned between portrait and landscape. A desktop window is resized instead. */
 internal val Device.isRotatable: Boolean
-    get() = kind != DeviceKind.DESKTOP
+    get() = kind != DeviceKind.Desktop
 
 /** Whether the device has frame artwork; one without is drawn as a plain window. */
 internal val Device.hasFrameArtwork: Boolean
@@ -12,7 +12,7 @@ internal val Device.hasFrameArtwork: Boolean
 
 /** Whether the host's mouse acts as a finger on the device. */
 internal val Device.isTouchscreen: Boolean
-    get() = kind != DeviceKind.DESKTOP
+    get() = kind != DeviceKind.Desktop
 
 /**
  * Whether the device is laid out in portrait when [orientation] is asked for. A device that can't
@@ -22,7 +22,7 @@ internal val Device.isTouchscreen: Boolean
  * @return Whether the device is laid out in portrait.
  */
 internal fun Device.isLaidOutInPortrait(orientation: DeviceOrientation): Boolean =
-    orientation == DeviceOrientation.PORTRAIT || !isRotatable
+    orientation == DeviceOrientation.Portrait || !isRotatable
 
 /** This size a quarter turn round: its width and height swapped.
  *

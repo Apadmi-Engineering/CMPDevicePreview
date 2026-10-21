@@ -71,6 +71,7 @@ kotlin {
             implementation(libs.compose.material3)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.compose.ui)
+            implementation(libs.compose.components.resources)
         }
         webTest.dependencies {
             implementation(kotlin("test"))
@@ -82,6 +83,11 @@ kotlin {
             implementation(libs.compose.ui.test)
         }
     }
+}
+
+// The dependency is for the preview's language, so there are no resources of the library's own to generate a class for.
+compose.resources {
+    generateResClass = never
 }
 
 // Let the IDE resolve the generated catalog right after a Gradle sync.
