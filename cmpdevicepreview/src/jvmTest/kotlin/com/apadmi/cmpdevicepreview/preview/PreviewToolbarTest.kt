@@ -1,5 +1,6 @@
 package com.apadmi.cmpdevicepreview.preview
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsEnabled
@@ -18,6 +19,24 @@ class PreviewToolbarTest {
     private fun viewport() = PreviewViewport().apply {
         resize(Size(400f, 400f))
         fitScale = 0.5f
+    }
+
+    @Test
+    fun screenshotButtonsWaitForADeviceToBeShown() = runComposeUiTest {
+        setContent {
+            CompositionLocalProvider(LocalDeviceScreenshots provides DeviceScreenshots()) {
+                PreviewToolbar(viewport(), DevicePresets.pixel9, isBackdropDark = false)
+            }
+        }
+        onNodeWithContentDescription("Screenshot of screen").assertIsNotEnabled()
+        onNodeWithContentDescription("Screenshot with frame").assertIsNotEnabled()
+    }
+
+    @Test
+    fun thereAreNoScreenshotButtonsWithoutAnythingToRecordThem() = runComposeUiTest {
+        setContent { PreviewToolbar(viewport(), DevicePresets.pixel9, isBackdropDark = false) }
+        onNodeWithContentDescription("Screenshot of screen").assertDoesNotExist()
+        onNodeWithContentDescription("Screenshot with frame").assertDoesNotExist()
     }
 
     @Test

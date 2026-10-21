@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
@@ -57,6 +58,18 @@ class DeviceWithConfigurationViewTest {
         onNode(hasText("iPhone 16 Pro") and hasClickAction()).performClick()
         waitForIdle()
         onNodeWithText("Device Preview").assertExists()
+    }
+
+    @Test
+    fun theDeviceCanBeScreenshottedOnceItIsShown() = runComposeUiTest {
+        setContent {
+            Box(Modifier.width(wide).height(800.dp)) {
+                DeviceWithConfigurationView(initialDevice = DevicePresets.iPhone16Pro, isPersistenceEnabled = false) {}
+            }
+        }
+        waitForIdle()
+        onNodeWithContentDescription("Screenshot of screen").assertIsEnabled()
+        onNodeWithContentDescription("Screenshot with frame").assertIsEnabled()
     }
 
     @Test

@@ -22,8 +22,8 @@ import androidx.compose.ui.unit.toSize
 internal val LocalDeviceScreenshots = staticCompositionLocalOf<DeviceScreenshots?> { null }
 
 /**
- * Saves an image as a PNG: the browser downloads it. Null where the platform has no way to, and
- * there the panel has no screenshot buttons.
+ * Saves an image as a PNG: the browser downloads it, and the desktop asks where to save it. Null
+ * where the platform has no way to, and there the panel has no screenshot buttons.
  */
 internal expect val pngDownloader: PngDownloader?
 
