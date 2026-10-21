@@ -25,7 +25,7 @@ fun main() {
         size = DpSize(1280.dp, 900.dp),
     ) {
         // The app runs inside the device preview; take this wrapper away and it runs on its own.
-        DeviceWithConfigurationView(languages = sampleLanguages) {
+        DeviceWithConfigurationView(panel = samplePanel, languages = sampleLanguages) {
             App()
         }
     }
