@@ -121,6 +121,8 @@ A control placed this way takes its options where it is placed, as in `textSize(
 
 ### Your own settings
 
+For a value your app reads, such as a flag or an environment, use a `PanelSetting` rather than a switch of your own in an `item`: it is kept, linked and reset for you. Keep `item` for actions, such as a button.
+
 A `PanelSetting` is a setting of your app's, shown like the panel's own: `toggle` is a switch, and `choice` a menu of options of any type, named by `label`. Placed in the panel, it is kept across reloads, carried in links as `dp.x.<key>` and cleared by the reset button. Declare it once, and read `current` inside the device:
 ```kotlin
 val MockApi = PanelSetting.toggle(key = "mockApi", title = "Mock API", note = "Serve canned responses")
