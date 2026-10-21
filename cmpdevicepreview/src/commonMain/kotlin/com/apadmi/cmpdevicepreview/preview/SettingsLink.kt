@@ -78,13 +78,14 @@ private fun String.percentDecoded(): String = if ('%' in this) {
     this
 }
 
+// RFC 3986's unreserved characters stay and every other UTF-8 byte is escaped, the same on every platform.
 private fun String.percentEncoded(): String = buildString {
     for (byte in this@percentEncoded.encodeToByteArray()) {
         val char = byte.toInt().toChar()
         if (char in 'A'..'Z' || char in 'a'..'z' || char in '0'..'9' || char in UnreservedPunctuation) {
             append(char)
         } else {
-            append('%').append((byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0'))
+            append('%').append(byte.toHexString(HexFormat.UpperCase))
         }
     }
 }
