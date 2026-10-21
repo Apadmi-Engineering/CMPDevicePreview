@@ -22,6 +22,9 @@ import androidx.compose.ui.unit.LayoutDirection
  * bar and keyboard band don't change.
  * @property layoutDirection The layout direction inside the device, which also mirrors its status
  * bar, or null for the host's.
+ * @property language The BCP 47 tag of the language Compose Resources reads inside the device, such
+ * as `cy`, or null for the host's. Resources of the platform itself, such as Android's `R.string`,
+ * don't follow it.
  */
 public data class DeviceConfiguration(
     val orientation: DeviceOrientation = DeviceOrientation.Portrait,
@@ -32,6 +35,7 @@ public data class DeviceConfiguration(
     val fontScale: Float = 1f,
     val displayScale: Float = 1f,
     val layoutDirection: LayoutDirection? = null,
+    val language: String? = null,
 )
 
 /** Which way up a simulated device is held. */

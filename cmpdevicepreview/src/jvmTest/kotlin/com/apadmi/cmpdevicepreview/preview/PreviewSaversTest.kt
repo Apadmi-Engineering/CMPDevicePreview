@@ -59,6 +59,7 @@ class PreviewSaversTest {
                 fontScale = 1.3f,
                 displayScale = pixel.displayScaleSteps.last().scale,
                 layoutDirection = LayoutDirection.Rtl,
+                language = "pt-BR",
             ),
         )
         assertEquals(simulated, simulatedDeviceSaver(initialDevice = DevicePresets.galaxyS25).roundTrip(simulated))

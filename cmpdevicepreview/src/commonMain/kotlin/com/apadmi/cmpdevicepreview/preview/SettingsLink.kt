@@ -24,6 +24,7 @@ private const val AppearanceKey = "appearance"
 private const val FontScaleKey = "fontScale"
 private const val DisplayScaleKey = "displayScale"
 private const val DirectionKey = "direction"
+private const val LanguageKey = "language"
 private const val KeyboardKey = "keyboard"
 private const val BezelKey = "bezel"
 private const val SystemUiKey = "systemUi"
@@ -37,6 +38,9 @@ private const val On = "1"
 private const val Off = "0"
 
 private val PercentEscape = Regex("%([0-9a-fA-F]{2})")
+
+// Only the shape of a BCP 47 tag: which tags the host offers is judged where they are known.
+private val LanguageTag = Regex("[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8}){0,3}")
 
 private val TrueValues = setOf(On, "true", "on")
 private val FalseValues = setOf(Off, "false", "off")
@@ -53,6 +57,7 @@ private fun Map<String, String>.configuration(initial: DeviceConfiguration) = De
     fontScale = scale(FontScaleKey)?.let { FontScaleSteps.nearest(it).scale } ?: initial.fontScale,
     displayScale = scale(DisplayScaleKey) ?: initial.displayScale,
     layoutDirection = layoutDirection(initial.layoutDirection),
+    language = language(initial.language),
 )
 
 private fun Map<String, String>.previewSettings(initial: PreviewSettings) = PreviewSettings(
@@ -90,6 +95,15 @@ private inline fun <reified T : Enum<T>> Map<String, String>.enumValue(key: Stri
 
 private fun Map<String, String>.layoutDirection(initial: LayoutDirection?): LayoutDirection? =
     if (this[DirectionKey].equals(Auto, ignoreCase = true)) null else enumValue<LayoutDirection>(DirectionKey) ?: initial
+
+private fun Map<String, String>.language(initial: String?): String? {
+    val value = this[LanguageKey] ?: return initial
+    return when {
+        value.equals(Auto, ignoreCase = true) -> null
+        LanguageTag.matches(value) -> value
+        else -> initial
+    }
+}
 
 private fun Map<String, String>.device(): Device? {
     val id = this[DeviceKey]?.lowercase() ?: return null
@@ -152,6 +166,9 @@ private fun configurationPairs(configuration: DeviceConfiguration, initial: Devi
     }
     if (configuration.layoutDirection != initial.layoutDirection) {
         add(DirectionKey to (configuration.layoutDirection?.linkValue ?: Auto))
+    }
+    if (configuration.language != initial.language) {
+        add(LanguageKey to (configuration.language ?: Auto))
     }
     addFlag(KeyboardKey, configuration.isKeyboardVisible, initial.isKeyboardVisible)
     addFlag(BezelKey, configuration.isFrameVisible, initial.isFrameVisible)

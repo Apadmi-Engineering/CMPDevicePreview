@@ -353,8 +353,9 @@ internal fun DeviceFrame(
                             keyboardInset / configuration.displayScale,
                             configuration.appearance == Appearance.Dark,
                             screenShape,
-                            content,
-                        )
+                        ) {
+                            ProvideLanguage(configuration.language, content)
+                        }
                     }
                 }
             },

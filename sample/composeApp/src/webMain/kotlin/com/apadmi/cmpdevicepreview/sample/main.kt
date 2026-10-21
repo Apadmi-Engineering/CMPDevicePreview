@@ -9,7 +9,7 @@ import kotlinx.browser.document
 fun main() {
     ComposeViewport(document.body!!) {
         // The app runs inside the device preview; take this wrapper away and it runs on its own.
-        DeviceWithConfigurationView {
+        DeviceWithConfigurationView(languages = sampleLanguages) {
             App()
         }
     }

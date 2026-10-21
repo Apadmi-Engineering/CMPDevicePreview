@@ -26,6 +26,7 @@ private const val IsKeyboardVisible = "isKeyboardVisible"
 private const val FontScale = "fontScale"
 private const val DisplayScale = "displayScale"
 private const val LayoutDirectionName = "layoutDirection"
+private const val LanguageName = "language"
 private const val BackdropName = "backdrop"
 private const val IsDotGridVisible = "isDotGridVisible"
 private const val IsPreviewModeEnabled = "isPreviewModeEnabled"
@@ -68,6 +69,7 @@ private fun SimulatedDevice.toSavedValues(initialDevice: Device): Map<String, An
     put(FontScale, configuration.fontScale)
     put(DisplayScale, configuration.displayScale)
     put(LayoutDirectionName, configuration.layoutDirection?.name)
+    put(LanguageName, configuration.language)
 }
 
 /**
@@ -103,6 +105,7 @@ private fun restoreSimulatedDevice(saved: Map<String, Any?>, initialDevice: Devi
         fontScale = saved[FontScale] as Float,
         displayScale = saved[DisplayScale] as Float,
         layoutDirection = (saved[LayoutDirectionName] as String?)?.let(LayoutDirection::valueOf),
+        language = saved[LanguageName] as String?,
     )
     return SimulatedDevice(device, configuration).adaptedToDevice()
 }

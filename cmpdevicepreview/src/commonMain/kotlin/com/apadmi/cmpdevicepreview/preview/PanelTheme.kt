@@ -7,6 +7,7 @@ package com.apadmi.cmpdevicepreview.preview
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,9 +33,13 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CropFree
 import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.icons.outlined.UnfoldMore
 import androidx.compose.material.ripple.RippleAlpha
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalRippleConfiguration
@@ -52,7 +57,9 @@ import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -65,8 +72,11 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -540,6 +550,89 @@ internal fun PanelIconButton(
                 tint = if (isHovered && enabled) hoverTint else tint,
                 modifier = Modifier.size(size * 0.65f),
             )
+        }
+    }
+}
+
+/**
+ * A row showing the selected option, which opens a menu of all of them.
+ *
+ * @param icon The icon before the selected option.
+ * @param options The names of the options, in order.
+ * @param selectedIndex The index in [options] of the selected option.
+ * @param onSelect Called with the index of the option that is chosen.
+ * @param label What the options are of, which a screen reader announces with the row.
+ * @param modifier The modifier for the row.
+ */
+@Composable
+internal fun PanelDropdown(
+    icon: ImageVector,
+    options: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    var isOpen by remember { mutableStateOf(false) }
+    var rowWidth by remember { mutableStateOf(0.dp) }
+    val density = LocalDensity.current
+    val shape = RoundedCornerShape(14.dp)
+    Box(modifier) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .onSizeChanged { rowWidth = with(density) { it.width.toDp() } }
+                .clip(shape)
+                .background(Brush.verticalGradient(listOf(PanelColors.SurfaceRaised, PanelColors.Surface)))
+                .border(1.dp, PanelColors.Border, shape)
+                .clickable(role = Role.DropdownList, onClickLabel = "Change $label") { isOpen = true }
+                .pointerHoverIcon(PointerIcon.Hand)
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(icon, contentDescription = null, tint = PanelColors.TextSecondary, modifier = Modifier.size(20.dp))
+            Text(
+                options[selectedIndex],
+                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                color = PanelColors.TextPrimary,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Icon(Icons.Outlined.UnfoldMore, contentDescription = null, tint = PanelColors.TextSecondary, modifier = Modifier.size(20.dp))
+        }
+        DropdownMenu(
+            expanded = isOpen,
+            onDismissRequest = { isOpen = false },
+            modifier = Modifier.width(rowWidth),
+            shape = RoundedCornerShape(12.dp),
+            containerColor = PanelColors.SurfaceRaised,
+            border = BorderStroke(1.dp, PanelColors.Border),
+        ) {
+            options.forEachIndexed { index, option ->
+                val isSelected = index == selectedIndex
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            option,
+                            color = if (isSelected) PanelColors.AccentBright else PanelColors.TextPrimary,
+                            fontSize = 14.sp,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                        )
+                    },
+                    onClick = {
+                        isOpen = false
+                        onSelect(index)
+                    },
+                    modifier = Modifier.semantics { selected = isSelected },
+                    trailingIcon = if (isSelected) {
+                        { Icon(Icons.Outlined.Check, contentDescription = null, tint = PanelColors.AccentBright, modifier = Modifier.size(18.dp)) }
+                    } else {
+                        null
+                    },
+                )
+            }
         }
     }
 }
