@@ -1,6 +1,6 @@
 # CmpDevicePreview - Compose Multiplatform Device Preview Library
 
-CmpDevicePreview is a Compose Multiplatform library that draws your app inside a device frame, with a panel to change the device, orientation, dark mode, text size, display size, layout direction and keyboard. It runs on Android, iOS, macOS (Apple silicon), desktop (JVM), JS and Wasm, so you can put a web demo of your app online.
+CmpDevicePreview is a Compose Multiplatform library that draws your app inside a device frame, with a panel to change the device, orientation, dark mode, text size, display size, layout direction, keyboard and language, which you can rearrange and add settings of your own to. It runs on Android, iOS, macOS (Apple silicon), desktop (JVM), JS and Wasm, so you can put a web demo of your app online.
 
 **[Try the live demo](https://apadmi-engineering.github.io/CMPDevicePreview/)**: the sample app running in the preview, in your browser.
 
@@ -81,7 +81,7 @@ A link's settings win over the kept ones, and the panel's reset button clears bo
 
 ## Customisation
 
-You choose what the configuration panel shows, in what order, and can add settings and controls of your own. Pass `panel` to `DeviceWithConfigurationView`. A control the panel leaves out keeps the setting the preview started with, and a link or the kept settings can't change it.
+Pass `panel` to `DeviceWithConfigurationView` to choose what the configuration panel shows and in what order, and to add controls and settings of your own. A control the panel leaves out keeps the setting the preview started with.
 
 ### Hiding and configuring the usual controls
 
@@ -104,11 +104,9 @@ DeviceWithConfigurationView(
 }
 ```
 
-The icon fills a square 28 dp across and replaces the whole of the default one, so it brings any background of its own. The attribution is the "Built with CMPDevicePreview" link to the project's GitHub repository.
+### Adding and moving controls
 
-### Your own controls
-
-Put `item`s and `section`s before or after `defaults()`. A control you place yourself is taken out of `defaults()`, so this moves the language to the top:
+Call a control, such as `language()`, to place it yourself, and add `item`s and `section`s, before or after `defaults()`. A control you place yourself is taken out of `defaults()`, so this moves the language to the top:
 ```kotlin
 panel = {
     language()
@@ -119,9 +117,11 @@ panel = {
 }
 ```
 
+A control placed this way takes its options where it is placed, as in `textSize(range = 0.85f..2f)` or `header(title = "Acme Preview")`.
+
 ### Your own settings
 
-A `PanelSetting` is a setting of your app's, shown like the panel's own. It is kept across reloads, carried in links as `dp.x.<key>`, and cleared by the reset button. Declare it once, and read `current` inside the device:
+A `PanelSetting` is a setting of your app's, shown like the panel's own: `toggle` is a switch, and `choice` a menu of options of any type, named by `label`. Placed in the panel, it is kept across reloads, carried in links as `dp.x.<key>` and cleared by the reset button. Declare it once, and read `current` inside the device:
 ```kotlin
 val MockApi = PanelSetting.toggle(key = "mockApi", title = "Mock API", note = "Serve canned responses")
 val Server = PanelSetting.choice(key = "server", title = "Server", options = listOf("Production", "Staging"))
@@ -135,15 +135,15 @@ DeviceWithConfigurationView(
         }
     },
 ) {
-    App(api = if (MockApi.current) FakeApi() else RealApi(Server.current))
+    App(mockApi = MockApi.current, server = Server.current)
 }
 ```
 
-A link names a choice by its label, as in `?dp.x.server=Staging`.
+A link names a choice by its label, as in `?dp.x.server=Staging`. A setting that isn't placed in the panel stays at its default.
 
 ### Writing the panel yourself
 
-Without `defaults()`, the panel shows only what you write, in that order:
+Without `defaults()`, the panel shows only what you write, in that order, so leave out `header()` and there's no button to reset everything:
 ```kotlin
 panel = {
     header(title = "Acme Preview")
@@ -157,9 +157,7 @@ panel = {
 }
 ```
 
-The header, the attribution and the preview mode switch stay at the top, the end and the foot of the panel wherever you place them. The controls that show their name as a heading (`frame`, `orientation`, `appearance`, `layoutDirection`, `language` and `backdrop`) go at the top level; the others can also go in a `section`.
-
-`panelItems`, `panelTitle`, `panelIcon` and `isAttributionVisible` were replaced by `panel`: use `item { }`, `header.title`, `header.icon` and `attribution.isVisible` as above. Items are set apart like the panel's own controls, so put several in one `item { Column { } }` to keep them together as `panelItems` did. `ConfigurationView` is no longer public, so the panel is placed by `DeviceWithConfigurationView`.
+The header, the attribution and the preview mode switch stay at the top, the end and the foot of the panel wherever you place them. A `section` can hold `textSize`, `displaySize`, `bezel`, `systemUi`, `keyboard`, `dotGrid`, settings and items; the other controls go at the top level, under headings of their own.
 
 ### Languages
 
