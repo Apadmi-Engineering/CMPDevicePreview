@@ -3,12 +3,12 @@ package com.apadmi.cmpdevicepreview.sample
 import com.apadmi.cmpdevicepreview.preview.PanelScope
 import com.apadmi.cmpdevicepreview.preview.PanelSetting
 
-// A setting of the app's own, beside the preview's, to show the Saved tab's empty state without unsaving each place.
-val NoSavedPlaces = PanelSetting.toggle(key = "noSaved", title = "No saved places", note = "Shows the Saved tab's empty state")
+// A feature flag of the app's own, switched from the panel beside the preview's settings.
+val ShowOfferBanner = PanelSetting.toggle(key = "offerBanner", title = "Offer banner", note = "Shows a summer sale on Explore")
 
 val samplePanel: PanelScope.() -> Unit = {
     defaults()
     section("Sample app") {
-        setting(NoSavedPlaces)
+        setting(ShowOfferBanner)
     }
 }

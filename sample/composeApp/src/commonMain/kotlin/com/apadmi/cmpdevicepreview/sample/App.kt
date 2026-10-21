@@ -33,7 +33,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,8 +50,6 @@ import com.apadmi.cmpdevicepreview.sample.resources.tab_profile
 import com.apadmi.cmpdevicepreview.sample.resources.tab_saved
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-
-private val InitialSaved = setOf(1, 3, 7)
 
 /**
  * A top-level destination of the sample app, shown as an item in its navigation bar or rail.
@@ -88,7 +85,7 @@ class WanderState {
     var tab by mutableStateOf(Tab.Explore)
     var query by mutableStateOf("")
     var category by mutableStateOf<Category?>(null)
-    var saved by mutableStateOf(InitialSaved)
+    var saved by mutableStateOf(setOf(1, 3, 7))
 
     /** The destination in the detail pane, on the layouts that have one. */
     var selected by mutableStateOf(destinations.first())
@@ -132,15 +129,6 @@ class WanderState {
 fun App() {
     WanderTheme {
         val state = remember { WanderState() }
-        val hasNoSavedPlaces = NoSavedPlaces.current
-        // Turning the setting off brings the sample's saved places back, unless some were saved meanwhile.
-        LaunchedEffect(hasNoSavedPlaces) {
-            if (hasNoSavedPlaces) {
-                state.saved = emptySet()
-            } else if (state.saved.isEmpty()) {
-                state.saved = InitialSaved
-            }
-        }
         when (val layout = currentAppLayout()) {
             AppLayout.Phone -> PhoneApp(state)
             AppLayout.PhoneLandscape, AppLayout.Tablet, AppLayout.Desktop -> RailApp(state, layout)

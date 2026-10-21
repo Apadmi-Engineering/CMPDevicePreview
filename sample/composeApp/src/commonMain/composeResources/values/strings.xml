@@ -28,6 +28,8 @@
     <string name="no_results_title">No destinations found</string>
     <string name="no_results_message">Nothing matches “%1$s”.</string>
     <string name="popular">Popular</string>
+    <string name="offer_title">Summer sale</string>
+    <string name="offer_message">20% off stays booked this week</string>
     <string name="featured">FEATURED</string>
 
     <string name="back">Back</string>

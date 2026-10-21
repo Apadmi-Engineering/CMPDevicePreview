@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.LocationCity
 import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Sell
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.TravelExplore
 import androidx.compose.material.icons.rounded.WbSunny
@@ -56,6 +57,8 @@ import com.apadmi.cmpdevicepreview.sample.resources.button_save
 import com.apadmi.cmpdevicepreview.sample.resources.category_all
 import com.apadmi.cmpdevicepreview.sample.resources.featured
 import com.apadmi.cmpdevicepreview.sample.resources.nights
+import com.apadmi.cmpdevicepreview.sample.resources.offer_message
+import com.apadmi.cmpdevicepreview.sample.resources.offer_title
 import com.apadmi.cmpdevicepreview.sample.resources.price_from
 import com.apadmi.cmpdevicepreview.sample.resources.save_remove
 import com.apadmi.cmpdevicepreview.sample.resources.search_clear
@@ -84,6 +87,34 @@ fun AppMark(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
     ) {
         Icon(Icons.Rounded.TravelExplore, contentDescription = null, tint = Color.White)
+    }
+}
+
+/**
+ * A sale, in the app's gradient, shown at the top of Explore while its flag is on.
+ *
+ * @param modifier The modifier for the banner.
+ */
+@Composable
+fun OfferBanner(modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Row(
+        modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(Brush.linearGradient(listOf(colors.primary, colors.tertiary)))
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Rounded.Sell, contentDescription = null, tint = colors.onPrimary, modifier = Modifier.size(28.dp))
+        Column(Modifier.padding(start = 12.dp)) {
+            Text(
+                stringResource(Res.string.offer_title),
+                color = colors.onPrimary,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(stringResource(Res.string.offer_message), color = colors.onPrimary, style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
 
