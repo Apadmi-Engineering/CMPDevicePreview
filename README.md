@@ -81,49 +81,89 @@ A link's settings win over the kept ones, and the panel's reset button clears bo
 
 ## Customisation
 
-The configuration panel can carry your own branding and controls. Both are parameters of `DeviceWithConfigurationView`, and of `ConfigurationView` if you place the panel yourself.
+You choose what the configuration panel shows, in what order, and can add settings and controls of your own. Pass `panel` to `DeviceWithConfigurationView`, or to `ConfigurationView` if you place the panel yourself. A control the panel leaves out keeps the setting the preview started with, and a link or the kept settings can't change it.
 
-### Header
+### Hiding and configuring the usual controls
 
-The header shows "Device Preview" beside an icon. Pass `panelTitle` and `panelIcon` to replace them:
+`defaults()` is the usual panel. Its block hides controls or changes their options:
 ```kotlin
 DeviceWithConfigurationView(
-    panelTitle = "Acme Preview",
-    panelIcon = {
-        Image(painterResource(Res.drawable.logo), contentDescription = null, modifier = Modifier.fillMaxSize())
+    panel = {
+        defaults {
+            header.title = "Acme Preview"
+            header.icon = {
+                Image(painterResource(Res.drawable.logo), contentDescription = null, modifier = Modifier.fillMaxSize())
+            }
+            backdrop.isVisible = false
+            attribution.isVisible = false
+            textSize.range = 0.85f..2f
+        }
     },
 ) {
     App()
 }
 ```
 
-The icon fills a square 28 dp across and replaces the whole of the default one, so it brings any background of its own.
-
-### Attribution
-
-The end of the panel has a "Built with CMPDevicePreview" link to the project's GitHub repository. Pass `isAttributionVisible = false` to hide it:
-```kotlin
-DeviceWithConfigurationView(isAttributionVisible = false) {
-    App()
-}
-```
+The icon fills a square 28 dp across and replaces the whole of the default one, so it brings any background of its own. The attribution is the "Built with CMPDevicePreview" link to the project's GitHub repository.
 
 ### Your own controls
 
-To add your own controls to the configuration panel, pass `panelItems`. They are shown in order below the panel's settings, as wide as them and inside the panel's dark Material theme:
+Put `item`s and `section`s before or after `defaults()`. A control you place yourself is taken out of `defaults()`, so this moves the language to the top:
 ```kotlin
-DeviceWithConfigurationView(
-    panelItems = listOf(
-        { Button(onClick = { viewModel.reset() }) { Text("Reset app") } },
-    ),
-) {
-    App()
+panel = {
+    language()
+    defaults()
+    section("Debug") {
+        item { Button(onClick = { viewModel.reset() }) { Text("Reset app") } }
+    }
 }
 ```
 
+### Your own settings
+
+A `PanelSetting` is a setting of your app's, shown like the panel's own. It is kept across reloads, carried in links as `dp.x.<key>`, and cleared by the reset button. Declare it once, and read `current` inside the device:
+```kotlin
+val MockApi = PanelSetting.toggle(key = "mockApi", title = "Mock API", note = "Serve canned responses")
+val Server = PanelSetting.choice(key = "server", title = "Server", options = listOf("Production", "Staging"))
+
+DeviceWithConfigurationView(
+    panel = {
+        defaults()
+        section("Debug") {
+            setting(MockApi)
+            setting(Server)
+        }
+    },
+) {
+    App(api = if (MockApi.current) FakeApi() else RealApi(Server.current))
+}
+```
+
+A link names a choice by its label, as in `?dp.x.server=Staging`.
+
+### Writing the panel yourself
+
+Without `defaults()`, the panel shows only what you write, in that order:
+```kotlin
+panel = {
+    header(title = "Acme Preview")
+    frame()
+    appearance()
+    section("Text") {
+        textSize(range = 0.85f..2f)
+        setting(MockApi)
+    }
+    previewMode()
+}
+```
+
+The header, the attribution and the preview mode switch stay at the top, the end and the foot of the panel wherever you place them. The controls that show their name as a heading (`frame`, `orientation`, `appearance`, `layoutDirection`, `language` and `backdrop`) go at the top level; the others can also go in a `section`.
+
+`panelItems`, `panelTitle`, `panelIcon` and `isAttributionVisible` were replaced by `panel`: use `item { }`, `header.title`, `header.icon` and `attribution.isVisible` as above.
+
 ### Languages
 
-To let the panel switch the language of your app, pass `languages`. The first is the default, and without any the panel has no language setting:
+To let the panel switch the language of your app, pass `languages`. The first is the default, and without any the panel has no language setting, wherever `panel` places it:
 ```kotlin
 DeviceWithConfigurationView(
     languages = listOf(
