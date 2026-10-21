@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-CmpDevicePreview is a Compose Multiplatform library that draws an app inside a device frame, with a panel to change the device, orientation, dark mode, text and display size, layout direction and keyboard. [README.md](README.md) covers using it and [CONTRIBUTING.md](CONTRIBUTING.md) covers the project layout, running each target, releasing and the device specs. This file is only what isn't there.
+CmpDevicePreview is a Compose Multiplatform library that draws an app inside a device frame, with a panel to change the device, orientation, dark mode, text and display size, layout direction, keyboard and, when the host passes `languages`, language. [README.md](README.md) covers using it and [CONTRIBUTING.md](CONTRIBUTING.md) covers the project layout, running each target, releasing and the device specs. This file is only what isn't there.
 
 ## Comments
 
@@ -17,13 +17,14 @@ Write self-documenting code: names and structure say what it does, comments are 
 - `DevicePresets` is generated from `cmpdevicepreview/device_specs/*.json` on every build. Never edit the generated file: change the JSON, as `device_specs/README.md` describes.
 - The preview's zoom and pan are a graphics transform held by `PreviewViewport`, not a public setting or a new layout, so the app isn't laid out again as you zoom. The wheel reports pixels on the web and notches elsewhere: `isWheelDeltaInPixels` accounts for it.
 - A new field on `DeviceConfiguration` or `PreviewSettings` also needs its key in `PreviewSavers.kt`, so it survives a configuration change, with a case in `PreviewSaversTest`, and its `dp.` key in `SettingsLink.kt`, which is what the URL and the stored settings are written with, with a case in `SettingsLinkTest`.
+- The language is only offered through `languages`, so `SimulatedDevice.inLanguages()` fits it to them wherever it comes from: a link or the kept settings can name one the host doesn't offer, and with none it is cleared. It reaches the content through Compose Resources' internal environment in `LanguageEnvironment.kt`, listed in CONTRIBUTING.
 - The settings are kept through a `SettingsStore`: the URL and `localStorage` on the web, the platform's preferences elsewhere. Tests that show `DeviceWithConfigurationView` pass `isPersistenceEnabled = false`, or a fake store in `LocalSettingsStore`, so they don't read or write the real one.
 
 ## The panel
 
 - It is dark and styled by hand, not by Material's defaults. Take colours from `PanelColors` and reuse the components in `PanelTheme.kt` (`SegmentedControl`, `ToggleRow`, `StepSlider`, `PanelIconButton`, `PanelTooltip`, `SectionLabel`) rather than adding new ones. `ConfigurationView.kt` composes them.
 - Every change to the device goes through `ConfigurationView`'s `update`, which fits it to the device with `adaptedToDevice()`.
-- A setting with a default that the user can move away from shows a `ResetButton`, only while it differs from the default. The text and display size sliders and the layout direction do. The header's reset-all button does the same for everything: the device, its configuration and the preview settings, which it returns to the host's initial ones (`initialSimulatedDevice` and `initialPreviewSettings`), so a fresh start is always one click away.
+- A setting with a default that the user can move away from shows a `ResetButton`, only while it differs from the default. The text and display size sliders, the layout direction and the language (back to the first) do. The header's reset-all button does the same for everything: the device, its configuration and the preview settings, which it returns to the host's initial ones (`initialSimulatedDevice` and `initialPreviewSettings`), so a fresh start is always one click away.
 - Keep text at 4.5:1 contrast or better against the panel, and controls and their state at 3:1. Borders and the dot grid are decorative and exempt. Hover, focus and press feedback comes from the ripple set in `PanelTheme`.
 
 ## Tests

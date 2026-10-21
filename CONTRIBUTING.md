@@ -17,13 +17,13 @@
 
 Everything under `sample/` is the sample app, and none of it is published.
 
-In the library, platform code sits beside `commonMain`: `skikoMain` (JVM, iOS, macOS, JS and Wasm), `appleMain` (iOS and macOS) and `webMain` (JS and Wasm). Two files in `skikoMain` use Compose's internals, listed in [Compose internals](#compose-internals). Keep it that way.
+In the library, platform code sits beside `commonMain`: `skikoMain` (JVM, iOS, macOS, JS and Wasm), `appleMain` (iOS and macOS) and `webMain` (JS and Wasm). Three files use Compose's internals, listed in [Compose internals](#compose-internals): two in `skikoMain` and `LanguageEnvironment.kt` in `commonMain`. Keep it that way.
 
 The library uses `explicitApi()`.
 
 ## Compose internals
 
-Some of what the preview simulates has no public API in Compose Multiplatform, so the library uses Compose's internals for it. They are all in `SimulatedPlatform.skiko.kt` and `SimulatedScreenLayers.skiko.kt`, so a Compose update that changes them only breaks those two files. Put any new use in one of them, and add it here. Android uses none of them: it has no hooks for any of this.
+Some of what the preview simulates has no public API in Compose Multiplatform, so the library uses Compose's internals for it. They are in `SimulatedPlatform.skiko.kt`, `SimulatedScreenLayers.skiko.kt` and, for Compose Resources, `LanguageEnvironment.kt`, so a Compose update that changes them only breaks those three files. Put any new use in one of them, and add it here. Android uses none of Compose's own: it has no hooks for any of this. Compose Resources' are in common code, so Android uses those.
 
 | API | Marked | Used in | For |
 | --- | --- | --- | --- |
@@ -31,8 +31,10 @@ Some of what the preview simulates has no public API in Compose Multiplatform, s
 | `ComposeSceneContext`, `ComposeSceneLayer`, `PlatformContext` | `@InternalComposeUiApi` | `SimulatedScreenLayers` | Wrapping the layers Compose makes for them |
 | `LocalPlatformWindowInsets`, `PlatformWindowInsets`, `PlatformInsets`, `PlatformWindowInsetsProviderNode` | `@InternalComposeUiApi` | Both | The device's window insets, which `WindowInsets.safeDrawing`, `imePadding()` and the rest report |
 | `LocalSystemTheme`, `SystemTheme` | `@InternalComposeUiApi` and deprecated, with `@Suppress("DEPRECATION")` | `SimulatedPlatform` | `isSystemInDarkTheme()` |
+| `LocalComposeEnvironment`, `ComposeEnvironment`, and the constructor and properties of `ResourceEnvironment` | `internal` in Compose Resources, reached with `@Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")` | `LanguageEnvironment` | The language `stringResource` and the rest of Compose Resources read inside the device |
+| `LanguageQualifier`, `ScriptQualifier`, `RegionQualifier` | `@InternalResourceApi` | `LanguageEnvironment` | The language, script and region of that environment |
 
-`LocalComposeSceneContext` is the riskiest. It is `internal`, not just marked as internal API, and the compiler warns that suppressing `INVISIBLE_REFERENCE` is unsupported and may stop working in a future Kotlin, which would show up as the library failing to build after a Kotlin update. An app can also use a newer Compose than the library was built with, so if the reference is missing when the app runs, the library catches the error and leaves dialogs and popups as Compose draws them, over the whole window. The comment above `findLocalSceneContext` explains how.
+`LocalComposeSceneContext` is the riskiest. It is `internal`, not just marked as internal API, and the compiler warns that suppressing `INVISIBLE_REFERENCE` is unsupported and may stop working in a future Kotlin, which would show up as the library failing to build after a Kotlin update. An app can also use a newer Compose than the library was built with, so if the reference is missing when the app runs, the library catches the error and leaves dialogs and popups as Compose draws them, over the whole window. The comment above `findLocalSceneContext` explains how. `LocalComposeEnvironment` is handled the same way, by `findLocalResourceEnvironment`, and leaves the content in the host's language.
 
 The layers also depend on how Compose 1.12's `Dialog` and `Popup` use them, which no API promises:
 
@@ -46,7 +48,7 @@ Experimental APIs, opted into with `@OptIn`, aren't listed here: they are public
 When Compose or Kotlin is updated, check these before merging:
 
 1. CI builds every target, which catches a removed or renamed API.
-2. `./gradlew :cmpdevicepreview:jvmTest` runs `SimulatedScreenLayersTest` for dialogs and popups, and `DeviceFrameViewTest` for insets and the theme.
+2. `./gradlew :cmpdevicepreview:jvmTest` runs `SimulatedScreenLayersTest` for dialogs and popups, `DeviceFrameViewTest` for insets and the theme, and `LanguageEnvironmentTest` for the language.
 3. On iOS, open the dialog, sheet and menu on the sample's Profile tab, and check they stay on the device at its scale.
 4. Check whether Compose now has a public API for any of these, and move to it if so.
 
@@ -64,6 +66,8 @@ When Compose or Kotlin is updated, check these before merging:
 | macOS (Apple silicon) | `sample/composeApp` (`macosMain`) | `./gradlew :sample:composeApp:runDebugExecutableMacosArm64` |
 
 The desktop sample is also the quickest way to work on the sample app, or on the library, because it supports [Compose Hot Reload](https://github.com/JetBrains/compose-hot-reload): `./gradlew :sample:desktopApp:hotRun --auto` recompiles and reloads the running window as you edit, in `sample/composeApp` or `cmpdevicepreview`.
+
+The sample is localised with Compose Resources, in English (the default), Welsh and Portuguese, and offers them to the preview as `sampleLanguages`. To add a language, add a `values-<tag>` folder in `sample/composeApp/src/commonMain/composeResources` and an entry there. What reads the same as the English can be left out of it.
 
 ### What differs by platform
 

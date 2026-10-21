@@ -66,11 +66,31 @@ class SettingsLinkTest {
                     fontScale = 1.3f,
                     displayScale = pixel.displayScaleSteps.last().scale,
                     layoutDirection = LayoutDirection.Rtl,
+                    language = "pt-BR",
                 ),
             ),
             PreviewSettings(backdrop = Backdrop.Auto, isDotGridVisible = false, isPreviewModeEnabled = false),
         )
         assertEquals(state, state.roundTripped())
+    }
+
+    @Test
+    fun aLanguageIsWrittenAsItsTag() {
+        val state = initial.copy(simulatedDevice = SimulatedDevice(DevicePresets.galaxyS25, DeviceConfiguration(language = "cy")))
+        assertEquals("dp.language=cy", encodeSettings(state, initial))
+        assertEquals(state, state.roundTripped())
+    }
+
+    @Test
+    fun aLanguageIsKeptAsWrittenWhateverItsCase() {
+        assertEquals("PT-br", configurationOf("dp.language=PT-br").language)
+    }
+
+    @Test
+    fun aValueThatIsNotALanguageTagLeavesTheInitialLanguage() {
+        for (value in listOf("", "english", "e", "en_GB", "en-", "en-GB-x-y-z-extra", "en%20GB", "%%", "a".repeat(200))) {
+            assertNull(configurationOf("dp.language=$value").language, value)
+        }
     }
 
     @Test
@@ -85,7 +105,7 @@ class SettingsLinkTest {
         val darkRtl = PreviewState(
             SimulatedDevice(
                 DevicePresets.pixel9,
-                DeviceConfiguration(appearance = Appearance.Dark, fontScale = 1.3f, layoutDirection = LayoutDirection.Rtl),
+                DeviceConfiguration(appearance = Appearance.Dark, fontScale = 1.3f, layoutDirection = LayoutDirection.Rtl, language = "cy"),
             ),
             PreviewSettings(isDotGridVisible = false),
         )
@@ -93,10 +113,14 @@ class SettingsLinkTest {
 
         val lightFollowingTheHost = darkRtl.copy(
             simulatedDevice = darkRtl.simulatedDevice.copy(
-                configuration = darkRtl.simulatedDevice.configuration.copy(appearance = Appearance.Light, layoutDirection = null),
+                configuration = darkRtl.simulatedDevice.configuration.copy(
+                    appearance = Appearance.Light,
+                    layoutDirection = null,
+                    language = null,
+                ),
             ),
         )
-        assertEquals("dp.appearance=light&dp.direction=auto", encodeSettings(lightFollowingTheHost, darkRtl))
+        assertEquals("dp.appearance=light&dp.direction=auto&dp.language=auto", encodeSettings(lightFollowingTheHost, darkRtl))
         assertEquals(lightFollowingTheHost, lightFollowingTheHost.roundTripped(darkRtl))
     }
 

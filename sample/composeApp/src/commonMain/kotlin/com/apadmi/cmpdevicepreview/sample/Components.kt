@@ -50,6 +50,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.apadmi.cmpdevicepreview.sample.resources.Res
+import com.apadmi.cmpdevicepreview.sample.resources.breakpoint_badge
+import com.apadmi.cmpdevicepreview.sample.resources.button_save
+import com.apadmi.cmpdevicepreview.sample.resources.category_all
+import com.apadmi.cmpdevicepreview.sample.resources.featured
+import com.apadmi.cmpdevicepreview.sample.resources.nights
+import com.apadmi.cmpdevicepreview.sample.resources.price_from
+import com.apadmi.cmpdevicepreview.sample.resources.save_remove
+import com.apadmi.cmpdevicepreview.sample.resources.search_clear
+import com.apadmi.cmpdevicepreview.sample.resources.search_placeholder
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
 val Category.icon: ImageVector
@@ -93,7 +105,12 @@ fun BreakpointBadge(layout: AppLayout, modifier: Modifier = Modifier) {
                 modifier = Modifier.size(16.dp),
             )
             Text(
-                "${layout.label} · ${size.width.value.roundToInt()} × ${size.height.value.roundToInt()} dp",
+                stringResource(
+                    Res.string.breakpoint_badge,
+                    stringResource(layout.label),
+                    size.width.value.roundToInt(),
+                    size.height.value.roundToInt(),
+                ),
                 modifier = Modifier.padding(start = 6.dp),
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                 style = MaterialTheme.typography.labelMedium,
@@ -112,12 +129,12 @@ fun SearchField(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier.fillMaxWidth(),
-        placeholder = { Text("Search destinations") },
+        placeholder = { Text(stringResource(Res.string.search_placeholder)) },
         leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Clear")
+                    Icon(Icons.Rounded.Close, contentDescription = stringResource(Res.string.search_clear))
                 }
             }
         },
@@ -153,7 +170,7 @@ fun CategoryChips(
         FilterChip(
             selected = selected == null,
             onClick = { onSelect(null) },
-            label = { Text("All") },
+            label = { Text(stringResource(Res.string.category_all)) },
             leadingIcon = { Icon(Icons.Rounded.Public, contentDescription = null, modifier = Modifier.size(18.dp)) },
             // The default hover elevation casts a shadow that shows through an unselected chip's transparent container.
             elevation = null,
@@ -162,7 +179,7 @@ fun CategoryChips(
             FilterChip(
                 selected = selected == category,
                 onClick = { onSelect(category) },
-                label = { Text(category.label) },
+                label = { Text(stringResource(category.label)) },
                 leadingIcon = { Icon(category.icon, contentDescription = null, modifier = Modifier.size(18.dp)) },
                 elevation = null,
             )
@@ -194,7 +211,7 @@ fun SaveButton(
     ) {
         Icon(
             if (isSaved) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
-            contentDescription = if (isSaved) "Remove from saved" else "Save",
+            contentDescription = stringResource(if (isSaved) Res.string.save_remove else Res.string.button_save),
             tint = if (isSaved) {
                 Color(0xFFFF5A79)
             } else if (onArt) {
@@ -212,10 +229,12 @@ fun RatingRow(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
+    val nights = pluralStringResource(Res.plurals.nights, destination.nights, destination.nights)
+    val price = stringResource(Res.string.price_from, destination.price)
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Rounded.Star, contentDescription = null, tint = RatingColor, modifier = Modifier.size(16.dp))
         Text(
-            "${destination.rating} · ${destination.nights} nights · from £${destination.price}",
+            "${destination.rating} · $nights · $price",
             modifier = Modifier.padding(start = 4.dp),
             style = MaterialTheme.typography.bodySmall,
             color = color,
@@ -249,21 +268,21 @@ fun FeaturedCard(
         SaveButton(destination, state, Modifier.align(Alignment.TopEnd).padding(12.dp), onArt = true)
         Column(Modifier.align(Alignment.BottomStart).padding(20.dp)) {
             Text(
-                "FEATURED",
+                stringResource(Res.string.featured),
                 color = Color.White.copy(alpha = 0.8f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.4.sp,
             )
             Text(
-                destination.name,
+                stringResource(destination.name),
                 color = Color.White,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Place, contentDescription = null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(16.dp))
-                Text(destination.country, color = Color.White.copy(alpha = 0.85f), modifier = Modifier.padding(start = 4.dp))
+                Text(stringResource(destination.country), color = Color.White.copy(alpha = 0.85f), modifier = Modifier.padding(start = 4.dp))
             }
             RatingRow(destination, Modifier.padding(top = 4.dp), color = Color.White.copy(alpha = 0.85f))
         }
@@ -302,13 +321,13 @@ fun TileCard(
         }
         Column(Modifier.padding(horizontal = 8.dp, vertical = 10.dp)) {
             Text(
-                destination.name,
+                stringResource(destination.name),
                 color = if (isSelected) colors.onPrimaryContainer else colors.onSurface,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
             )
-            Text(destination.country, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+            Text(stringResource(destination.country), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
             RatingRow(destination, Modifier.padding(top = 4.dp))
         }
     }
@@ -340,12 +359,16 @@ fun ListCard(
         SceneryArt(destination, Modifier.size(84.dp).clip(RoundedCornerShape(16.dp)))
         Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
             Text(
-                destination.name,
+                stringResource(destination.name),
                 color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
-            Text(destination.country, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                stringResource(destination.country),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             RatingRow(destination, Modifier.padding(top = 4.dp))
         }
         SaveButton(destination, state)

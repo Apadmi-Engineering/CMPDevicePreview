@@ -74,18 +74,16 @@ kotlin {
             implementation(libs.compose.material3)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.compose.ui)
+            implementation(libs.compose.components.resources)
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.jetbrains.material3.adaptive)
-        }
-        // The entry points wrap the app in the preview (Android and desktop (JVM): :sample:androidApp, :sample:desktopApp).
-        iosMain.dependencies {
-            implementation(project(":cmpdevicepreview"))
-        }
-        macosMain.dependencies {
-            implementation(project(":cmpdevicepreview"))
-        }
-        webMain.dependencies {
+            // The entry points wrap the app in the preview, and the languages it offers are shared (Android and desktop (JVM): :sample:androidApp, :sample:desktopApp).
             implementation(project(":cmpdevicepreview"))
         }
     }
+}
+
+compose.resources {
+    packageOfResClass = "com.apadmi.cmpdevicepreview.sample.resources"
+    publicResClass = false
 }

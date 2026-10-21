@@ -38,6 +38,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.apadmi.cmpdevicepreview.sample.resources.Res
+import com.apadmi.cmpdevicepreview.sample.resources.back
+import com.apadmi.cmpdevicepreview.sample.resources.button_save
+import com.apadmi.cmpdevicepreview.sample.resources.button_saved
+import com.apadmi.cmpdevicepreview.sample.resources.detail_place
+import com.apadmi.cmpdevicepreview.sample.resources.detail_rating
+import com.apadmi.cmpdevicepreview.sample.resources.nights
+import com.apadmi.cmpdevicepreview.sample.resources.price_from
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * A destination in full. On a phone it fills the screen, its illustration running up behind the
@@ -121,7 +131,7 @@ private fun ArtButtons(
                 onClick = onBack,
                 colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.3f), contentColor = Color.White),
             ) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(Res.string.back))
             }
         }
         Box(Modifier.weight(1f))
@@ -139,7 +149,7 @@ private fun DetailBody(
     Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column {
             Text(
-                destination.name,
+                stringResource(destination.name),
                 color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
@@ -150,20 +160,24 @@ private fun DetailBody(
                     tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    "${destination.country} · ${destination.category.label}",
+                    stringResource(
+                        Res.string.detail_place,
+                        stringResource(destination.country),
+                        stringResource(destination.category.label),
+                    ),
                     modifier = Modifier.padding(start = 4.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Fact(Icons.Rounded.Star, "${destination.rating} rating", RatingColor)
-            Fact(Icons.Rounded.Bedtime, "${destination.nights} nights")
-            Fact(Icons.Rounded.Sell, "from £${destination.price}")
+            Fact(Icons.Rounded.Star, stringResource(Res.string.detail_rating, destination.rating.toString()), RatingColor)
+            Fact(Icons.Rounded.Bedtime, pluralStringResource(Res.plurals.nights, destination.nights, destination.nights))
+            Fact(Icons.Rounded.Sell, stringResource(Res.string.price_from, destination.price))
         }
-        Text(destination.blurb, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge)
+        Text(stringResource(destination.blurb), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge)
         FilledTonalButton(onClick = { state.toggleSaved(destination) }, modifier = Modifier.fillMaxWidth()) {
-            Text(if (destination.id in state.saved) "Saved" else "Save")
+            Text(stringResource(if (destination.id in state.saved) Res.string.button_saved else Res.string.button_save))
         }
     }
 }

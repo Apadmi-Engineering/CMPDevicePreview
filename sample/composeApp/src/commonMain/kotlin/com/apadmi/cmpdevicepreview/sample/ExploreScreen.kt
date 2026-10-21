@@ -23,6 +23,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.apadmi.cmpdevicepreview.sample.resources.Res
+import com.apadmi.cmpdevicepreview.sample.resources.explore_places
+import com.apadmi.cmpdevicepreview.sample.resources.explore_title
+import com.apadmi.cmpdevicepreview.sample.resources.no_results_message
+import com.apadmi.cmpdevicepreview.sample.resources.no_results_title
+import com.apadmi.cmpdevicepreview.sample.resources.popular
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Explore, arranged for each layout.
@@ -54,13 +62,13 @@ private fun ExploreHeader(
         BreakpointBadge(layout)
         Column {
             Text(
-                "Where to next?",
+                stringResource(Res.string.explore_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                "${destinations.size} places to explore",
+                pluralStringResource(Res.plurals.explore_places, destinations.size, destinations.size),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -71,13 +79,18 @@ private fun ExploreHeader(
 
 @Composable
 private fun NoResults(state: WanderState, modifier: Modifier = Modifier) {
-    EmptyState(Icons.Rounded.SearchOff, "No destinations found", "Nothing matches \"${state.query}\".", modifier)
+    EmptyState(
+        Icons.Rounded.SearchOff,
+        stringResource(Res.string.no_results_title),
+        stringResource(Res.string.no_results_message, state.query),
+        modifier,
+    )
 }
 
 /** A single column: a featured card, then a list. */
 @Composable
 private fun PhoneExplore(state: WanderState, modifier: Modifier) {
-    val results = state.results
+    val results = state.searchResults()
     LazyColumn(
         modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -92,7 +105,7 @@ private fun PhoneExplore(state: WanderState, modifier: Modifier) {
         if (results.size > 1) {
             item {
                 Text(
-                    "Popular",
+                    stringResource(Res.string.popular),
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
@@ -106,7 +119,7 @@ private fun PhoneExplore(state: WanderState, modifier: Modifier) {
 /** Side by side, for the short screen of a phone turned sideways: the featured card beside a grid. */
 @Composable
 private fun LandscapeExplore(state: WanderState, modifier: Modifier) {
-    val results = state.results
+    val results = state.searchResults()
     Row(modifier.fillMaxSize().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(
             Modifier.weight(0.42f).fillMaxHeight().padding(vertical = 12.dp),
@@ -148,7 +161,7 @@ private fun GridExplore(
     layout: AppLayout,
     modifier: Modifier
 ) {
-    val results = state.results
+    val results = state.searchResults()
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 200.dp),
         modifier = modifier.fillMaxSize(),

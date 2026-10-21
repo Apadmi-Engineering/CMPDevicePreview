@@ -46,4 +46,9 @@ public data class SimulatedDevice(
         )
         return if (adapted == configuration) this else copy(configuration = adapted)
     }
+
+    internal fun inLanguages(languages: List<PreviewLanguage>): SimulatedDevice {
+        val language = languages.firstOrNull { it.tag.equals(configuration.language, ignoreCase = true) } ?: languages.firstOrNull()
+        return if (language?.tag == configuration.language) this else copy(configuration = configuration.copy(language = language?.tag))
+    }
 }

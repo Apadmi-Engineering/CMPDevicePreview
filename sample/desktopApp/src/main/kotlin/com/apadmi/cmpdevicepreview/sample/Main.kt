@@ -15,7 +15,7 @@ fun main() = application {
         state = rememberWindowState(size = DpSize(1280.dp, 900.dp)),
     ) {
         // The app runs inside the device preview; take this wrapper away and it runs on its own.
-        DeviceWithConfigurationView {
+        DeviceWithConfigurationView(languages = sampleLanguages) {
             App()
         }
     }

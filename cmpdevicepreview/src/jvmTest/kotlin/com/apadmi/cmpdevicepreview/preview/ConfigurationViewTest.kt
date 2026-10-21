@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -28,6 +29,7 @@ import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -43,6 +45,7 @@ import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.DeviceOrientation
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
+import com.apadmi.cmpdevicepreview.core.PreviewLanguage
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
@@ -52,6 +55,12 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 private const val AttributionText = "Built with CMPDevicePreview"
+
+private val Languages = listOf(
+    PreviewLanguage("en", "English"),
+    PreviewLanguage("cy", "Cymraeg"),
+    PreviewLanguage("pt", "Português"),
+)
 
 @OptIn(ExperimentalTestApi::class)
 class ConfigurationViewTest {
@@ -260,6 +269,7 @@ class ConfigurationViewTest {
                         fontScale = 1.5f,
                         displayScale = 0.85f,
                         layoutDirection = LayoutDirection.Rtl,
+                        language = "cy",
                     ),
                 ),
                 onSimulatedDeviceChange = { changedDevice = it },
@@ -341,6 +351,81 @@ class ConfigurationViewTest {
         }
         onNodeWithContentDescription("Reset Layout direction").performScrollTo().assertIsEnabled().performClick()
         assertNull(assertNotNull(changed).configuration.layoutDirection)
+    }
+
+    @Test
+    fun thereIsNoLanguageSettingWithoutLanguages() = runComposeUiTest {
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9, DeviceConfiguration(language = "cy")),
+                onSimulatedDeviceChange = {},
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+            )
+        }
+        onNodeWithText("LANGUAGE").assertDoesNotExist()
+        onNodeWithText("Cymraeg").assertDoesNotExist()
+    }
+
+    @Test
+    fun theLanguageSettingShowsTheChosenLanguageAndOffersAllWhenOpened() = runComposeUiTest {
+        var changed: SimulatedDevice? = null
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9, DeviceConfiguration(language = "cy")),
+                onSimulatedDeviceChange = { changed = it },
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+                languages = Languages,
+            )
+        }
+        onNodeWithText("LANGUAGE").assertExists()
+        onNodeWithText("English").assertDoesNotExist()
+        onNodeWithText("Português").assertDoesNotExist()
+
+        onNodeWithText("Cymraeg").performScrollTo().performClick()
+        onAllNodesWithText("Cymraeg").assertCountEquals(2)
+        onNodeWithText("English").assertExists()
+        assertNull(changed)
+
+        onNodeWithText("Português").performClick()
+        assertEquals("pt", assertNotNull(changed).configuration.language)
+        onNodeWithText("English").assertDoesNotExist()
+    }
+
+    @Test
+    fun theFirstLanguageIsShownWhenTheConfigurationNamesNoneOfThem() = runComposeUiTest {
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9, DeviceConfiguration(language = "fr")),
+                onSimulatedDeviceChange = {},
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+                languages = Languages,
+            )
+        }
+        onNodeWithText("English").assertExists()
+        onNodeWithContentDescription("Reset Language").assertIsNotEnabled()
+    }
+
+    @Test
+    fun theLanguageResetReturnsToTheFirstLanguage() = runComposeUiTest {
+        var changed: SimulatedDevice? = null
+        setContent {
+            ConfigurationView(
+                simulatedDevice = SimulatedDevice(DevicePresets.pixel9, DeviceConfiguration(language = "pt")),
+                onSimulatedDeviceChange = { changed = it },
+                previewSettings = PreviewSettings(),
+                onPreviewSettingsChange = {},
+                modifier = Modifier.width(300.dp).fillMaxSize(),
+                languages = Languages,
+            )
+        }
+        onNodeWithContentDescription("Reset Language").performScrollTo().assertIsEnabled().performClick()
+        assertEquals("en", assertNotNull(changed).configuration.language)
     }
 
     @Test

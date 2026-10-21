@@ -6,9 +6,42 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class SimulatedDeviceTest {
+    private val languages = listOf(PreviewLanguage("en", "English"), PreviewLanguage("cy", "Cymraeg"), PreviewLanguage("pt-BR", "Português"))
+
+    private fun inLanguages(language: String?, offered: List<PreviewLanguage> = languages) =
+        SimulatedDevice(DevicePresets.pixel9, DeviceConfiguration(language = language)).inLanguages(offered).configuration.language
+
+    @Test
+    fun aLanguageTheHostOffersIsKept() {
+        assertEquals("cy", inLanguages("cy"))
+    }
+
+    @Test
+    fun aLanguageIsMatchedIgnoringCaseAndComesBackAsTheHostWroteIt() {
+        assertEquals("pt-BR", inLanguages("PT-br"))
+    }
+
+    @Test
+    fun noLanguageOrOneThatIsNotOfferedIsTheFirstOffered() {
+        assertEquals("en", inLanguages(null))
+        assertEquals("en", inLanguages("fr"))
+    }
+
+    @Test
+    fun withoutLanguagesTheHostsOwnIsKeptWhateverWasChosen() {
+        assertNull(inLanguages("cy", offered = emptyList()))
+    }
+
+    @Test
+    fun fittingTheLanguageLeavesAnUnchangedDeviceAsItIs() {
+        val device = SimulatedDevice(DevicePresets.pixel9, DeviceConfiguration(language = "cy"))
+        assertSame(device, device.inLanguages(languages))
+    }
+
     @Test
     fun theKeyboardHeightFollowsTheOrientation() {
         val portrait = SimulatedDevice(DevicePresets.iPhone16Pro)
