@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.1.0](https://github.com/Apadmi-Engineering/CMPDevicePreview/compare/v0.0.2...v0.1.0) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* panelItems, panelTitle, panelIcon and isAttributionVisible are removed from DeviceWithConfigurationView and ConfigurationView. Pass `panel` instead:
+    - panelItems = listOf({ A() }) -> panel = { defaults(); item { A() } }
+    - panelTitle / panelIcon -> panel = { defaults { header.title = ...; header.icon = { ... } } }
+    - isAttributionVisible = false -> panel = { defaults { attribution.isVisible = false } }
+* DeviceConfiguration has a new language field, which changes its constructor, copy and componentN.
+* the entries of `DeviceKind`, `DeviceType`, `Backdrop`, `DeviceOrientation` and `Appearance` are renamed, such as `Backdrop.DARK` to `Backdrop.Dark` and `DeviceType.IOS` to `DeviceType.Ios`.
+* `DeviceConfiguration.isPortrait` and `isDarkMode` are replaced by `orientation: DeviceOrientation` and `appearance: Appearance`. `ConfigurationView` takes `initialSimulatedDevice` and `initialPreviewSettings`, which its reset button returns to, so the button now resets the device too and goes back to the host's initial values rather than the library defaults. `DeviceWithConfigurationView` takes `isPersistenceEnabled`, on by default.
+
+### Features
+
+* keep settings in the URL and across reloads ([#27](https://github.com/Apadmi-Engineering/CMPDevicePreview/issues/27)) ([94b5c2e](https://github.com/Apadmi-Engineering/CMPDevicePreview/commit/94b5c2e3daa1e0ad22530d6ae0ae79ad308f08ca))
+* language switcher localization bbd91c ([#32](https://github.com/Apadmi-Engineering/CMPDevicePreview/issues/32)) ([aa75727](https://github.com/Apadmi-Engineering/CMPDevicePreview/commit/aa75727833e592faafce78452ab3edf672b77ed8))
+* panel customisation ([#33](https://github.com/Apadmi-Engineering/CMPDevicePreview/issues/33)) ([02d816d](https://github.com/Apadmi-Engineering/CMPDevicePreview/commit/02d816d716193dd0039f4d23efa9f8a7a511bf60))
+* refactor all enums to be pascal case  ([#29](https://github.com/Apadmi-Engineering/CMPDevicePreview/issues/29)) ([c5ecdb2](https://github.com/Apadmi-Engineering/CMPDevicePreview/commit/c5ecdb21729acd0b038a244b6731e7d167195827))
+* save screenshots of the device on desktop ([#30](https://github.com/Apadmi-Engineering/CMPDevicePreview/issues/30)) ([b33e851](https://github.com/Apadmi-Engineering/CMPDevicePreview/commit/b33e8510baa7c74a3822c5fccfde9ad26cbb8f01))
+
 ## [0.0.2](https://github.com/Apadmi-Engineering/CMPDevicePreview/compare/v0.0.1...v0.0.2) (2026-10-20)
 
 
