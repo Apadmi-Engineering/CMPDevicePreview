@@ -563,6 +563,8 @@ internal fun PanelIconButton(
  * @param onSelect Called with the index of the option that is chosen.
  * @param label What the options are of, which a screen reader announces with the row.
  * @param modifier The modifier for the row.
+ * @param title A small heading above the selected option, or null for none.
+ * @param titleEnd Shown after [title], such as a reset button.
  */
 @Composable
 internal fun PanelDropdown(
@@ -572,6 +574,8 @@ internal fun PanelDropdown(
     onSelect: (Int) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
+    title: String? = null,
+    titleEnd: (@Composable () -> Unit)? = null,
 ) {
     var isOpen by remember { mutableStateOf(false) }
     var rowWidth by remember { mutableStateOf(0.dp) }
@@ -591,15 +595,22 @@ internal fun PanelDropdown(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(icon, contentDescription = null, tint = PanelColors.TextSecondary, modifier = Modifier.size(20.dp))
-            Text(
-                options[selectedIndex],
-                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-                color = PanelColors.TextPrimary,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                if (title != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(title.uppercase(), color = PanelColors.TextTertiary, fontSize = 11.sp, letterSpacing = 0.8.sp)
+                        titleEnd?.invoke()
+                    }
+                }
+                Text(
+                    options[selectedIndex],
+                    color = PanelColors.TextPrimary,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Icon(Icons.Outlined.UnfoldMore, contentDescription = null, tint = PanelColors.TextSecondary, modifier = Modifier.size(20.dp))
         }
         DropdownMenu(

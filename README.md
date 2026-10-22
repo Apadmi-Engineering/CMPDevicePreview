@@ -1,6 +1,6 @@
 # CmpDevicePreview - Compose Multiplatform Device Preview Library
 
-CmpDevicePreview is a Compose Multiplatform library that draws your app inside a device frame, with a panel to change the device, orientation, dark mode, text size, display size, layout direction and keyboard. It runs on Android, iOS, macOS (Apple silicon), desktop (JVM), JS and Wasm, so you can put a web demo of your app online.
+CmpDevicePreview is a Compose Multiplatform library that draws your app inside a device frame, with a panel to change the device, orientation, dark mode, text size, display size, layout direction, keyboard and language, which you can rearrange and add settings of your own to. It runs on Android, iOS, macOS (Apple silicon), desktop (JVM), JS and Wasm, so you can put a web demo of your app online.
 
 **[Try the live demo](https://apadmi-engineering.github.io/CMPDevicePreview/)**: the sample app running in the preview, in your browser.
 
@@ -81,45 +81,85 @@ A link's settings win over the kept ones, and the panel's reset button clears bo
 
 ## Customisation
 
-The configuration panel can carry your own branding and controls. Both are parameters of `DeviceWithConfigurationView`, and of `ConfigurationView` if you place the panel yourself.
+Pass `panel` to `DeviceWithConfigurationView` to choose what the configuration panel shows and in what order, and to add controls and settings of your own. Omitting a control means that setting always uses it's default value (even if a url parameter tries to set it).
 
-### Header
+### Hiding and configuring the usual controls
 
-The header shows "Device Preview" beside an icon. Pass `panelTitle` and `panelIcon` to replace them:
+`defaults()` is the usual panel. Its block hides controls or changes their options:
 ```kotlin
 DeviceWithConfigurationView(
-    panelTitle = "Acme Preview",
-    panelIcon = {
-        Image(painterResource(Res.drawable.logo), contentDescription = null, modifier = Modifier.fillMaxSize())
+    panel = {
+        defaults {
+            header.title = "Acme Preview"
+            header.icon = {
+                Image(painterResource(Res.drawable.logo), contentDescription = null, modifier = Modifier.fillMaxSize())
+            }
+            backdrop.isVisible = false
+            attribution.isVisible = false
+            textSize.range = 0.85f..2f
+        }
     },
 ) {
     App()
 }
 ```
 
-The icon fills a square 28 dp across and replaces the whole of the default one, so it brings any background of its own.
+### Adding and moving controls
 
-### Attribution
-
-The end of the panel has a "Built with CMPDevicePreview" link to the project's GitHub repository. Pass `isAttributionVisible = false` to hide it:
+Call a control, such as `language()`, to place it yourself, and add `item`s and `section`s, before or after `defaults()`. A control you place yourself is taken out of `defaults()`, so this moves the language to the top:
 ```kotlin
-DeviceWithConfigurationView(isAttributionVisible = false) {
-    App()
+panel = {
+    language()
+    defaults()
+    section("Debug") {
+        item { Button(onClick = { viewModel.reset() }) { Text("Reset app") } }
+    }
 }
 ```
 
-### Your own controls
+A control placed this way takes its options where it is placed, as in `textSize(range = 0.85f..2f)` or `header(title = "Acme Preview")`.
 
-To add your own controls to the configuration panel, pass `panelItems`. They are shown in order below the panel's settings, as wide as them and inside the panel's dark Material theme:
+### Your own settings
+
+For a value your app reads, such as a flag or an environment, use a `PanelSetting` rather than a switch of your own in an `item`: it is kept, linked and reset for you. Keep `item` for actions, such as a button.
+
+A `PanelSetting` is a setting of your app's, shown like the panel's own: `toggle` is a switch, and `choice` a menu of options of any type, named by `label`. Placed in the panel, it is kept across reloads, carried in links as `dp.x.<key>` and cleared by the reset button. Declare it once, and read `current` inside the device:
 ```kotlin
+val MockApi = PanelSetting.toggle(key = "mockApi", title = "Mock API", note = "Serve canned responses")
+val Server = PanelSetting.choice(key = "server", title = "Server", options = listOf("Production", "Staging"))
+
 DeviceWithConfigurationView(
-    panelItems = listOf(
-        { Button(onClick = { viewModel.reset() }) { Text("Reset app") } },
-    ),
+    panel = {
+        defaults()
+        section("Debug") {
+            setting(MockApi)
+            setting(Server)
+        }
+    },
 ) {
-    App()
+    App(mockApi = MockApi.current, server = Server.current)
 }
 ```
+
+A link names a choice by its label, as in `?dp.x.server=Staging`. A setting that isn't placed in the panel stays at its default.
+
+### Writing the panel yourself
+
+Without `defaults()`, the panel shows only what you write, in that order, so leave out `header()` and there's no button to reset everything:
+```kotlin
+panel = {
+    header(title = "Acme Preview")
+    frame()
+    appearance()
+    section("Text") {
+        textSize(range = 0.85f..2f)
+        setting(MockApi)
+    }
+    previewMode()
+}
+```
+
+The header and the attribution stay at the top and the end of the panel wherever you place them. A `section` can hold `textSize`, `displaySize`, `bezel`, `systemUi`, `keyboard`, `dotGrid`, `previewMode`, settings and items; the other controls go at the top level, under headings of their own.
 
 ### Languages
 

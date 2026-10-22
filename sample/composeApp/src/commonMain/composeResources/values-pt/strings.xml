@@ -26,6 +26,8 @@
     <string name="no_results_title">Nenhum destino encontrado</string>
     <string name="no_results_message">Nada corresponde a “%1$s”.</string>
     <string name="popular">Populares</string>
+    <string name="offer_title">Promoção de verão</string>
+    <string name="offer_message">20% de desconto em estadias reservadas esta semana</string>
     <string name="featured">EM DESTAQUE</string>
 
     <string name="back">Voltar</string>

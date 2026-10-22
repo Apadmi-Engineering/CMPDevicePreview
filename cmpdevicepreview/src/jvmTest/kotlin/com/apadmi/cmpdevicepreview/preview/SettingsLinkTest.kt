@@ -94,6 +94,28 @@ class SettingsLinkTest {
     }
 
     @Test
+    fun customSettingsAreWrittenUnderTheirOwnKeys() {
+        val state = initial.copy(settingValues = PanelSettingValues().with(MockApi, true).with(Environment, "Staging"))
+        assertEquals("dp.x.mockApi=1&dp.x.env=Staging", encodeSettings(state, initial))
+        assertEquals(state, state.roundTripped())
+    }
+
+    @Test
+    fun aChoiceIsEscapedInTheLinkAndReadBackAsWritten() {
+        val state = initial.copy(settingValues = PanelSettingValues().with(Environment, "São Paulo"))
+        assertEquals("dp.x.env=S%C3%A3o%20Paulo", encodeSettings(state, initial))
+        assertEquals(state, state.roundTripped())
+    }
+
+    @Test
+    fun aChoiceWithALinksOwnCharactersIsEscaped() {
+        val symbols = PanelSetting.choice(key = "symbols", title = "Symbols", options = listOf("None", "a&b=c+d #1%/"))
+        val state = initial.copy(settingValues = PanelSettingValues().with(symbols, "a&b=c+d #1%/"))
+        assertEquals("dp.x.symbols=a%26b%3Dc%2Bd%20%231%25%2F", encodeSettings(state, initial))
+        assertEquals(state, state.roundTripped())
+    }
+
+    @Test
     fun aFreeformWindowIsWrittenWithItsSize() {
         val state = PreviewState(SimulatedDevice(FreeformDevice(Size(834f, 1112f))), PreviewSettings())
         assertEquals("dp.device=freeform&dp.size=834x1112", encodeSettings(state, initial))

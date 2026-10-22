@@ -1,3 +1,5 @@
+@file:Suppress("FILE_NAME_MATCH_CLASS")
+
 package com.apadmi.cmpdevicepreview.preview
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -39,12 +41,12 @@ import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.UnfoldMore
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.ZoomIn
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -75,6 +77,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -86,10 +89,10 @@ import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.DeviceOrientation
 import com.apadmi.cmpdevicepreview.core.DevicePreset
-import com.apadmi.cmpdevicepreview.core.FontScaleSteps
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.core.PreviewLanguage
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
+import com.apadmi.cmpdevicepreview.core.ScaleStep
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 import com.apadmi.cmpdevicepreview.core.currentContentSize
 import com.apadmi.cmpdevicepreview.core.displayScaleSteps
@@ -104,12 +107,10 @@ private const val NotAvailable = "Not available for this frame"
 
 private const val RepositoryUrl = "https://github.com/Apadmi-Engineering/CMPDevicePreview"
 
-/** The title [ConfigurationView] shows unless it is given one. */
+/** The title the panel's header shows unless it is given one. */
 internal const val DefaultPanelTitle = "Device Preview"
 
 private val DefaultConfiguration = DeviceConfiguration()
-
-private val CommonTextSizeIndices = CommonFontScales.map(FontScaleSteps::indexOfNearest).toSet()
 
 private val OrientationOptions = DeviceOrientation.entries.map { orientation ->
     when (orientation) {
@@ -141,60 +142,95 @@ private val BackdropOptions = Backdrop.entries.map { backdrop ->
 private val MinFreeformSizeDp = MinFreeformSize.roundToInt()
 private val MaxFreeformSizeDp = MaxFreeformSize.roundToInt()
 
-/** The icon [ConfigurationView] shows unless it is given one: the logo, which fills the header's 28 dp square. */
+/** The icon the panel's header shows unless it is given one: the logo, which fills the header's 28 dp square. */
 internal val DefaultPanelIcon: @Composable () -> Unit = { DevicePreviewLogo() }
 
+private val PanelEntry.isRow: Boolean
+    get() = when (this) {
+        is PanelEntry.Control -> control.isRow
+        is PanelEntry.Setting -> setting.isToggle
+        else -> false
+    }
+
 /**
- * The configuration panel, which picks the device and sets how it and the preview are shown.
+ * What the panel's entries draw from and change.
  *
- * @param simulatedDevice The device and configuration the panel shows the settings of.
- * @param onSimulatedDeviceChange Called with the new device and configuration when the picker or a
- * setting changes them, fitted to the device. Pass it back as [simulatedDevice] to apply it.
- * @param previewSettings The settings of the preview around the device that the panel shows.
- * @param onPreviewSettingsChange Called with the new settings when the backdrop, the dot grid or
- * preview mode is changed, or everything is reset. Pass them back as [previewSettings] to apply them.
- * @param modifier The modifier for the panel.
- * @param panelItems Your own items, shown in order below the panel's settings, as wide as them and
- * inside the panel's dark Material theme.
- * @param panelTitle The title in the panel's header.
- * @param panelIcon The icon beside the title, which fills a square 28 dp across: the whole icon, with
- * any background of its own. It is read as decoration unless it sets a content description.
- * @param isAttributionVisible Whether the end of the panel has a "Built with CMPDevicePreview" link to
- * the project's GitHub repository. Pass false to hide it.
- * @param initialSimulatedDevice The device and configuration the reset button in the header returns to.
- * @param initialPreviewSettings The preview settings the reset button in the header returns to.
- * @param languages The languages to choose from for the content inside the device, shown in a
- * language setting after the layout direction. The first is the default: the one shown when
- * [DeviceConfiguration.language] is not one of them. With none, the panel has no language setting.
+ * @property spec The panel.
+ * @property state What the panel shows.
+ * @property languages The languages the host offers.
+ * @property update Applies a changed device or configuration.
+ * @property onPreviewSettingsChange Applies changed preview settings.
+ * @property onSettingValuesChange Applies changed values of settings of your own.
+ * @property openPicker Opens the device picker.
  */
+private class PanelModel(
+    val spec: PanelSpec,
+    val state: PreviewState,
+    val languages: List<PreviewLanguage>,
+    val update: (SimulatedDevice) -> Unit,
+    val onPreviewSettingsChange: (PreviewSettings) -> Unit,
+    val onSettingValuesChange: (PanelSettingValues) -> Unit,
+    val openPicker: () -> Unit,
+) {
+    val updateConfiguration: (DeviceConfiguration) -> Unit = { update(state.simulatedDevice.copy(configuration = it)) }
+
+    // A language setting without languages to offer has nothing to show.
+    fun isShown(entry: PanelEntry): Boolean = !entry.isControl(PanelControl.Language) || languages.isNotEmpty()
+}
+
+private fun PanelEntry.isControl(control: PanelControl): Boolean = this is PanelEntry.Control && this.control == control
+
+// Unlike DeviceWithConfigurationView, this doesn't fit the state to the panel: the caller holds it as given.
 @Composable
-public fun ConfigurationView(
+internal fun ConfigurationView(
     simulatedDevice: SimulatedDevice,
     onSimulatedDeviceChange: (SimulatedDevice) -> Unit,
     previewSettings: PreviewSettings,
     onPreviewSettingsChange: (PreviewSettings) -> Unit,
     modifier: Modifier = Modifier,
-    panelItems: List<@Composable () -> Unit> = emptyList(),
-    panelTitle: String = DefaultPanelTitle,
-    panelIcon: @Composable () -> Unit = DefaultPanelIcon,
-    isAttributionVisible: Boolean = true,
+    panel: PanelScope.() -> Unit = DefaultPanel,
+    settingValues: PanelSettingValues = PanelSettingValues(),
+    onSettingValuesChange: (PanelSettingValues) -> Unit = {},
     initialSimulatedDevice: SimulatedDevice = SimulatedDevice(DefaultDevice),
     initialPreviewSettings: PreviewSettings = PreviewSettings(),
     languages: List<PreviewLanguage> = emptyList(),
 ) {
-    val device = simulatedDevice.device
+    val spec by rememberPanelSpec(panel)
     val initialDevice = remember(initialSimulatedDevice) { initialSimulatedDevice.adaptedToDevice() }
+    ConfigurationPanel(
+        spec = spec,
+        state = PreviewState(simulatedDevice, previewSettings, settingValues),
+        initial = PreviewState(initialDevice, initialPreviewSettings),
+        languages = languages,
+        onSimulatedDeviceChange = onSimulatedDeviceChange,
+        onPreviewSettingsChange = onPreviewSettingsChange,
+        onSettingValuesChange = onSettingValuesChange,
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun ConfigurationPanel(
+    spec: PanelSpec,
+    state: PreviewState,
+    initial: PreviewState,
+    languages: List<PreviewLanguage>,
+    onSimulatedDeviceChange: (SimulatedDevice) -> Unit,
+    onPreviewSettingsChange: (PreviewSettings) -> Unit,
+    onSettingValuesChange: (PanelSettingValues) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val simulatedDevice = state.simulatedDevice
     // Every change is fitted to the device, whichever setting it comes from.
     val update = { changed: SimulatedDevice -> onSimulatedDeviceChange(changed.adaptedToDevice()) }
-    val updateConfiguration = { changed: DeviceConfiguration -> update(simulatedDevice.copy(configuration = changed)) }
 
     PanelTheme {
         var isPickerShown by remember { mutableStateOf(false) }
         if (isPickerShown) {
             DevicePickerDialog(
-                selected = device,
+                selected = simulatedDevice.device,
                 // Freeform starts as the device is now, turned as it is.
-                freeform = device as? FreeformDevice ?: FreeformDevice(simulatedDevice.currentSize),
+                freeform = simulatedDevice.device as? FreeformDevice ?: FreeformDevice(simulatedDevice.currentSize),
                 onPick = {
                     update(simulatedDevice.copy(device = it))
                     isPickerShown = false
@@ -202,73 +238,174 @@ public fun ConfigurationView(
                 onDismiss = { isPickerShown = false },
             )
         }
+        val panel = PanelModel(spec, state, languages, update, onPreviewSettingsChange, onSettingValuesChange) { isPickerShown = true }
 
         Column(
             modifier = modifier
                 .background(PanelColors.Background)
                 .drawBehind { drawLine(PanelColors.Border, Offset.Zero, Offset(0f, size.height), 1.dp.toPx()) }
         ) {
-            PanelHeader(
-                title = panelTitle,
-                icon = panelIcon,
-                isModified = simulatedDevice != initialDevice || previewSettings != initialPreviewSettings,
-                onResetAll = {
-                    update(initialDevice)
-                    onPreviewSettingsChange(initialPreviewSettings)
-                },
-            )
+            spec.header?.let { header ->
+                PanelHeader(
+                    title = header.title,
+                    icon = header.icon,
+                    isModified = state != initial,
+                    onResetAll = {
+                        update(initial.simulatedDevice)
+                        onPreviewSettingsChange(initial.previewSettings)
+                        onSettingValuesChange(initial.settingValues)
+                    },
+                )
+            }
 
             Column(
                 Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp)
-                    .padding(bottom = 16.dp)
+                    // Without the header, the first heading would touch the top of the panel.
+                    .padding(top = if (spec.header == null) 16.dp else 0.dp, bottom = 16.dp)
             ) {
-                FrameSection(simulatedDevice, onChangeFrame = { isPickerShown = true })
-                Spacer(Modifier.height(24.dp))
-                if (device is FreeformDevice) {
-                    SizeSection(device.size) { size -> update(simulatedDevice.copy(device = FreeformDevice(size))) }
-                } else {
-                    OrientationSection(device, simulatedDevice.configuration, updateConfiguration)
-                }
-                Spacer(Modifier.height(20.dp))
-                AppearanceSection(simulatedDevice.configuration, updateConfiguration)
-                Spacer(Modifier.height(20.dp))
-                TextAndDisplaySection(simulatedDevice, updateConfiguration)
-                Spacer(Modifier.height(20.dp))
-                LayoutDirectionSection(simulatedDevice.configuration, updateConfiguration)
-                Spacer(Modifier.height(20.dp))
-                if (languages.isNotEmpty()) {
-                    LanguageSection(languages, simulatedDevice.configuration, updateConfiguration)
-                    Spacer(Modifier.height(20.dp))
-                }
-                DisplaySection(simulatedDevice, updateConfiguration)
-                Spacer(Modifier.height(20.dp))
-                BackdropSection(previewSettings, onPreviewSettingsChange)
-
-                if (panelItems.isNotEmpty()) {
-                    Spacer(Modifier.height(20.dp))
-                    panelItems.forEach { item -> item() }
-                }
-
-                if (isAttributionVisible) {
-                    Spacer(Modifier.height(24.dp))
+                PanelEntries(spec.entries, panel, ::topLevelGap)
+                if (PanelControl.Attribution in spec.controls) {
+                    if (spec.entries.any(panel::isShown)) {
+                        Spacer(Modifier.height(24.dp))
+                    }
                     Attribution()
                 }
             }
-
-            HorizontalDivider(color = PanelColors.Border)
-            ToggleRow(
-                icon = Icons.Outlined.Visibility,
-                title = "Preview mode",
-                note = "Off shows just the app, with a button to turn it back on",
-                checked = previewSettings.isPreviewModeEnabled,
-                onCheckedChange = { onPreviewSettingsChange(previewSettings.copy(isPreviewModeEnabled = it)) },
-                modifier = Modifier.padding(8.dp),
-            )
         }
     }
+}
+
+// Headings 20 dp apart, more under the frame, and a row close under the heading it follows, as the dot grid is
+// under the backdrop.
+private fun topLevelGap(previous: PanelEntry, entry: PanelEntry): Dp = when {
+    previous.isControl(PanelControl.Frame) -> 24.dp
+    entry.isRow && previous is PanelEntry.Control && !previous.isRow -> 8.dp
+    else -> 20.dp
+}
+
+// Rows are spaced by their own padding, so they sit flush; anything else is set a little apart.
+private fun sectionGap(previous: PanelEntry, entry: PanelEntry): Dp = if (previous.isRow && entry.isRow) 0.dp else 8.dp
+
+@Composable
+private fun PanelEntries(
+    entries: List<PanelEntry>,
+    panel: PanelModel,
+    gap: (PanelEntry, PanelEntry) -> Dp
+) {
+    val shown = entries.filter(panel::isShown)
+    val keys = entryKeys(shown)
+    shown.forEachIndexed { index, entry ->
+        key(keys[index]) {
+            val space = if (index > 0) gap(shown[index - 1], entry) else 0.dp
+            if (space > 0.dp) {
+                Spacer(Modifier.height(space))
+            }
+            when (entry) {
+                is PanelEntry.Control -> PanelControlView(entry.control, panel)
+                is PanelEntry.Section -> {
+                    SectionLabel(entry.title)
+                    PanelEntries(entry.entries, panel, ::sectionGap)
+                }
+                is PanelEntry.Setting -> SettingView(entry.setting, panel.state.settingValues, panel.onSettingValuesChange)
+                is PanelEntry.Item -> entry.content()
+            }
+        }
+    }
+}
+
+// Strings hash the same after a restore; sections and items, which can repeat, are counted to tell them apart.
+private fun entryKeys(entries: List<PanelEntry>): List<String> {
+    val counts = mutableMapOf<String, Int>()
+    return entries.map { entry ->
+        val identity = when (entry) {
+            is PanelEntry.Control -> "control:${entry.control.name}"
+            is PanelEntry.Setting -> "setting:${entry.setting.key}"
+            is PanelEntry.Section -> "section:${entry.title}"
+            is PanelEntry.Item -> "item"
+        }
+        val count = counts.getOrElse(identity) { 0 }
+        counts[identity] = count + 1
+        "$identity#$count"
+    }
+}
+
+@Composable
+private fun PanelControlView(control: PanelControl, panel: PanelModel) {
+    val simulatedDevice = panel.state.simulatedDevice
+    val device = simulatedDevice.device
+    val configuration = simulatedDevice.configuration
+    val previewSettings = panel.state.previewSettings
+    when (control) {
+        PanelControl.Frame -> FrameSection(simulatedDevice, panel.openPicker)
+        PanelControl.Orientation -> if (device is FreeformDevice) {
+            SizeSection(device.size) { size -> panel.update(simulatedDevice.copy(device = FreeformDevice(size))) }
+        } else {
+            OrientationSection(device, configuration, panel.updateConfiguration)
+        }
+        PanelControl.Appearance -> AppearanceSection(configuration, panel.updateConfiguration)
+        PanelControl.TextSize -> TextSizeSlider(configuration, panel.spec.textSizeSteps, panel.updateConfiguration)
+        PanelControl.DisplaySize -> DisplaySizeSlider(simulatedDevice, panel.updateConfiguration)
+        PanelControl.LayoutDirection -> LayoutDirectionSection(configuration, panel.updateConfiguration)
+        PanelControl.Language -> LanguageSection(panel.languages, configuration, panel.updateConfiguration)
+        PanelControl.Bezel -> BezelToggle(device, configuration, panel.updateConfiguration)
+        PanelControl.SystemUi -> SystemUiToggle(device, configuration, panel.updateConfiguration)
+        PanelControl.Keyboard -> KeyboardToggle(simulatedDevice, panel.updateConfiguration)
+        PanelControl.Backdrop -> BackdropSection(previewSettings, panel.onPreviewSettingsChange)
+        PanelControl.DotGrid -> ToggleRow(
+            icon = Icons.Outlined.GridOn,
+            title = "Dot grid",
+            note = "Dots behind the frame",
+            checked = previewSettings.isDotGridVisible,
+            onCheckedChange = { panel.onPreviewSettingsChange(previewSettings.copy(isDotGridVisible = it)) },
+        )
+        PanelControl.PreviewMode -> ToggleRow(
+            icon = Icons.Outlined.Visibility,
+            title = "Preview mode",
+            note = "Off shows just the app, with a button to turn it back on",
+            checked = previewSettings.isPreviewModeEnabled,
+            onCheckedChange = { panel.onPreviewSettingsChange(previewSettings.copy(isPreviewModeEnabled = it)) },
+        )
+        // Drawn around the entries, wherever they are placed.
+        PanelControl.Header, PanelControl.Attribution -> Unit
+    }
+}
+
+@Composable
+private fun <T> SettingView(
+    setting: PanelSetting<T>,
+    values: PanelSettingValues,
+    onChange: (PanelSettingValues) -> Unit
+) {
+    val value = values[setting]
+    if (setting.isToggle) {
+        ToggleRow(
+            icon = setting.icon,
+            title = setting.title,
+            checked = value == true,
+            onCheckedChange = { checked -> onChange(values.with(setting, setting.options[if (checked) 1 else 0])) },
+            note = setting.note,
+        )
+        return
+    }
+    PanelDropdown(
+        icon = setting.icon,
+        options = setting.options.map(setting::label),
+        selectedIndex = setting.options.indexOf(value),
+        onSelect = { index -> onChange(values.with(setting, setting.options[index])) },
+        label = setting.title,
+        title = setting.title,
+        titleEnd = {
+            ResetButton(
+                title = setting.title,
+                isShown = value != setting.default,
+                onClick = { onChange(values.with(setting, setting.default)) },
+            )
+        },
+    )
+    setting.note?.let { PanelCaption(it) }
 }
 
 @Composable
@@ -377,19 +514,29 @@ private fun AppearanceSection(configuration: DeviceConfiguration, onChange: (Dev
 }
 
 @Composable
-private fun TextAndDisplaySection(simulatedDevice: SimulatedDevice, onChange: (DeviceConfiguration) -> Unit) {
-    val configuration = simulatedDevice.configuration
-    SectionLabel("Text & display")
+private fun TextSizeSlider(
+    configuration: DeviceConfiguration,
+    steps: List<ScaleStep>,
+    onChange: (DeviceConfiguration) -> Unit
+) {
+    val markedIndices = remember(steps) {
+        CommonFontScales.filter { it in steps.first().scale..steps.last().scale }.map(steps::indexOfNearest).toSet()
+    }
     StepSlider(
         icon = Icons.Outlined.FormatSize,
         title = "Text size",
         note = "Ticks mark common device sizes",
-        labels = FontScaleSteps.map { it.label },
-        selectedIndex = FontScaleSteps.indexOfNearest(configuration.fontScale),
-        onSelect = { index -> onChange(configuration.copy(fontScale = FontScaleSteps[index].scale)) },
-        defaultIndex = FontScaleSteps.indexOfNearest(DefaultConfiguration.fontScale),
-        markedIndices = CommonTextSizeIndices,
+        labels = steps.map { it.label },
+        selectedIndex = steps.indexOfNearest(configuration.fontScale),
+        onSelect = { index -> onChange(configuration.copy(fontScale = steps[index].scale)) },
+        defaultIndex = steps.indexOfNearest(DefaultConfiguration.fontScale),
+        markedIndices = markedIndices,
     )
+}
+
+@Composable
+private fun DisplaySizeSlider(simulatedDevice: SimulatedDevice, onChange: (DeviceConfiguration) -> Unit) {
+    val configuration = simulatedDevice.configuration
     val displaySteps = simulatedDevice.device.displayScaleSteps
     StepSlider(
         icon = Icons.Outlined.ZoomIn,
@@ -445,10 +592,11 @@ private fun LanguageSection(
 }
 
 @Composable
-private fun DisplaySection(simulatedDevice: SimulatedDevice, onChange: (DeviceConfiguration) -> Unit) {
-    val device = simulatedDevice.device
-    val configuration = simulatedDevice.configuration
-    SectionLabel("Display")
+private fun BezelToggle(
+    device: Device,
+    configuration: DeviceConfiguration,
+    onChange: (DeviceConfiguration) -> Unit
+) {
     ToggleRow(
         icon = Icons.Outlined.Smartphone,
         title = if (device.hasFrameArtwork) "Bezel" else "Border",
@@ -456,6 +604,14 @@ private fun DisplaySection(simulatedDevice: SimulatedDevice, onChange: (DeviceCo
         checked = configuration.isFrameVisible,
         onCheckedChange = { onChange(configuration.copy(isFrameVisible = it)) },
     )
+}
+
+@Composable
+private fun SystemUiToggle(
+    device: Device,
+    configuration: DeviceConfiguration,
+    onChange: (DeviceConfiguration) -> Unit
+) {
     val hasSystemUi = device.systemUi?.isEmpty == false
     ToggleRow(
         icon = Icons.Outlined.SignalCellularAlt,
@@ -465,6 +621,11 @@ private fun DisplaySection(simulatedDevice: SimulatedDevice, onChange: (DeviceCo
         enabled = hasSystemUi,
         onCheckedChange = { onChange(configuration.copy(isSystemUiVisible = it)) },
     )
+}
+
+@Composable
+private fun KeyboardToggle(simulatedDevice: SimulatedDevice, onChange: (DeviceConfiguration) -> Unit) {
+    val configuration = simulatedDevice.configuration
     val keyboardHeight = simulatedDevice.currentKeyboardHeight
     val isKeyboardShown = keyboardHeight != null && configuration.isKeyboardVisible
     ToggleRow(
@@ -485,14 +646,6 @@ private fun BackdropSection(previewSettings: PreviewSettings, onChange: (Preview
         options = BackdropOptions,
         selectedIndex = previewSettings.backdrop.ordinal,
         onSelect = { index -> onChange(previewSettings.copy(backdrop = Backdrop.entries[index])) },
-    )
-    Spacer(Modifier.height(8.dp))
-    ToggleRow(
-        icon = Icons.Outlined.GridOn,
-        title = "Dot grid",
-        note = "Dots behind the frame",
-        checked = previewSettings.isDotGridVisible,
-        onCheckedChange = { onChange(previewSettings.copy(isDotGridVisible = it)) },
     )
 }
 

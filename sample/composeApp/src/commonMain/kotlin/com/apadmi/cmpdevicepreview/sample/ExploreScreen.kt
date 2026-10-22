@@ -91,12 +91,16 @@ private fun NoResults(state: WanderState, modifier: Modifier = Modifier) {
 @Composable
 private fun PhoneExplore(state: WanderState, modifier: Modifier) {
     val results = state.searchResults()
+    val isOfferShown = ShowOfferBanner.current
     LazyColumn(
         modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item { ExploreHeader(state, AppLayout.Phone) }
+        if (isOfferShown) {
+            item { OfferBanner(Modifier.fillMaxWidth()) }
+        }
         item { CategoryChips(state.category, { state.category = it }) }
         val featured = results.firstOrNull()
         featured?.let {
@@ -120,6 +124,7 @@ private fun PhoneExplore(state: WanderState, modifier: Modifier) {
 @Composable
 private fun LandscapeExplore(state: WanderState, modifier: Modifier) {
     val results = state.searchResults()
+    val isOfferShown = ShowOfferBanner.current
     Row(modifier.fillMaxSize().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(
             Modifier.weight(0.42f).fillMaxHeight().padding(vertical = 12.dp),
@@ -141,6 +146,9 @@ private fun LandscapeExplore(state: WanderState, modifier: Modifier) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     BreakpointBadge(AppLayout.PhoneLandscape)
+                    if (isOfferShown) {
+                        OfferBanner(Modifier.fillMaxWidth())
+                    }
                     CategoryChips(state.category, { state.category = it }, wrap = true)
                 }
             }
@@ -162,6 +170,7 @@ private fun GridExplore(
     modifier: Modifier
 ) {
     val results = state.searchResults()
+    val isOfferShown = ShowOfferBanner.current
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 200.dp),
         modifier = modifier.fillMaxSize(),
@@ -170,6 +179,9 @@ private fun GridExplore(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) { ExploreHeader(state, layout) }
+        if (isOfferShown) {
+            item(span = { GridItemSpan(maxLineSpan) }) { OfferBanner(Modifier.fillMaxWidth()) }
+        }
         item(span = { GridItemSpan(maxLineSpan) }) { CategoryChips(state.category, { state.category = it }, wrap = true) }
         if (results.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) { NoResults(state) }

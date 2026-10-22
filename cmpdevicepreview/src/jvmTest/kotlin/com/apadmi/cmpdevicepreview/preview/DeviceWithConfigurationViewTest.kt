@@ -25,6 +25,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.Dp
@@ -80,8 +81,12 @@ class DeviceWithConfigurationViewTest {
                 DeviceWithConfigurationView(
                     initialDevice = DevicePresets.iPhone16Pro,
                     isPersistenceEnabled = false,
-                    panelTitle = "Acme Preview",
-                    panelIcon = { Box(Modifier.fillMaxSize().testTag("logo")) },
+                    panel = {
+                        defaults {
+                            header.title = "Acme Preview"
+                            header.icon = { Box(Modifier.fillMaxSize().testTag("logo")) }
+                        }
+                    },
                 ) {}
             }
         }
@@ -108,7 +113,7 @@ class DeviceWithConfigurationViewTest {
                 DeviceWithConfigurationView(
                     initialDevice = DevicePresets.iPhone16Pro,
                     isPersistenceEnabled = false,
-                    isAttributionVisible = isAttributionVisible,
+                    panel = { defaults { attribution.isVisible = isAttributionVisible } },
                 ) {}
             }
         }
@@ -177,7 +182,7 @@ class DeviceWithConfigurationViewTest {
         }
         onNodeWithContentDescription(restoreButton).assertDoesNotExist()
 
-        onNodeWithText("Preview mode").performClick()
+        onNodeWithText("Preview mode").performScrollTo().performClick()
         waitForIdle()
         onNodeWithText("Device Preview").assertDoesNotExist()
         onNodeWithText("The app").assertExists()
@@ -233,13 +238,82 @@ class DeviceWithConfigurationViewTest {
             }
         }
         onNodeWithText("Landscape").performClick()
-        onNodeWithText("Preview mode").performClick()
+        onNodeWithText("Preview mode").performScrollTo().performClick()
         waitForIdle()
         onNodeWithContentDescription(restoreButton).performClick()
         waitForIdle()
 
         onNodeWithText("Pixel 9").assertExists()
         onNode(hasText("Landscape") and isSelectable()).assertIsSelected()
+    }
+
+    @Test
+    fun theContentReadsTheValueOfYourOwnSetting() = runComposeUiTest {
+        setContent {
+            Box(Modifier.width(wide).height(800.dp)) {
+                DeviceWithConfigurationView(
+                    isPersistenceEnabled = false,
+                    panel = {
+                        defaults()
+                        setting(MockApi)
+                    },
+                ) {
+                    Text(if (MockApi.current) "Mocked" else "Real")
+                }
+            }
+        }
+        onNodeWithText("Real").assertExists()
+
+        onNodeWithText("Mock API").performScrollTo().performClick()
+        waitForIdle()
+        onNodeWithText("Mocked").assertExists()
+    }
+
+    @Test
+    fun yourOwnPanelIsShownBesideTheDeviceAndInTheSheet() = runComposeUiTest {
+        var width by mutableStateOf(wide)
+        setContent {
+            Box(Modifier.width(width).height(800.dp)) {
+                DeviceWithConfigurationView(
+                    initialDevice = DevicePresets.iPhone16Pro,
+                    isPersistenceEnabled = false,
+                    panel = {
+                        header(title = "Acme Preview")
+                        section("Debug") { setting(MockApi) }
+                    },
+                ) {}
+            }
+        }
+        val assertPanel = {
+            onNodeWithText("Acme Preview").assertExists()
+            onNodeWithText("DEBUG").assertExists()
+            onNodeWithText("Mock API").assertExists()
+            onNodeWithText("FRAME").assertDoesNotExist()
+        }
+        assertPanel()
+
+        width = narrow
+        waitForIdle()
+        onNode(hasText("iPhone 16 Pro") and hasClickAction()).performClick()
+        waitForIdle()
+        assertPanel()
+    }
+
+    @Test
+    fun withThePreviewModeSwitchHiddenThereIsNoButtonToTurnItOn() = runComposeUiTest {
+        setContent {
+            Box(Modifier.width(wide).height(800.dp)) {
+                DeviceWithConfigurationView(
+                    isPersistenceEnabled = false,
+                    initialPreviewSettings = PreviewSettings(isPreviewModeEnabled = false),
+                    panel = { defaults { previewMode.isVisible = false } },
+                ) {
+                    Text("App")
+                }
+            }
+        }
+        onNodeWithText("App").assertExists()
+        onNodeWithContentDescription("Turn preview mode on").assertDoesNotExist()
     }
 
     private companion object {

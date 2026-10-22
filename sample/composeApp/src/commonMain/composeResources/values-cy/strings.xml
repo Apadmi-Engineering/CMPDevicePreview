@@ -26,6 +26,8 @@
     <string name="no_results_title">Heb ddod o hyd i unrhyw gyrchfan</string>
     <string name="no_results_message">Dim byd yn cyfateb i “%1$s”.</string>
     <string name="popular">Poblogaidd</string>
+    <string name="offer_title">Sêl yr haf</string>
+    <string name="offer_message">20% oddi ar arosiadau a archebir yr wythnos hon</string>
     <string name="featured">NODWEDDOL</string>
 
     <string name="back">Yn ôl</string>

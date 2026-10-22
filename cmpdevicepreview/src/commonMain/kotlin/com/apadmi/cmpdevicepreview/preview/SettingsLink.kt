@@ -31,19 +31,21 @@ private const val SystemUiKey = "systemUi"
 private const val BackdropKey = "backdrop"
 private const val DotGridKey = "dotGrid"
 private const val PreviewKey = "preview"
+private const val SettingKeyPrefix = "x."
+private const val UnreservedPunctuation = "-._~"
 
 private const val Freeform = "freeform"
 private const val Auto = "auto"
-private const val On = "1"
-private const val Off = "0"
+internal const val FlagOn = "1"
+internal const val FlagOff = "0"
 
-private val PercentEscape = Regex("%([0-9a-fA-F]{2})")
+private val PercentEscapes = Regex("(%[0-9a-fA-F]{2})+")
 
 // Only the shape of a BCP 47 tag: which tags the host offers is judged where they are known.
 private val LanguageTag = Regex("[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8}){0,3}")
 
-private val TrueValues = setOf(On, "true", "on")
-private val FalseValues = setOf(Off, "false", "off")
+internal val TrueValues = setOf(FlagOn, "true", "on")
+internal val FalseValues = setOf(FlagOff, "false", "off")
 
 private val Enum<*>.linkValue: String
     get() = name.lowercase()
@@ -66,10 +68,26 @@ private fun Map<String, String>.previewSettings(initial: PreviewSettings) = Prev
     isPreviewModeEnabled = flag(PreviewKey) ?: initial.isPreviewModeEnabled,
 )
 
+// A run of escapes is the UTF-8 of what was escaped, so a name such as "Português" comes back as written.
 private fun String.percentDecoded(): String = if ('%' in this) {
-    PercentEscape.replace(this) { escape -> escape.groupValues[1].toInt(16).toChar().toString() }
+    PercentEscapes.replace(this) { run ->
+        run.value.chunked(3).map { it.substring(1).toInt(16).toByte() }.toByteArray()
+            .decodeToString()
+    }
 } else {
     this
+}
+
+// RFC 3986's unreserved characters stay and every other UTF-8 byte is escaped, the same on every platform.
+private fun String.percentEncoded(): String = buildString {
+    for (byte in this@percentEncoded.encodeToByteArray()) {
+        val char = byte.toInt().toChar()
+        if (char in 'A'..'Z' || char in 'a'..'z' || char in '0'..'9' || char in UnreservedPunctuation) {
+            append(char)
+        } else {
+            append('%').append(byte.toHexString(HexFormat.UpperCase))
+        }
+    }
 }
 
 private fun MutableList<Pair<String, String>>.addFlag(
@@ -78,7 +96,7 @@ private fun MutableList<Pair<String, String>>.addFlag(
     initial: Boolean
 ) {
     if (value != initial) {
-        add(key to if (value) On else Off)
+        add(key to if (value) FlagOn else FlagOff)
     }
 }
 
@@ -130,17 +148,25 @@ internal fun encodeSettings(state: PreviewState, initial: PreviewState): String 
         }
         addAll(configurationPairs(state.simulatedDevice.configuration, initial.simulatedDevice.configuration))
         addAll(previewSettingsPairs(state.previewSettings, initial.previewSettings))
+        // The values a panel keeps are only those that differ from the settings' defaults.
+        state.settingValues.values.forEach { (key, value) -> add("$SettingKeyPrefix$key" to value.percentEncoded()) }
     }
     return pairs.joinToString("&") { (key, value) -> "$KeyPrefix$key=$value" }
 }
 
 // Each pair is judged on its own: an invalid value or unknown key leaves that setting as it is in the initial state.
 internal fun decodeSettings(encoded: String, initial: PreviewState): PreviewState {
-    val values = settingValues(encoded)
+    val values = linkValues(encoded)
     val device = values.device() ?: initial.simulatedDevice.device
     val configuration = values.configuration(initial.simulatedDevice.configuration)
+    // Which keys are settings of the panel, and which values their options, is judged where the panel is known.
+    val settingValues = values.filterKeys { it.startsWith(SettingKeyPrefix) }.mapKeys { it.key.removePrefix(SettingKeyPrefix) }
     // The display size is snapped to the device's own steps here, and a keyboard it hasn't got dropped.
-    return PreviewState(SimulatedDevice(device, configuration).adaptedToDevice(), values.previewSettings(initial.previewSettings))
+    return PreviewState(
+        SimulatedDevice(device, configuration).adaptedToDevice(),
+        values.previewSettings(initial.previewSettings),
+        PanelSettingValues(settingValues),
+    )
 }
 
 internal fun settingsParams(query: String): String? =
@@ -187,7 +213,7 @@ private fun queryPairs(query: String): List<String> = query.removePrefix("?").sp
 
 private fun isSettingsPair(pair: String): Boolean = pair.substringBefore('=').percentDecoded().startsWith(KeyPrefix)
 
-private fun settingValues(encoded: String): Map<String, String> = buildMap {
+private fun linkValues(encoded: String): Map<String, String> = buildMap {
     for (pair in queryPairs(encoded)) {
         val key = pair.substringBefore('=').percentDecoded()
         if ('=' in pair && key.startsWith(KeyPrefix)) {

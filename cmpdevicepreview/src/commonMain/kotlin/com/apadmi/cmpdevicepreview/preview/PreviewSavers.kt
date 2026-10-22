@@ -48,6 +48,12 @@ internal val PreviewSettingsSaver: Saver<PreviewSettings, Any> = mapSaver(
     },
 )
 
+// Keyed by the settings' own keys, with the values a link writes, which are all strings.
+internal val PanelSettingValuesSaver: Saver<PanelSettingValues, Any> = mapSaver(
+    save = { it.values },
+    restore = { saved -> PanelSettingValues(saved.mapValues { it.value as String }) },
+)
+
 /** This device and its configuration as saved values; [initialDevice] needs no more than the configuration. */
 private fun SimulatedDevice.toSavedValues(initialDevice: Device): Map<String, Any?> = buildMap {
     when {

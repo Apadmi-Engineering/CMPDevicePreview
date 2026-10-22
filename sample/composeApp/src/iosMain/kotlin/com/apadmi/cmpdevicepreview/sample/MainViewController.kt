@@ -5,7 +5,7 @@ import com.apadmi.cmpdevicepreview.preview.DeviceWithConfigurationView
 
 fun MainViewController() = ComposeUIViewController {
     // The app runs inside the device preview; take this wrapper away and it runs on its own.
-    DeviceWithConfigurationView(languages = sampleLanguages) {
+    DeviceWithConfigurationView(panel = samplePanel, languages = sampleLanguages) {
         App()
     }
 }
