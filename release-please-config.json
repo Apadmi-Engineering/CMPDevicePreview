@@ -9,7 +9,8 @@
   "prerelease": true,
   "packages": {
     ".": {
-      "exclude-paths": ["sample"]
+      "exclude-paths": ["sample"],
+      "extra-files": ["README.md"]
     }
   }
 }

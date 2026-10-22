@@ -10,9 +10,11 @@ CmpDevicePreview is a Compose Multiplatform library that draws your app inside a
 Add the library to your build.gradle file:
 Latest version: [![Maven Central](https://img.shields.io/maven-central/v/com.apadmi/cmpdevicepreview?color=blue)](https://search.maven.org/search?q=g:com.apadmi).
 
+<!-- x-release-please-start-version -->
 ```gradle
-implementation("com.apadmi:cmpdevicepreview:<version>")
+implementation("com.apadmi:cmpdevicepreview:0.0.2")
 ```
+<!-- x-release-please-end -->
 
 Wrap your root composable in `DeviceWithConfigurationView`. You can do this in a single platform's entry point, such as the web one, and leave the rest of your code untouched:
 ```kotlin
