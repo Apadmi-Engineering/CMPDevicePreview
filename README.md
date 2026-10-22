@@ -81,7 +81,7 @@ A link's settings win over the kept ones, and the panel's reset button clears bo
 
 ## Customisation
 
-Pass `panel` to `DeviceWithConfigurationView` to choose what the configuration panel shows and in what order, and to add controls and settings of your own. A control the panel leaves out keeps the setting the preview started with.
+Pass `panel` to `DeviceWithConfigurationView` to choose what the configuration panel shows and in what order, and to add controls and settings of your own. Omitting a control means that setting always uses it's default value (even if a url parameter tries to set it).
 
 ### Hiding and configuring the usual controls
 
@@ -163,7 +163,7 @@ The header and the attribution stay at the top and the end of the panel wherever
 
 ### Languages
 
-To let the panel switch the language of your app, pass `languages`. The first is the default, and without any the panel has no language setting, wherever `panel` places it:
+To let the panel switch the language of your app, pass `languages`. The first is the default, and without any the panel has no language setting:
 ```kotlin
 DeviceWithConfigurationView(
     languages = listOf(
