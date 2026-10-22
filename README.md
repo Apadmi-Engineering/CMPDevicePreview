@@ -12,7 +12,7 @@ Latest version: [![Maven Central](https://img.shields.io/maven-central/v/com.apa
 
 <!-- x-release-please-start-version -->
 ```gradle
-implementation("com.apadmi:cmpdevicepreview:0.0.2")
+implementation("com.apadmi:cmpdevicepreview:0.1.0")
 ```
 <!-- x-release-please-end -->
 
