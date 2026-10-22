@@ -132,7 +132,7 @@ When a pull request is squash-merged, its title becomes the commit message on `m
 
 ## Releasing
 
-For maintainers. The version is in `version.txt`. Don't edit it by hand: release-please owns it and the changelog.
+For maintainers. The version is in `version.txt`. Don't edit it by hand: release-please owns it and the changelog, and it also keeps the dependency line in the README's Getting Started section up to date, between the `x-release-please-start-version` and `x-release-please-end` comments.
 
 1. release-please keeps a pull request open on `main` titled `chore(main): release <version>`, listing what has changed since the last release.
 2. Merging that pull request tags the release and creates the GitHub release. The tag starts [`deploy.yml`](.github/workflows/deploy.yml), which runs the tests and publishes to Maven Central. Once that succeeds, it calls [`demo.yml`](.github/workflows/demo.yml), which builds the web sample and deploys it to GitHub Pages, the live demo the README links to. Each workflow lists the secrets it needs at the top.
