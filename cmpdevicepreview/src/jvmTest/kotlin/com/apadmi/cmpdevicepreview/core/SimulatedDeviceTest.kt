@@ -102,7 +102,7 @@ class SimulatedDeviceTest {
         assertEquals("Freeform", freeform.name)
         assertEquals(DeviceType.Other, freeform.type)
         assertFalse(freeform.isRotatable)
-        assertFalse(freeform.isTouchscreen)
+        assertTrue(freeform.isTouchscreen)
         assertEquals(Size(834f, 1112f), freeform.portraitSize)
         assertNull(freeform.devicePixelRatio)
 

@@ -243,7 +243,7 @@ private fun Modifier.screenClip(shape: Shape): Modifier =
  * Android, where insets and theme stay the real window's. Dialogs and popups are kept to the
  * screen, except on Android, where each is a window of its own. The status bar, gesture pill and
  * keyboard band are drawn over the content and don't take touches. On the web, the mouse acts
- * as a finger on a touchscreen device.
+ * as a finger on a phone, tablet, foldable or freeform window.
  *
  * @param device The device to draw.
  * @param modifier The modifier for the view, which the device is scaled to fit.
@@ -260,7 +260,7 @@ public fun DeviceFrameView(
     onResize: ((FreeformDevice) -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    DeviceFrame(device, modifier, configuration, onResize, onLayoutScale = null, content)
+    DeviceFrame(device, modifier, configuration, device.isTouchscreen, onResize, onLayoutScale = null, content)
 }
 
 @Composable
@@ -268,6 +268,7 @@ internal fun DeviceFrame(
     device: Device,
     modifier: Modifier,
     configuration: DeviceConfiguration,
+    isMouseAsTouch: Boolean,
     onResize: ((FreeformDevice) -> Unit)?,
     onLayoutScale: ((Float) -> Unit)?,
     content: @Composable () -> Unit,
@@ -291,7 +292,7 @@ internal fun DeviceFrame(
     val screenShape = rememberScreenShape(painter, screenSize, isPortrait, isWindow = !device.hasFrameArtwork, configuration.isFrameVisible)
     val screenModifier = Modifier.screenClip(screenShape)
         .systemOverlay(systemUiPainter, keyboardInset, screenSize, safeArea, configuration.appearance == Appearance.Dark, layoutDirection)
-        .then(if (device.isTouchscreen) Modifier.mouseAsTouch() else Modifier)
+        .then(if (isMouseAsTouch) Modifier.mouseAsTouch() else Modifier)
 
     // The scale a resized device keeps instead of fitting the space again. Forgotten once another
     // device is shown, so coming back to the same size fits the space again.

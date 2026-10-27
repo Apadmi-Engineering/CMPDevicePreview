@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -26,6 +29,7 @@ import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
+import com.apadmi.cmpdevicepreview.core.isTouchscreen
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
 
 /** How much of the space, in each direction, the device may fill: the rest is margin. */
@@ -141,6 +145,9 @@ internal fun ZoomableDevicePreview(
 ) {
     val isDeviceDark = simulatedDevice.configuration.appearance == Appearance.Dark
     val viewport = remember { PreviewViewport() }
+    // Like the zoom, turning drag to scroll on or off holds whichever device is shown.
+    var mouseAsTouch by remember { mutableStateOf<Boolean?>(null) }
+    val isMouseAsTouch = mouseAsTouch ?: simulatedDevice.device.isTouchscreen
     val zoomGestures = if (isZoomable) {
         Modifier.clipToBounds().onSizeChanged { viewport.resize(it.toSize()) }.zoomAndPan(viewport)
     } else {
@@ -166,6 +173,7 @@ internal fun ZoomableDevicePreview(
                 device = simulatedDevice.device,
                 modifier = Modifier.padding(16.dp).fillMaxSize(DeviceFraction),
                 configuration = simulatedDevice.configuration,
+                isMouseAsTouch = isMouseAsTouch,
                 onResize = onResize?.let { resize ->
                     { freeform -> resize(simulatedDevice.copy(device = freeform).adaptedToDevice()) }
                 },
@@ -179,6 +187,8 @@ internal fun ZoomableDevicePreview(
                 simulatedDevice.device,
                 previewSettings.isBackdropDark(isDeviceDark),
                 Modifier.align(Alignment.BottomStart).padding(8.dp),
+                isDragToScroll = isMouseAsTouch.takeIf { mouseAsTouchRelabeller != null },
+                onDragToScrollChange = { mouseAsTouch = it },
             )
         }
     }

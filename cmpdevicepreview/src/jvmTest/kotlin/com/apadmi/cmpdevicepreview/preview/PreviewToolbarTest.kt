@@ -1,17 +1,26 @@
 package com.apadmi.cmpdevicepreview.preview
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
+
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class PreviewToolbarTest {
@@ -81,5 +90,29 @@ class PreviewToolbarTest {
         onNodeWithContentDescription("Fit to window").assertIsEnabled().performClick()
         assertEquals(1f, viewport.zoom)
         onNodeWithContentDescription("Fit to window").assertIsNotEnabled()
+    }
+
+    @Test
+    fun dragToScrollIsASwitchThatTurnsItOnAndOff() = runComposeUiTest {
+        var isDragToScroll by mutableStateOf(true)
+        setContent {
+            PreviewToolbar(
+                viewport(),
+                DevicePresets.pixel9,
+                isBackdropDark = false,
+                isDragToScroll = isDragToScroll,
+                onDragToScrollChange = { isDragToScroll = it },
+            )
+        }
+        onNodeWithContentDescription("Drag to scroll").assertIsOn().performClick()
+        assertFalse(isDragToScroll)
+        onNodeWithContentDescription("Drag to scroll").assertIsOff().performClick()
+        assertTrue(isDragToScroll)
+    }
+
+    @Test
+    fun thereIsNoDragToScrollSwitchWhereTheMouseCannotActAsAFinger() = runComposeUiTest {
+        setContent { PreviewToolbar(viewport(), DevicePresets.pixel9, isBackdropDark = false) }
+        onNodeWithContentDescription("Drag to scroll").assertDoesNotExist()
     }
 }

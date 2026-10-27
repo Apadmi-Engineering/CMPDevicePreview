@@ -1,3 +1,4 @@
 package com.apadmi.cmpdevicepreview.preview
 
-internal actual fun relabelMouseAsTouch(startsOnNode: (x: Float, y: Float) -> Boolean): (() -> Unit)? = null
+@Suppress("NULLABLE_PROPERTY_TYPE")  // Null means this platform can't relabel pointers, and the toolbar then has no drag-to-scroll switch.
+internal actual val mouseAsTouchRelabeller: MouseAsTouchRelabeller? = null

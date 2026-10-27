@@ -12,6 +12,12 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 
+// Null where the platform can't relabel pointers, and there the toolbar has no drag-to-scroll switch.
+internal expect val mouseAsTouchRelabeller: MouseAsTouchRelabeller?
+
+// Relabels presses whose window position, in pixels, startsOnNode accepts, until the function it returns is called.
+internal typealias MouseAsTouchRelabeller = (startsOnNode: (x: Float, y: Float) -> Boolean) -> () -> Unit
+
 private data object MouseAsTouchElement : ModifierNodeElement<MouseAsTouchNode>() {
     override fun create(): MouseAsTouchNode = MouseAsTouchNode()
 
@@ -23,7 +29,7 @@ private class MouseAsTouchNode : Modifier.Node(), GlobalPositionAwareModifierNod
     private var stop: (() -> Unit)? = null
 
     override fun onAttach() {
-        stop = relabelMouseAsTouch { x, y -> bounds.contains(Offset(x, y)) }
+        stop = mouseAsTouchRelabeller?.invoke { x, y -> bounds.contains(Offset(x, y)) }
     }
 
     override fun onDetach() {
@@ -45,13 +51,3 @@ private class MouseAsTouchNode : Modifier.Node(), GlobalPositionAwareModifierNod
  * @return This modifier, with the node that relabels the mouse added.
  */
 internal fun Modifier.mouseAsTouch(): Modifier = this then MouseAsTouchElement
-
-/**
- * Starts relabelling presses whose window position, in pixels, [startsOnNode] accepts. Returns a
- * function that stops it, or null where the platform can't relabel pointers.
- *
- * @param startsOnNode Called with the window position of a press, in pixels, and returns whether it
- * is on the node, in which case the press is relabelled as a touch.
- * @return A function that stops the relabelling, or null where the platform can't relabel pointers.
- */
-internal expect fun relabelMouseAsTouch(startsOnNode: (x: Float, y: Float) -> Boolean): (() -> Unit)?

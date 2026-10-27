@@ -13,6 +13,7 @@ import androidx.compose.material.icons.outlined.FitScreen
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Screenshot
+import androidx.compose.material.icons.outlined.SwipeVertical
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -40,7 +41,9 @@ internal fun PreviewToolbar(
     viewport: PreviewViewport,
     device: Device,
     isBackdropDark: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isDragToScroll: Boolean? = null,
+    onDragToScrollChange: (Boolean) -> Unit = {},
 ) {
     val ink = if (isBackdropDark) Color.White else Color.Black
     val resting = ink.copy(alpha = RestingAlpha)
@@ -81,9 +84,30 @@ internal fun PreviewToolbar(
                 Icons.Outlined.FitScreen, "Fit to window", "Fit to window", viewport::reset,
                 size = ButtonSize, tint = resting, hoverTint = hovered, isShown = viewport.isTransformed,
             )
+            isDragToScroll?.let { DragToScrollSwitch(it, onDragToScrollChange, resting, hovered) }
             ScreenshotButtons(device, resting, hovered)
         }
     }
+}
+
+@Composable
+private fun DragToScrollSwitch(
+    isDragToScroll: Boolean,
+    onChange: (Boolean) -> Unit,
+    tint: Color,
+    hoverTint: Color
+) {
+    Spacer(Modifier.width(8.dp))
+    PanelIconButton(
+        icon = Icons.Outlined.SwipeVertical,
+        description = "Drag to scroll",
+        tooltip = if (isDragToScroll) "Drag to scroll: on" else "Drag to scroll: off",
+        onClick = { onChange(!isDragToScroll) },
+        size = ButtonSize,
+        tint = tint,
+        hoverTint = hoverTint,
+        isChecked = isDragToScroll,
+    )
 }
 
 @Composable
