@@ -104,7 +104,7 @@ internal fun PreviewToolbar(
             )
             PanelIconButton(
                 Icons.Outlined.FitScreen, "Fit to window", "Fit to window", viewport::reset,
-                size = ButtonSize, tint = resting, hoverTint = hovered, isShown = viewport.isTransformed,
+                size = ButtonSize, tint = resting, hoverTint = hovered, enabled = viewport.isTransformed,
             )
             isDragToScroll?.let { DragToScrollSwitch(it, onDragToScrollChange, resting, hovered) }
         }
