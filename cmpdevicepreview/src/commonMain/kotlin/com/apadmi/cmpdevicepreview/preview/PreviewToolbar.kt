@@ -1,6 +1,7 @@
 package com.apadmi.cmpdevicepreview.preview
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -57,9 +58,17 @@ private const val ZoomStep = 1.25f
 private const val RestingAlpha = 0.6f
 private const val HoveredAlpha = 0.9f
 private const val NoticeMillis = 2000L
+private const val SurfaceAlpha = 0.9f
 
 private val ButtonSize = 28.dp
 private val MenuWidth = 180.dp
+private val SurfacePadding = 2.dp
+
+// In the backdrop's own colour, so over the backdrop it only clears the dots, and over the device the ink stays legible.
+private fun Modifier.toolbarSurface(isBackdropDark: Boolean): Modifier {
+    val color = if (isBackdropDark) DotGridDefaults.DarkBackground else DotGridDefaults.Background
+    return background(color.copy(alpha = SurfaceAlpha), RoundedCornerShape(percent = 50)).padding(SurfacePadding)
+}
 
 @Composable
 internal fun PreviewToolbar(
@@ -79,7 +88,7 @@ internal fun PreviewToolbar(
         viewport.zoomTo(if (isPassingActualSize) actualSize else target)
     }
     PanelTheme {
-        Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier.toolbarSurface(isBackdropDark), verticalAlignment = Alignment.CenterVertically) {
             PanelIconButton(
                 Icons.Outlined.Remove, "Zoom out", "Zoom out", { step(1f / ZoomStep) },
                 size = ButtonSize, tint = resting, hoverTint = hovered,
@@ -136,11 +145,11 @@ internal fun ScreenshotMenu(
         screenshots.capture(includeFrame)?.let(use)
     }
     PanelTheme {
-        Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier.toolbarSurface(isBackdropDark), verticalAlignment = Alignment.CenterVertically) {
             notice?.let {
                 Text(
                     it,
-                    modifier = Modifier.padding(end = 4.dp).semantics { liveRegion = LiveRegionMode.Polite },
+                    modifier = Modifier.padding(start = 8.dp, end = 4.dp).semantics { liveRegion = LiveRegionMode.Polite },
                     color = resting,
                     fontSize = 11.sp,
                 )
