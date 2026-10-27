@@ -1,53 +1,75 @@
 package com.apadmi.cmpdevicepreview.preview
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.FitScreen
-import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Remove
-import androidx.compose.material.icons.outlined.Screenshot
 import androidx.compose.material.icons.outlined.SwipeVertical
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
 import com.apadmi.cmpdevicepreview.core.Device
+
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 
 private const val ZoomStep = 1.25f
 private const val RestingAlpha = 0.6f
 private const val HoveredAlpha = 0.9f
+private const val NoticeMillis = 2000L
 
 private val ButtonSize = 28.dp
+private val MenuWidth = 180.dp
 
 @Composable
 internal fun PreviewToolbar(
     viewport: PreviewViewport,
-    device: Device,
     isBackdropDark: Boolean,
     modifier: Modifier = Modifier,
     isDragToScroll: Boolean? = null,
     onDragToScrollChange: (Boolean) -> Unit = {},
 ) {
-    val ink = if (isBackdropDark) Color.White else Color.Black
-    val resting = ink.copy(alpha = RestingAlpha)
-    val hovered = ink.copy(alpha = HoveredAlpha)
+    val (resting, hovered) = toolbarTints(isBackdropDark)
     val hostDensity = LocalDensity.current.density
     // The zoom at which a dp of the device is a dp of this window.
     val actualSize = hostDensity / viewport.fitScale
@@ -85,7 +107,85 @@ internal fun PreviewToolbar(
                 size = ButtonSize, tint = resting, hoverTint = hovered, isShown = viewport.isTransformed,
             )
             isDragToScroll?.let { DragToScrollSwitch(it, onDragToScrollChange, resting, hovered) }
-            ScreenshotButtons(device, resting, hovered)
+        }
+    }
+}
+
+@Composable
+internal fun ScreenshotMenu(
+    device: Device,
+    isBackdropDark: Boolean,
+    modifier: Modifier = Modifier,
+    download: PngDownloader? = pngDownloader,
+    copy: PngCopier? = pngCopier,
+) {
+    val screenshots = LocalDeviceScreenshots.current
+    if (screenshots == null || download == null) {
+        return
+    }
+    val (resting, hovered) = toolbarTints(isBackdropDark)
+    var isOpen by remember { mutableStateOf(false) }
+    var notice by remember { mutableStateOf<String?>(null) }
+    var noticeCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(noticeCount) {
+        delay(NoticeMillis)
+        notice = null
+    }
+    val take = { includeFrame: Boolean, use: (ImageBitmap) -> Unit ->
+        isOpen = false
+        screenshots.capture(includeFrame)?.let(use)
+    }
+    PanelTheme {
+        Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+            notice?.let {
+                Text(
+                    it,
+                    modifier = Modifier.padding(end = 4.dp).semantics { liveRegion = LiveRegionMode.Polite },
+                    color = resting,
+                    fontSize = 11.sp,
+                )
+            }
+            Box {
+                PanelIconButton(
+                    icon = Icons.Outlined.PhotoCamera,
+                    description = "Screenshot",
+                    tooltip = "Screenshot",
+                    onClick = { isOpen = true },
+                    size = ButtonSize,
+                    tint = resting,
+                    hoverTint = hovered,
+                    enabled = screenshots.canCapture,
+                )
+                // Lined up with the button's end, so it opens over the canvas: over the panel, clicks went through to the panel.
+                DropdownMenu(
+                    expanded = isOpen,
+                    onDismissRequest = { isOpen = false },
+                    modifier = Modifier.width(MenuWidth),
+                    offset = DpOffset(ButtonSize - MenuWidth, 0.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    containerColor = PanelColors.SurfaceRaised,
+                    border = BorderStroke(1.dp, PanelColors.Border),
+                ) {
+                    for (includeFrame in listOf(false, true)) {
+                        ScreenshotMenuItem(if (includeFrame) "Save with frame" else "Save screen", Icons.Outlined.Download) {
+                            take(includeFrame) { image -> download(image, screenshotName(device, image, includeFrame)) }
+                        }
+                    }
+                    if (copy != null) {
+                        HorizontalDivider(color = PanelColors.Border)
+                        for (includeFrame in listOf(false, true)) {
+                            ScreenshotMenuItem(if (includeFrame) "Copy with frame" else "Copy screen", Icons.Outlined.ContentCopy) {
+                                take(includeFrame) { image ->
+                                    copy(image) { isCopied ->
+                                        notice = if (isCopied) "Copied" else "Couldn't copy"
+                                        noticeCount++
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -111,31 +211,20 @@ private fun DragToScrollSwitch(
 }
 
 @Composable
-private fun ScreenshotButtons(
-    device: Device,
-    tint: Color,
-    hoverTint: Color
+private fun ScreenshotMenuItem(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit
 ) {
-    val screenshots = LocalDeviceScreenshots.current
-    val download = pngDownloader
-    if (screenshots == null || download == null) {
-        return
-    }
-    Spacer(Modifier.width(8.dp))
-    for (includeFrame in listOf(false, true)) {
-        PanelIconButton(
-            icon = if (includeFrame) Icons.Outlined.PhoneAndroid else Icons.Outlined.Screenshot,
-            description = if (includeFrame) "Screenshot with frame" else "Screenshot of screen",
-            tooltip = if (includeFrame) "Save the device in its frame as a PNG" else "Save the screen as a PNG at the device's resolution",
-            onClick = {
-                screenshots.capture(includeFrame)?.let { image ->
-                    download(image, screenshotName(device, image, includeFrame))
-                }
-            },
-            size = ButtonSize,
-            tint = tint,
-            hoverTint = hoverTint,
-            enabled = screenshots.canCapture,
-        )
-    }
+    DropdownMenuItem(
+        text = { Text(text, color = PanelColors.TextPrimary, fontSize = 14.sp) },
+        onClick = onClick,
+        leadingIcon = { Icon(icon, contentDescription = null, tint = PanelColors.TextSecondary, modifier = Modifier.size(18.dp)) },
+    )
+}
+
+// The toolbars' ink at rest and under the pointer: black on a light backdrop, white on a dark one.
+private fun toolbarTints(isBackdropDark: Boolean): Pair<Color, Color> {
+    val ink = if (isBackdropDark) Color.White else Color.Black
+    return ink.copy(alpha = RestingAlpha) to ink.copy(alpha = HoveredAlpha)
 }

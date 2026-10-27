@@ -27,8 +27,14 @@ internal val LocalDeviceScreenshots = staticCompositionLocalOf<DeviceScreenshots
  */
 internal expect val pngDownloader: PngDownloader?
 
+// Null where the platform can't put an image on the clipboard, and there the screenshot menu only saves.
+internal expect val pngCopier: PngCopier?
+
 /** Saves `image` as a PNG called `fileName`. */
 internal typealias PngDownloader = (image: ImageBitmap, fileName: String) -> Unit
+
+// Copies image to the clipboard as a PNG, then calls onDone with whether it was copied.
+internal typealias PngCopier = (image: ImageBitmap, onDone: (isCopied: Boolean) -> Unit) -> Unit
 
 /**
  * Screenshots of the device a [DeviceFrameView] below [LocalDeviceScreenshots] shows: of its screen,

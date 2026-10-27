@@ -75,7 +75,7 @@ The sample is localised with Compose Resources, in English (the default), Welsh 
 - **iOS**: the sample's preview sits inside the real safe area.
 - **macOS** is Kotlin/Native, and Compose still marks it experimental, so `gradle.properties` sets `org.jetbrains.compose.experimental.macos.enabled`. Compose's native cursors are limited, so the resize handles show the arrow there.
 - **Dialogs, bottom sheets and menus**: the sample's Profile tab has one of each, to check they stay on the device's screen.
-- **Screenshots** of the device are saved from the web and desktop builds only. Desktop asks where to save with a native file dialog.
+- **Screenshots** of the device are saved or copied from the web and desktop builds only. Desktop asks where to save with a native file dialog. The web can only copy from a secure context, so the menu has no Copy items on a page served over plain HTTP from another machine.
 - **Mouse as touch** is web only, so on desktop lists scroll with the wheel, not by dragging, and the toolbar has no drag-to-scroll switch.
 
 ## Tests and checks

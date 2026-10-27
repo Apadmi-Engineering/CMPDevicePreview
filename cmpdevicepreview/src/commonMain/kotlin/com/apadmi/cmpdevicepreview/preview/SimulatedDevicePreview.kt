@@ -182,13 +182,18 @@ internal fun ZoomableDevicePreview(
             )
         }
         if (isZoomable) {
+            // How the device is viewed goes in one corner, and what can be done with it in the other.
             PreviewToolbar(
                 viewport,
-                simulatedDevice.device,
                 previewSettings.isBackdropDark(isDeviceDark),
                 Modifier.align(Alignment.BottomStart).padding(8.dp),
                 isDragToScroll = isMouseAsTouch.takeIf { mouseAsTouchRelabeller != null },
                 onDragToScrollChange = { mouseAsTouch = it },
+            )
+            ScreenshotMenu(
+                simulatedDevice.device,
+                previewSettings.isBackdropDark(isDeviceDark),
+                Modifier.align(Alignment.BottomEnd).padding(8.dp),
             )
         }
     }
