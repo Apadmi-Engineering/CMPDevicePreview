@@ -53,7 +53,6 @@ private fun download(bytes: JsAny, fileName: String): Unit = js(
 
 private fun canCopyImages(): Boolean = js("typeof ClipboardItem === 'function' && !!navigator.clipboard && typeof navigator.clipboard.write === 'function'")
 
-/** Puts [bytes] on the clipboard as a PNG, then calls [onDone] with whether the browser allowed it. */
 private fun copy(bytes: JsAny, onDone: (Boolean) -> Unit): Unit = js(
     """(() => {
         const item = new ClipboardItem({ 'image/png': new Blob([bytes], { type: 'image/png' }) });

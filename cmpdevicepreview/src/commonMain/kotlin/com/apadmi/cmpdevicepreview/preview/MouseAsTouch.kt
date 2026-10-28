@@ -15,7 +15,7 @@ import androidx.compose.ui.node.ModifierNodeElement
 // Null where the platform can't relabel pointers, and there the toolbar has no drag-to-scroll switch.
 internal expect val mouseAsTouchRelabeller: MouseAsTouchRelabeller?
 
-// Relabels presses whose window position, in pixels, startsOnNode accepts, until the function it returns is called.
+// startsOnNode takes window pixels, and the function returned stops the relabelling.
 internal typealias MouseAsTouchRelabeller = (startsOnNode: (x: Float, y: Float) -> Boolean) -> () -> Unit
 
 private data object MouseAsTouchElement : ModifierNodeElement<MouseAsTouchNode>() {

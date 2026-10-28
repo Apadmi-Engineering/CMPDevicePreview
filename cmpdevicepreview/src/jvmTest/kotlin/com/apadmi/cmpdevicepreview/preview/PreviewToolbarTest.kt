@@ -24,6 +24,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 
+import com.apadmi.cmpdevicepreview.core.Device
+import com.apadmi.cmpdevicepreview.core.PreviewSettings
+import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
 
 import kotlin.test.Test
@@ -107,6 +110,28 @@ class PreviewToolbarTest {
     }
 
     @Test
+    fun turningDragToScrollOffHoldsForTheNextDevice() = runComposeUiTest {
+        var device by mutableStateOf<Device>(DevicePresets.pixel9)
+        setContent { PreviewWithDragToScroll(device) }
+        onNodeWithContentDescription("Drag to scroll").assertIsOn().performClick()
+
+        device = DevicePresets.galaxyTabS11
+        onNodeWithContentDescription("Drag to scroll").assertIsOff()
+    }
+
+    @Test
+    fun turningDragToScrollBackToTheDefaultLetsEachDeviceChoose() = runComposeUiTest {
+        var device by mutableStateOf<Device>(DevicePresets.pixel9)
+        setContent { PreviewWithDragToScroll(device) }
+        onNodeWithContentDescription("Drag to scroll").performClick().performClick()
+
+        device = DevicePresets.largeDesktopWindow
+        onNodeWithContentDescription("Drag to scroll").assertIsOff()
+        device = DevicePresets.pixel9
+        onNodeWithContentDescription("Drag to scroll").assertIsOn()
+    }
+
+    @Test
     fun theScreenshotMenuWaitsForADeviceToBeShown() = runComposeUiTest {
         setContent {
             CompositionLocalProvider(LocalDeviceScreenshots provides DeviceScreenshots()) {
@@ -152,11 +177,32 @@ class PreviewToolbarTest {
     }
 
     @Test
+    fun aSecondCopyKeepsItsNoticeUpForTheFullTime() = runComposeUiTest {
+        setContent { DeviceWithScreenshotMenu(download = { _, _ -> }) { _, onDone -> onDone(true) } }
+        mainClock.autoAdvance = false
+        repeat(2) {
+            onNodeWithContentDescription("Screenshot").performClick()
+            mainClock.advanceTimeBy(500)
+            onNodeWithText("Copy screen").performClick()
+            mainClock.advanceTimeBy(1000)
+        }
+        // The first notice would have gone 2 seconds after it came, half a second ago.
+        onNodeWithText("Copied").assertExists()
+        mainClock.advanceTimeBy(1100)
+        onNodeWithText("Copied").assertDoesNotExist()
+    }
+
+    @Test
     fun whereScreenshotsCannotBeCopiedTheMenuOnlySavesThem() = runComposeUiTest {
         setContent { DeviceWithScreenshotMenu(download = { _, _ -> }, copy = null) }
         onNodeWithContentDescription("Screenshot").performClick()
         onNodeWithText("Save screen").assertExists()
         onNodeWithText("Copy screen").assertDoesNotExist()
+    }
+
+    @Composable
+    private fun PreviewWithDragToScroll(device: Device) {
+        ZoomableDevicePreview(SimulatedDevice(device), PreviewSettings(), onResize = null, isZoomable = true, canDragToScroll = true) {}
     }
 
     @Composable

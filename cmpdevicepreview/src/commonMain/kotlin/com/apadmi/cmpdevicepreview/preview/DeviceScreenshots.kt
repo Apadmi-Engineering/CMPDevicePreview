@@ -33,7 +33,6 @@ internal expect val pngCopier: PngCopier?
 /** Saves `image` as a PNG called `fileName`. */
 internal typealias PngDownloader = (image: ImageBitmap, fileName: String) -> Unit
 
-// Copies image to the clipboard as a PNG, then calls onDone with whether it was copied.
 internal typealias PngCopier = (image: ImageBitmap, onDone: (isCopied: Boolean) -> Unit) -> Unit
 
 /**

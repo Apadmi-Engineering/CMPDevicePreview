@@ -1,3 +1,5 @@
+@file:Suppress("FILE_NAME_MATCH_CLASS")
+
 package com.apadmi.cmpdevicepreview.preview
 
 import androidx.compose.foundation.BorderStroke
@@ -27,7 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -63,6 +64,13 @@ private const val SurfaceAlpha = 0.9f
 private val ButtonSize = 28.dp
 private val MenuWidth = 180.dp
 private val SurfacePadding = 2.dp
+
+/**
+ * A class rather than a string, so a second "Copied" is a new notice and stays up for its full time.
+ *
+ * @property text What the notice says.
+ */
+private class Notice(val text: String)
 
 // In the backdrop's own colour, so over the backdrop it only clears the dots, and over the device the ink stays legible.
 private fun Modifier.toolbarSurface(isBackdropDark: Boolean): Modifier {
@@ -134,11 +142,12 @@ internal fun ScreenshotMenu(
     }
     val (resting, hovered) = toolbarTints(isBackdropDark)
     var isOpen by remember { mutableStateOf(false) }
-    var notice by remember { mutableStateOf<String?>(null) }
-    var noticeCount by remember { mutableIntStateOf(0) }
-    LaunchedEffect(noticeCount) {
-        delay(NoticeMillis)
-        notice = null
+    var notice by remember { mutableStateOf<Notice?>(null) }
+    notice?.let { shown ->
+        LaunchedEffect(shown) {
+            delay(NoticeMillis)
+            notice = null
+        }
     }
     val take = { includeFrame: Boolean, use: (ImageBitmap) -> Unit ->
         isOpen = false
@@ -148,7 +157,7 @@ internal fun ScreenshotMenu(
         Row(modifier.toolbarSurface(isBackdropDark), verticalAlignment = Alignment.CenterVertically) {
             notice?.let {
                 Text(
-                    it,
+                    it.text,
                     modifier = Modifier.padding(start = 8.dp, end = 4.dp).semantics { liveRegion = LiveRegionMode.Polite },
                     color = resting,
                     fontSize = 11.sp,
@@ -165,7 +174,7 @@ internal fun ScreenshotMenu(
                     hoverTint = hovered,
                     enabled = screenshots.canCapture,
                 )
-                // Lined up with the button's end, so it opens over the canvas: over the panel, clicks went through to the panel.
+                // Lined up with the button's end, so it opens back over the canvas rather than covering the panel.
                 DropdownMenu(
                     expanded = isOpen,
                     onDismissRequest = { isOpen = false },
@@ -186,8 +195,7 @@ internal fun ScreenshotMenu(
                             ScreenshotMenuItem(if (includeFrame) "Copy with frame" else "Copy screen", Icons.Outlined.ContentCopy) {
                                 take(includeFrame) { image ->
                                     copy(image) { isCopied ->
-                                        notice = if (isCopied) "Copied" else "Couldn't copy"
-                                        noticeCount++
+                                        notice = Notice(if (isCopied) "Copied" else "Couldn't copy")
                                     }
                                 }
                             }

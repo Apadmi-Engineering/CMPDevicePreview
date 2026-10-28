@@ -56,8 +56,8 @@ import com.apadmi.cmpdevicepreview.core.DeviceInsets
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.core.hasFrameArtwork
 import com.apadmi.cmpdevicepreview.core.isLaidOutInPortrait
+import com.apadmi.cmpdevicepreview.core.isMouseAsTouchByDefault
 import com.apadmi.cmpdevicepreview.core.isRotatable
-import com.apadmi.cmpdevicepreview.core.isTouchscreen
 import com.apadmi.cmpdevicepreview.core.keyboardHeightIn
 import com.apadmi.cmpdevicepreview.core.safeAreaIn
 import com.apadmi.cmpdevicepreview.core.screenSizeIn
@@ -260,7 +260,7 @@ public fun DeviceFrameView(
     onResize: ((FreeformDevice) -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    DeviceFrame(device, modifier, configuration, device.isTouchscreen, onResize, onLayoutScale = null, content)
+    DeviceFrame(device, modifier, configuration, device.isMouseAsTouchByDefault, onResize, onLayoutScale = null, content)
 }
 
 @Composable

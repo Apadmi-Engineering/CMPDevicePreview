@@ -29,7 +29,7 @@ import com.apadmi.cmpdevicepreview.core.Backdrop
 import com.apadmi.cmpdevicepreview.core.DevicePreset
 import com.apadmi.cmpdevicepreview.core.PreviewSettings
 import com.apadmi.cmpdevicepreview.core.SimulatedDevice
-import com.apadmi.cmpdevicepreview.core.isTouchscreen
+import com.apadmi.cmpdevicepreview.core.isMouseAsTouchByDefault
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
 
 /** How much of the space, in each direction, the device may fill: the rest is margin. */
@@ -106,7 +106,7 @@ public fun SimulatedDevicePreview(
     onResize: ((SimulatedDevice) -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    ZoomableDevicePreview(simulatedDevice, previewSettings, onResize, isZoomable = false, modifier, content)
+    ZoomableDevicePreview(simulatedDevice, previewSettings, onResize, isZoomable = false, modifier, content = content)
 }
 
 /**
@@ -141,13 +141,14 @@ internal fun ZoomableDevicePreview(
     onResize: ((SimulatedDevice) -> Unit)?,
     isZoomable: Boolean,
     modifier: Modifier = Modifier,
+    canDragToScroll: Boolean = mouseAsTouchRelabeller != null,
     content: @Composable () -> Unit,
 ) {
     val isDeviceDark = simulatedDevice.configuration.appearance == Appearance.Dark
     val viewport = remember { PreviewViewport() }
-    // Like the zoom, turning drag to scroll on or off holds whichever device is shown.
+    // Like the zoom, a choice that differs from the device's default holds whichever device is shown.
     var mouseAsTouch by remember { mutableStateOf<Boolean?>(null) }
-    val isMouseAsTouch = mouseAsTouch ?: simulatedDevice.device.isTouchscreen
+    val isMouseAsTouch = mouseAsTouch ?: simulatedDevice.device.isMouseAsTouchByDefault
     val zoomGestures = if (isZoomable) {
         Modifier.clipToBounds().onSizeChanged { viewport.resize(it.toSize()) }.zoomAndPan(viewport)
     } else {
@@ -187,8 +188,10 @@ internal fun ZoomableDevicePreview(
                 viewport,
                 previewSettings.isBackdropDark(isDeviceDark),
                 Modifier.align(Alignment.BottomStart).padding(8.dp),
-                isDragToScroll = isMouseAsTouch.takeIf { mouseAsTouchRelabeller != null },
-                onDragToScrollChange = { mouseAsTouch = it },
+                isDragToScroll = isMouseAsTouch.takeIf { canDragToScroll },
+                onDragToScrollChange = { isOn ->
+                    mouseAsTouch = isOn.takeUnless { it == simulatedDevice.device.isMouseAsTouchByDefault }
+                },
             )
             ScreenshotMenu(
                 simulatedDevice.device,
