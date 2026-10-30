@@ -10,9 +10,10 @@ internal val Device.isRotatable: Boolean
 internal val Device.hasFrameArtwork: Boolean
     get() = frame?.isEmpty == false
 
-/** Whether the host's mouse acts as a finger on the device. */
-internal val Device.isTouchscreen: Boolean
-    get() = kind != DeviceKind.Desktop
+/** Whether the host's mouse acts as a finger on the device until the preview's drag to scroll switch says otherwise. */
+internal val Device.isMouseAsTouchByDefault: Boolean
+    // A freeform window is most often a phone or tablet resized, so a drag should still scroll it.
+    get() = this is FreeformDevice || kind != DeviceKind.Desktop
 
 /**
  * Whether the device is laid out in portrait when [orientation] is asked for. A device that can't

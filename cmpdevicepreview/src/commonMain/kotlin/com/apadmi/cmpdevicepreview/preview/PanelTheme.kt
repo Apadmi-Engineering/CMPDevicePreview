@@ -64,11 +64,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
@@ -86,8 +92,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 private const val DisabledAlpha = 0.45f
+
+// The slash is as thick as a Material icon's strokes, 2 of its 24 units.
+private const val SlashStrokes = 12f
 
 private const val MaxTicks = 12
 
@@ -196,6 +206,20 @@ private fun DrawScope.isMarked(
     val spacing = (size.width - 2 * inset) / lastIndex
     return marks.any { abs(inset + it * spacing - x) < spacing / 2 }
 }
+
+// An icon switch that is off is struck through, as a muted speaker is, so its state doesn't rest on colour alone.
+private fun Modifier.struckThrough(color: Color): Modifier =
+    graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen).drawWithContent {
+        drawContent()
+        val stroke = size.minDimension / SlashStrokes
+        val start = Offset(stroke, stroke)
+        val end = Offset(size.width - stroke, size.height - stroke)
+        // As in Material's own "off" icons, a gap a stroke wide on the upper side only parts the slash from the icon.
+        val shift = stroke / (2f * sqrt(2f))
+        val gap = Offset(shift, -shift)
+        drawLine(Color.Black, start + gap, end + gap, strokeWidth = stroke * 2f, blendMode = BlendMode.Clear)
+        drawLine(color, start, end, strokeWidth = stroke, cap = StrokeCap.Round)
+    }
 
 /**
  * The panel's dark Material theme, so ripples, text fields and dialogs inside it match.
@@ -519,6 +543,7 @@ internal fun PanelIconButton(
     hoverTint: Color = PanelColors.TextPrimary,
     isShown: Boolean = true,
     enabled: Boolean = true,
+    isChecked: Boolean? = null,
 ) {
     val targetAlpha = when {
         !isShown -> 0f
@@ -528,27 +553,27 @@ internal fun PanelIconButton(
     val alpha by animateFloatAsState(targetAlpha, label = "iconAlpha")
     val interactions = remember { MutableInteractionSource() }
     val isHovered by interactions.collectIsHoveredAsState()
+    val iconTint = if (isHovered && enabled) hoverTint else tint
+    val press = if (isChecked == null) {
+        Modifier.clickable(interactions, LocalIndication.current, isShown && enabled, role = Role.Button, onClick = onClick)
+    } else {
+        Modifier.toggleable(isChecked, interactions, LocalIndication.current, isShown && enabled, Role.Switch) { onClick() }
+    }
     PanelTooltip(tooltip, isEnabled = isShown) {
         Box(
             modifier
                 .size(size)
                 .alpha(alpha)
                 .clip(CircleShape)
-                .clickable(
-                    interactionSource = interactions,
-                    indication = LocalIndication.current,
-                    enabled = isShown && enabled,
-                    role = Role.Button,
-                    onClick = onClick,
-                )
+                .then(press)
                 .pointerHoverIcon(if (isShown && enabled) PointerIcon.Hand else PointerIcon.Default),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 icon,
                 contentDescription = description,
-                tint = if (isHovered && enabled) hoverTint else tint,
-                modifier = Modifier.size(size * 0.65f),
+                tint = iconTint,
+                modifier = Modifier.size(size * 0.65f).then(if (isChecked == false) Modifier.struckThrough(iconTint) else Modifier),
             )
         }
     }

@@ -86,14 +86,14 @@ class SimulatedDeviceTest {
     }
 
     @Test
-    fun phonesTabletsAndFoldablesAreTouchscreens() {
-        assertTrue(DevicePresets.pixel9.isTouchscreen)
-        assertTrue(DevicePresets.galaxyTabS11.isTouchscreen)
-        assertTrue(DevicePresets.pixel10ProFold.isTouchscreen)
-        assertFalse(DevicePresets.largeDesktopWindow.isTouchscreen)
+    fun phonesTabletsAndFoldablesTakeTheMouseAsAFingerByDefault() {
+        assertTrue(DevicePresets.pixel9.isMouseAsTouchByDefault)
+        assertTrue(DevicePresets.galaxyTabS11.isMouseAsTouchByDefault)
+        assertTrue(DevicePresets.pixel10ProFold.isMouseAsTouchByDefault)
+        assertFalse(DevicePresets.largeDesktopWindow.isMouseAsTouchByDefault)
         // A device that doesn't give its kind is a phone, whatever its platform.
-        assertTrue(CustomDevice(DeviceType.Android).isTouchscreen)
-        assertTrue(CustomDevice(DeviceType.Other).isTouchscreen)
+        assertTrue(CustomDevice(DeviceType.Android).isMouseAsTouchByDefault)
+        assertTrue(CustomDevice(DeviceType.Other).isMouseAsTouchByDefault)
     }
 
     @Test
@@ -102,7 +102,7 @@ class SimulatedDeviceTest {
         assertEquals("Freeform", freeform.name)
         assertEquals(DeviceType.Other, freeform.type)
         assertFalse(freeform.isRotatable)
-        assertFalse(freeform.isTouchscreen)
+        assertTrue(freeform.isMouseAsTouchByDefault)
         assertEquals(Size(834f, 1112f), freeform.portraitSize)
         assertNull(freeform.devicePixelRatio)
 

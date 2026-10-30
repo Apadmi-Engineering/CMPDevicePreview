@@ -73,7 +73,10 @@ private const val MouseAsTouchScript =
         };
     })()"""
 
-internal actual fun relabelMouseAsTouch(startsOnNode: (x: Float, y: Float) -> Boolean): (() -> Unit)? {
+@Suppress("NULLABLE_PROPERTY_TYPE")  // The expect's type, which is null on the platforms that can't relabel pointers.
+internal actual val mouseAsTouchRelabeller: MouseAsTouchRelabeller? = ::relabelMouseAsTouch
+
+private fun relabelMouseAsTouch(startsOnNode: (x: Float, y: Float) -> Boolean): () -> Unit {
     val stop = installMouseAsTouch { x, y -> startsOnNode(x.toFloat(), y.toFloat()) }
     return { callStop(stop) }
 }
