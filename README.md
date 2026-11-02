@@ -182,7 +182,7 @@ Inside the device, `stringResource` and the rest of [Compose Resources](https://
 ## Platform differences
 
 - **Android** can't override the window insets or the dark mode its host reports, so the app inside the device sees the real ones. Its dialogs, bottom sheets and menus are windows of their own, so they aren't kept to the device's screen.
-- **Screenshots** of the device are saved from the web and desktop builds only, and leave out an open dialog, bottom sheet or menu.
+- **Screenshots** of the device are saved or copied from the web and desktop builds only, and leave out an open dialog, bottom sheet or menu. On the web, copying needs a page served over HTTPS or from localhost.
 - **Languages** only change Compose Resources: Android's own `R.string` and what the system localises follow the host's language.
 
 ## Credits

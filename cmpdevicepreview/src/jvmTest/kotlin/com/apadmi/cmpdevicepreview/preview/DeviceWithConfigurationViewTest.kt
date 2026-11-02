@@ -69,8 +69,10 @@ class DeviceWithConfigurationViewTest {
             }
         }
         waitForIdle()
-        onNodeWithContentDescription("Screenshot of screen").assertIsEnabled()
-        onNodeWithContentDescription("Screenshot with frame").assertIsEnabled()
+        onNodeWithContentDescription("Screenshot").assertIsEnabled().performClick()
+        // Only opened: picking an item would save to a real file or the real clipboard.
+        onNodeWithText("Save screen").assertExists()
+        onNodeWithText("Copy with frame").assertExists()
     }
 
     @Test

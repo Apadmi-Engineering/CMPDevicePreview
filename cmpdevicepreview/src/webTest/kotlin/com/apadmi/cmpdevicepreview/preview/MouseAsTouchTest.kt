@@ -30,7 +30,7 @@ class MouseAsTouchTest {
 
     @Test
     fun aPressThatStartsOnTheNodeArrivesAsATouch() {
-        val stop = assertNotNull(relabelMouseAsTouch { x, _ -> x < 100f })
+        val stop = assertNotNull(mouseAsTouchRelabeller)({ x, _ -> x < 100f })
         try {
             pressAndRelease(x = 50)
         } finally {
@@ -41,7 +41,7 @@ class MouseAsTouchTest {
 
     @Test
     fun aPressThatStartsOffTheNodeStaysAMouse() {
-        val stop = assertNotNull(relabelMouseAsTouch { x, _ -> x < 100f })
+        val stop = assertNotNull(mouseAsTouchRelabeller)({ x, _ -> x < 100f })
         try {
             pressAndRelease(x = 150)
         } finally {
@@ -52,7 +52,7 @@ class MouseAsTouchTest {
 
     @Test
     fun onceStoppedPressesStayMice() {
-        assertNotNull(relabelMouseAsTouch { _, _ -> true })()
+        assertNotNull(mouseAsTouchRelabeller)({ _, _ -> true })()
         pressAndRelease(x = 50)
         assertEquals("pointerdown:mouse pointermove:mouse pointerup:mouse", joined(received))
     }
