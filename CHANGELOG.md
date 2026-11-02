@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/Apadmi-Engineering/CMPDevicePreview/compare/v0.1.0...v0.1.1) (2026-11-02)
+
+
+### Features
+
+* improve drag to scroll ([#36](https://github.com/Apadmi-Engineering/CMPDevicePreview/issues/36)) ([54dab44](https://github.com/Apadmi-Engineering/CMPDevicePreview/commit/54dab44a047b1063b28f2e68dba29cbc300cdc32))
+
 ## [0.1.0](https://github.com/Apadmi-Engineering/CMPDevicePreview/compare/v0.0.2...v0.1.0) (2026-10-22)
 
 
