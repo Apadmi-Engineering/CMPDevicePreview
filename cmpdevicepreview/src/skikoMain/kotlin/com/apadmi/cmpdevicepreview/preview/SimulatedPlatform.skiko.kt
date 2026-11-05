@@ -131,6 +131,10 @@ internal actual fun SimulatedPlatform(
             // provider above them.
             Box(Modifier.fillMaxSize().screenPosition(screen).windowInsets(insets)) {
                 content()
+                // Render dialog, popup, and scrim layers within the simulated screen bounds.
+                for (layer in screen.layers) {
+                    layer.RenderLayer()
+                }
             }
         }
     }

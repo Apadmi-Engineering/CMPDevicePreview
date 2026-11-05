@@ -7,9 +7,12 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.LinearGradientShader
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.RadialGradientShader
+import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.vector.PathParser
 import kotlin.math.roundToInt
 
@@ -50,6 +53,7 @@ internal class SvgShape(
     val color: Color,
     val clips: List<Path> = emptyList(),
     val followsCurrentColor: Boolean = false,
+    val shader: Shader? = null,
 )
 
 /**
@@ -85,10 +89,16 @@ internal class SvgDrawing(val viewBox: Rect, val shapes: List<SvgShape>) {
      */
     fun paint(canvas: Canvas, currentColor: Color? = null) {
         for (shape in shapes) {
-            paint.color = if (currentColor != null && shape.followsCurrentColor) {
-                currentColor.copy(alpha = currentColor.alpha * shape.color.alpha)
+            if (shape.shader != null) {
+                paint.shader = shape.shader
+                paint.color = Color.Black
             } else {
-                shape.color
+                paint.shader = null
+                paint.color = if (currentColor != null && shape.followsCurrentColor) {
+                    currentColor.copy(alpha = currentColor.alpha * shape.color.alpha)
+                } else {
+                    shape.color
+                }
             }
             if (shape.clips.isEmpty()) {
                 canvas.drawPath(shape.path, paint)
@@ -101,6 +111,7 @@ internal class SvgDrawing(val viewBox: Rect, val shapes: List<SvgShape>) {
             canvas.drawPath(shape.path, paint)
             canvas.restore()
         }
+        paint.shader = null
     }
 
     /**
@@ -144,9 +155,10 @@ internal class SvgDrawing(val viewBox: Rect, val shapes: List<SvgShape>) {
             require(root.name == "svg") { "Expected a root <svg> element, got <${root.name}>" }
             val viewBox = parseViewBox(root)
             val clipPaths = mutableMapOf<String, List<XmlElement>>()
-            collectClipPaths(root, clipPaths)
+            val gradients = mutableMapOf<String, XmlElement>()
+            collectDefinitions(root, clipPaths, gradients)
             val shapes = mutableListOf<SvgShape>()
-            Flattener(clipPaths, shapes).visitChildren(
+            Flattener(clipPaths, gradients, shapes).visitChildren(
                 root,
                 InheritedStyle(
                     transform = Affine.Identity,
@@ -173,12 +185,17 @@ internal class SvgDrawing(val viewBox: Rect, val shapes: List<SvgShape>) {
             return Rect(0f, 0f, width, height)
         }
 
-        private fun collectClipPaths(element: XmlElement, into: MutableMap<String, List<XmlElement>>) {
+        private fun collectDefinitions(
+            element: XmlElement,
+            clipPaths: MutableMap<String, List<XmlElement>>,
+            gradients: MutableMap<String, XmlElement>
+        ) {
             for (child in element.children) {
-                if (child.name == "clipPath") {
-                    child.attribute("id")?.let { id -> into[id] = child.children }
+                when (child.name) {
+                    "clipPath" -> child.attribute("id")?.let { id -> clipPaths[id] = child.children }
+                    "linearGradient", "radialGradient" -> child.attribute("id")?.let { id -> gradients[id] = child }
                 }
-                collectClipPaths(child, into)
+                collectDefinitions(child, clipPaths, gradients)
             }
         }
     }
@@ -205,6 +222,7 @@ private class InheritedStyle(
 /** Walks the element tree once, resolving styles and baking transforms into absolute paths. */
 private class Flattener(
     private val clipPaths: Map<String, List<XmlElement>>,
+    private val gradients: Map<String, XmlElement>,
     private val shapes: MutableList<SvgShape>,
 ) {
     fun visitChildren(element: XmlElement, style: InheritedStyle) {
@@ -239,19 +257,82 @@ private class Flattener(
         attributes: Map<String, String>,
         style: InheritedStyle
     ) {
-        val color = style.color ?: return
         val path = buildShape(element, attributes) ?: return
         if (!style.transform.isIdentity) {
             path.transform(style.transform.toMatrix())
         }
         val fillOpacity = parseNumber(valueOf(attributes, "fill-opacity")) ?: 1f
         val alpha = (style.opacity * fillOpacity).coerceIn(0f, 1f)
+        val fillAttr = valueOf(attributes, "fill")
+        val shader = fillAttr?.let { resolveShader(it, path.getBounds(), gradients, style.opacity * fillOpacity) }
+        val color = style.color ?: if (shader != null) Color.Black else return
         shapes += SvgShape(
             path = path,
             color = color.copy(alpha = color.alpha * alpha),
             clips = style.clips,
-            followsCurrentColor = style.inheritsColor,
+            followsCurrentColor = style.inheritsColor && shader == null,
+            shader = shader,
         )
+    }
+
+    /** Resolves a `<linearGradient>` or `<radialGradient>` fill URL reference to a Compose [Shader]. */
+    @Suppress("TOO_LONG_FUNCTION", "VARIABLE_NAME_INCORRECT", "IDENTIFIER_LENGTH")
+    private fun resolveShader(
+        rawFill: String,
+        bounds: Rect,
+        gradients: Map<String, XmlElement>,
+        opacity: Float,
+    ): Shader? {
+        val id = parseUrlReference(rawFill) ?: return null
+        val element = gradients[id] ?: return null
+        val isUserSpace = valueOf(element.attributes, "gradientUnits") == "userSpaceOnUse"
+        val stops = element.children.filter { it.name == "stop" }.map { stopElem ->
+            val stopAttrs = resolveAttributes(stopElem)
+            val offsetStr = valueOf(stopAttrs, "offset") ?: "0"
+            val offset = if (offsetStr.endsWith("%")) {
+                (offsetStr.removeSuffix("%").toFloatOrNull() ?: 0f) / 100f
+            } else {
+                offsetStr.toFloatOrNull() ?: 0f
+            }.coerceIn(0f, 1f)
+            val stopColorStr = valueOf(stopAttrs, "stop-color") ?: valueOf(stopAttrs, "fill") ?: "#000000"
+            val stopColor = parseColor(stopColorStr) ?: Color.Black
+            val stopOpacity = parseNumber(valueOf(stopAttrs, "stop-opacity")) ?: 1f
+            offset to stopColor.copy(alpha = stopColor.alpha * stopOpacity * opacity)
+        }.sortedBy { it.first }
+
+        if (stops.isEmpty()) return null
+        val colors = stops.map { it.second }
+        val colorStops = stops.map { it.first }
+
+        return when (element.name) {
+            "linearGradient" -> {
+                val x1 = parseGradientCoord(valueOf(element.attributes, "x1"), 0f, bounds.width, bounds.left, isUserSpace)
+                val y1 = parseGradientCoord(valueOf(element.attributes, "y1"), 0f, bounds.height, bounds.top, isUserSpace)
+                val x2 = parseGradientCoord(valueOf(element.attributes, "x2"), 1f, bounds.width, bounds.left, isUserSpace)
+                val y2 = parseGradientCoord(valueOf(element.attributes, "y2"), 0f, bounds.height, bounds.top, isUserSpace)
+                LinearGradientShader(Offset(x1, y1), Offset(x2, y2), colors, colorStops)
+            }
+            "radialGradient" -> {
+                val cx = parseGradientCoord(valueOf(element.attributes, "cx"), 0.5f, bounds.width, bounds.left, isUserSpace)
+                val cy = parseGradientCoord(valueOf(element.attributes, "cy"), 0.5f, bounds.height, bounds.top, isUserSpace)
+                val r = parseGradientCoord(valueOf(element.attributes, "r"), 0.5f, kotlin.math.max(bounds.width, bounds.height), 0f, isUserSpace)
+                RadialGradientShader(Offset(cx, cy), kotlin.math.max(0.1f, r), colors, colorStops)
+            }
+            else -> null
+        }
+    }
+
+    private fun parseGradientCoord(raw: String?, defaultPct: Float, length: Float, origin: Float, isUserSpace: Boolean): Float {
+        if (raw == null) {
+            return if (isUserSpace) defaultPct * length else origin + defaultPct * length
+        }
+        val trimmed = raw.trim()
+        if (trimmed.endsWith("%")) {
+            val pct = (trimmed.removeSuffix("%").toFloatOrNull() ?: 0f) / 100f
+            return if (isUserSpace) pct * length else origin + pct * length
+        }
+        val num = trimmed.toFloatOrNull() ?: 0f
+        return if (isUserSpace) num else origin + num * length
     }
 
     private fun resolveClips(
