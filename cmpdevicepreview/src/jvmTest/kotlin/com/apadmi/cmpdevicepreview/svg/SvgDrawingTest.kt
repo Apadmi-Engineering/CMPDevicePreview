@@ -114,6 +114,31 @@ class SvgDrawingTest {
     }
 
     @Test
+    fun resolvesLinearAndRadialGradients() {
+        val drawing = SvgDrawing.parse(
+            """
+            <svg viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="metal" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#ffffff"/>
+                  <stop offset="100%" stop-color="#000000"/>
+                </linearGradient>
+                <radialGradient id="lens" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#0000ff"/>
+                  <stop offset="100%" stop-color="#000000"/>
+                </radialGradient>
+              </defs>
+              <rect width="100" height="100" fill="url(#metal)"/>
+              <circle cx="50" cy="50" r="20" fill="url(#lens)"/>
+            </svg>
+            """.trimIndent()
+        )
+        assertEquals(2, drawing.shapes.size)
+        assertTrue(drawing.shapes[0].shader != null, "linear gradient should create shader")
+        assertTrue(drawing.shapes[1].shader != null, "radial gradient should create shader")
+    }
+
+    @Test
     fun decodesXmlEntities() {
         val root = parseXmlDocument("""<svg a="&lt;&amp;&#x41;&#66;&quot;" b='x'><!-- c --><g/></svg>""")
         assertEquals("<&AB\"", root.attribute("a"))
