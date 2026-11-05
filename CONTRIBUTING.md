@@ -54,6 +54,7 @@ When Compose or Kotlin is updated, check these before merging:
 3. On iOS, open the dialog, sheet and menu on the sample's Profile tab, and check they stay on the device at its scale.
 4. On the web, check the HTML card on the sample's Explore tab sits in its place on the device, zoomed in, scrolled under the status bar, with the keyboard up and through a turn.
 5. Check whether Compose now has a public API for any of these, and move to it if so.
+6. Update [COMPATIBILITY.md](COMPATIBILITY.md): end the open row at the latest release, such as `0.0.1 to 0.1.1`, and add one for `After 0.1.1` with the new versions.
 
 ## The sample app
 
