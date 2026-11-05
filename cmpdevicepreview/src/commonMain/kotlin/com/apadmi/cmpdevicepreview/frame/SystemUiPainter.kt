@@ -39,16 +39,28 @@ internal class SystemUiPainter(val systemUi: DeviceSystemUi) {
     ): List<PlacedArtwork> {
         val placed = mutableListOf<PlacedArtwork>()
         val statusBar = systemUi.statusBar
-        if (statusBar != null && safeArea.top > 0f) {
-            placeBar(statusBar, Rect(0f, 0f, screenSize.width, safeArea.top), layoutDirection, placed)
+        val statusBarRegion = statusBarRegion(screenSize, safeArea)
+        if (statusBar != null && statusBarRegion != null) {
+            placeBar(statusBar, statusBarRegion, layoutDirection, placed)
         }
         val navigationBar = systemUi.navigationBar
-        if (navigationBar != null && safeArea.bottom > 0f) {
-            val region = Rect(0f, screenSize.height - safeArea.bottom, screenSize.width, screenSize.height)
-            placeBar(navigationBar, region, layoutDirection, placed)
+        val navigationBarRegion = navigationBarRegion(screenSize, safeArea)
+        if (navigationBar != null && navigationBarRegion != null) {
+            placeBar(navigationBar, navigationBarRegion, layoutDirection, placed)
         }
         return placed
     }
+
+    fun barRegions(screenSize: Size, safeArea: DeviceInsets): List<Rect> = listOfNotNull(
+        statusBarRegion(screenSize, safeArea).takeIf { systemUi.statusBar != null },
+        navigationBarRegion(screenSize, safeArea).takeIf { systemUi.navigationBar != null },
+    )
+
+    private fun statusBarRegion(screenSize: Size, safeArea: DeviceInsets): Rect? =
+        Rect(0f, 0f, screenSize.width, safeArea.top).takeIf { safeArea.top > 0f }
+
+    private fun navigationBarRegion(screenSize: Size, safeArea: DeviceInsets): Rect? =
+        Rect(0f, screenSize.height - safeArea.bottom, screenSize.width, screenSize.height).takeIf { safeArea.bottom > 0f }
 
     private fun placeBar(
         bar: SystemUiBar,

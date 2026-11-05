@@ -184,6 +184,7 @@ Inside the device, `stringResource` and the rest of [Compose Resources](https://
 - **Android** can't override the window insets or the dark mode its host reports, so the app inside the device sees the real ones. Its dialogs, bottom sheets and menus are windows of their own, so they aren't kept to the device's screen.
 - **Screenshots** of the device are saved or copied from the web and desktop builds only, and leave out an open dialog, bottom sheet or menu. On the web, copying needs a page served over HTTPS or from localhost.
 - **Languages** only change Compose Resources: Android's own `R.string` and what the system localises follow the host's language.
+- **HTML elements** (`HtmlElementView`) on the web are kept to the device's screen at its scale, out from under the status bar, navigation bar and keyboard, and hidden while it turns. The preview adjusts the one layer the browser draws all of a `ComposeViewport`'s HTML elements in, so keep them inside the device; with two devices in one viewport they're left where Compose puts them. They still cover whatever Compose draws over them, such as menus or the zoom toolbar, and when you zoom they reflow rather than shrink.
 
 ## Credits
 

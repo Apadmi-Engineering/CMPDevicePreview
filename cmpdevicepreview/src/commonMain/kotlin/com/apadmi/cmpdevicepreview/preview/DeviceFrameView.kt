@@ -66,6 +66,7 @@ import com.apadmi.cmpdevicepreview.frame.DeviceFramePainter
 import com.apadmi.cmpdevicepreview.frame.DeviceScreenShape
 import com.apadmi.cmpdevicepreview.frame.SystemUiColors
 import com.apadmi.cmpdevicepreview.frame.SystemUiPainter
+import com.apadmi.cmpdevicepreview.frame.keyboardBand
 import com.apadmi.cmpdevicepreview.frame.paintSimulatedKeyboard
 import com.apadmi.cmpdevicepreview.frame.paintSystemUi
 
@@ -281,6 +282,8 @@ internal fun DeviceFrame(
     val keyboardInset = if (configuration.isKeyboardVisible) device.keyboardHeightIn(isPortrait) ?: 0f else 0f
     val layoutDirection = configuration.layoutDirection ?: LocalLayoutDirection.current
 
+    val htmlElements = rememberHtmlElementsContainer()
+
     val painter = remember(device.frame) { device.frame?.let(::DeviceFramePainter) }
     val bodyPainter = painter?.takeIf { configuration.isFrameVisible && it.body != null }
     // What has to stay visible, in screen coordinates: the whole body when it is drawn.
@@ -328,6 +331,10 @@ internal fun DeviceFrame(
         val simulatedDensity = remember(scale, configuration.displayScale, configuration.fontScale) {
             Density(density = scale * configuration.displayScale, fontScale = configuration.fontScale)
         }
+        val htmlElementsOnScreen = htmlElements?.let {
+            val covers = overlayCovers(systemUiPainter, keyboardInset, screenSize, safeArea)
+            Modifier.htmlElementsOnScreen(it, HtmlElementsScreen(screenSize, screenShape, covers, simulatedDensity.density, turn.isTurning))
+        } ?: Modifier
         // So that window size classes follow the device's screen rather than the host's window.
         val hostWindowInfo = LocalWindowInfo.current
         val simulatedWindowInfo = remember(hostWindowInfo, screenSize, scale, configuration.displayScale) {
@@ -343,7 +350,8 @@ internal fun DeviceFrame(
                 .deviceBody(bodyPainter, bounds, scale, screenSize, isPortrait),
             content = {
                 val screenCapture = screenshotLayers?.screen?.let { Modifier.recordInto(it) } ?: Modifier
-                Box(screenCapture.then(screenModifier)) {
+                Box(screenCapture.then(screenModifier).then(htmlElementsOnScreen)) {
+                    htmlElements?.Marker()
                     CompositionLocalProvider(
                         LocalDensity provides simulatedDensity,
                         LocalWindowInfo provides simulatedWindowInfo,
@@ -410,6 +418,14 @@ internal fun turnedFitScale(
     )
     return min(fitScale(constraints, portraitBounds, fallback), fitScale(constraints, turned, fallback))
 }
+
+// What systemOverlay draws over the content, in screen units: HTML elements are kept off it.
+private fun overlayCovers(
+    systemUi: SystemUiPainter?,
+    keyboardInset: Float,
+    screenSize: Size,
+    safeArea: DeviceInsets,
+): List<Rect> = systemUi?.barRegions(screenSize, safeArea).orEmpty() + listOfNotNull(keyboardBand(screenSize, keyboardInset))
 
 @Composable
 private fun rememberDeviceTurn(device: Device, wantsPortrait: Boolean): DeviceTurn {

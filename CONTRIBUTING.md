@@ -43,6 +43,8 @@ The layers also depend on how Compose 1.12's `Dialog` and `Popup` use them, whic
 
 A change to either breaks no build. A change to the first shows up as `SimulatedScreenLayersTest` failing, but the tests run on the JVM, so a change to the second only shows on iOS: open a dialog in the sample on iOS after a Compose update.
 
+On the web, `WebHtmlElementsContainer.kt` depends on how Compose 1.12 places `HtmlElementView`s, which no API promises either: each is in a wrapper `div` inside one container `div` per viewport at the canvas's origin, placed at its window pixels over the density it's composed at rather than the host's. The library finds that container through an invisible `HtmlElementView` of its own, then scales and clips it to the device's screen. `WebHtmlElementsContainerTest` only checks the library's side, against a copy of that DOM, so a change in Compose only shows in the sample: its web Explore tab has an HTML card.
+
 Experimental APIs, opted into with `@OptIn`, aren't listed here: they are public, if not yet stable.
 
 When Compose or Kotlin is updated, check these before merging:
@@ -50,7 +52,8 @@ When Compose or Kotlin is updated, check these before merging:
 1. CI builds every target, which catches a removed or renamed API.
 2. `./gradlew :cmpdevicepreview:jvmTest` runs `SimulatedScreenLayersTest` for dialogs and popups, `DeviceFrameViewTest` for insets and the theme, and `LanguageEnvironmentTest` for the language.
 3. On iOS, open the dialog, sheet and menu on the sample's Profile tab, and check they stay on the device at its scale.
-4. Check whether Compose now has a public API for any of these, and move to it if so.
+4. On the web, check the HTML card on the sample's Explore tab sits in its place on the device, zoomed in, scrolled under the status bar, with the keyboard up and through a turn.
+5. Check whether Compose now has a public API for any of these, and move to it if so.
 
 ## The sample app
 
@@ -75,6 +78,7 @@ The sample is localised with Compose Resources, in English (the default), Welsh 
 - **iOS**: the sample's preview sits inside the real safe area.
 - **macOS** is Kotlin/Native, and Compose still marks it experimental, so `gradle.properties` sets `org.jetbrains.compose.experimental.macos.enabled`. Compose's native cursors are limited, so the resize handles show the arrow there.
 - **Dialogs, bottom sheets and menus**: the sample's Profile tab has one of each, to check they stay on the device's screen.
+- **HTML elements**: on the web, the sample's Explore tab has an `HtmlElementView` card, to check it stays in its place on the device's screen.
 - **Screenshots** of the device are saved or copied from the web and desktop builds only. Desktop asks where to save with a native file dialog. The web can only copy from a secure context, so the menu has no Copy items on a page served over plain HTTP from another machine.
 - **Mouse as touch** is web only, so on desktop lists scroll with the wheel, not by dragging, and the toolbar has no drag-to-scroll switch.
 
