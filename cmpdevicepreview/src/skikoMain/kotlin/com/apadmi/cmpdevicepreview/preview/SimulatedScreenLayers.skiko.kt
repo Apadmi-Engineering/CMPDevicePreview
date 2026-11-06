@@ -17,12 +17,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.addOutline
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.Layout
@@ -196,7 +198,8 @@ private class ScreenLayer(
         ) {
             Layout(
                 content = content,
-                modifier = Modifier.clipToScreen(screen, layer) { scrimColor }.windowInsets(screen.insets),
+                modifier = Modifier.clipToScreen(screen, layer, LocalScreenObstructions.current) { scrimColor }
+                    .windowInsets(screen.insets),
             ) { measurables, constraints ->
                 val screenConstraints = Constraints(maxWidth = screen.size.width, maxHeight = screen.size.height)
                 // Laid out as if the preview weren't zoomed, so zooming doesn't lay it out again.
@@ -226,7 +229,10 @@ private class ScreenLayer(
             bottom = window.height - screen.origin.y - (screen.size.height * scale).roundToInt(),
         )
         CompositionLocalProvider(LocalPlatformWindowInsets provides ScreenInWindowInsets(screen.insets, around, scale)) {
-            Layout(content = content, modifier = Modifier.clipToScreen(screen, layer) { null }) { measurables, constraints ->
+            Layout(
+                content = content,
+                modifier = Modifier.clipToScreen(screen, layer, LocalScreenObstructions.current) { null },
+            ) { measurables, constraints ->
                 val placeables = measurables.map { it.measure(constraints) }
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     // Compose measures a popup's anchor at its zoomed position but its unzoomed size, and a
@@ -306,16 +312,19 @@ private fun IntRect.zoomedOnto(screen: SimulatedScreen): IntRect {
 
 /**
  * Clips what [layer] draws to [screen]'s outline as the zoom draws it, and to the part of it the
- * preview shows, over [scrim] filling the screen.
+ * preview shows, less [obstructions], over [scrim] filling the screen.
  */
 private fun Modifier.clipToScreen(
     screen: SimulatedScreen,
     layer: ComposeSceneLayer,
+    obstructions: ScreenObstructions?,
     scrim: () -> Color?
 ): Modifier =
     drawWithCache {
         val origin = layer.calculateLocalPosition(screen.origin).toOffset()
-        val visible = screen.visible.translate(layer.calculateLocalPosition(IntOffset.Zero).toOffset())
+        val toLayer = layer.calculateLocalPosition(IntOffset.Zero).toOffset()
+        val visible = screen.visible.translate(toLayer)
+        val obstructed = Path().apply { obstructions?.paths?.forEach { addPath(it, toLayer) } }
         val zoom = screen.scale
         val size = screen.size.toSize()
         val outline = Path().apply {
@@ -328,12 +337,22 @@ private fun Modifier.clipToScreen(
         onDrawWithContent {
             clipRect(visible.left, visible.top, visible.right, visible.bottom) {
                 clipPath(outline) {
-                    scrim()?.let { drawRect(it, origin, size * zoom) }
-                    this@onDrawWithContent.drawContent()
+                    clipOut(obstructed) {
+                        scrim()?.let { drawRect(it, origin, size * zoom) }
+                        this@onDrawWithContent.drawContent()
+                    }
                 }
             }
         }
     }
+
+private inline fun DrawScope.clipOut(path: Path, block: DrawScope.() -> Unit) {
+    if (path.isEmpty) {
+        block()
+    } else {
+        clipPath(path, ClipOp.Difference, block)
+    }
+}
 
 /**
  * Remembers the device's screen, updated to the latest of each of these.

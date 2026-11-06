@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.layout
@@ -49,6 +50,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
+import com.apadmi.cmpdevicepreview.core.PreviewSettings
+import com.apadmi.cmpdevicepreview.core.SimulatedDevice
 import com.apadmi.cmpdevicepreview.devices.DevicePresets
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -262,6 +265,21 @@ class SimulatedScreenLayersTest {
     }
 
     @Test
+    fun aDialogDoesNotDrawOverThePreviewsToolbar() {
+        val harness = PreviewHarness()
+        try {
+            harness.zoomIn()
+            val before = harness.settle()
+            harness.isDialogOpen = true
+            val after = harness.settle()
+            assertEquals(before[44, 976], after[44, 976], "the toolbar in the corner")
+            assertTrue(after[600, 300].red < 0.5f, "the screen is dimmed")
+        } finally {
+            harness.scene.close()
+        }
+    }
+
+    @Test
     fun aTapOnTheZoomedDialogReachesItAndATapBesideItDismissesIt() {
         var clicks = 0
         var dismissals = 0
@@ -355,17 +373,71 @@ class SimulatedScreenLayersTest {
         }
     }
 
+    private abstract class SceneHarness {
+        protected var clock = 0L
+        abstract val scene: ImageComposeScene
+
+        /** Renders a second of frames, long enough for a dialog or sheet to finish appearing. */
+        fun settle(): PixelMap {
+            repeat(60) {
+                clock += 16
+                scene.render(clock * 1_000_000)
+            }
+            return scene.render(clock * 1_000_000).toComposeImageBitmap().toPixelMap()
+        }
+
+        fun tap(at: Offset) {
+            for (type in listOf(PointerEventType.Press, PointerEventType.Release)) {
+                clock += 16
+                scene.sendPointerEvent(type, at, timeMillis = clock, type = PointerType.Touch)
+            }
+            settle()
+        }
+    }
+
+    /** The whole preview, with its toolbars, zoomed by the wheel as a person would. */
+    private class PreviewHarness : SceneHarness() {
+        var isDialogOpen by mutableStateOf(false)
+        override val scene = ImageComposeScene(width = 1200, height = 1000) {
+            ZoomableDevicePreview(
+                SimulatedDevice(FreeformDevice(Size(1000f, 800f))),
+                PreviewSettings(),
+                onResize = null,
+                isZoomable = true,
+            ) {
+                Box(Modifier.fillMaxSize().background(Color.White)) {
+                    if (isDialogOpen) {
+                        Dialog(onDismissRequest = {}) { Box(Modifier.size(100.dp).background(Color.White)) }
+                    }
+                }
+            }
+        }
+
+        /** Ctrl and the wheel zoom about the centre, until the screen runs under the toolbar in the corner. */
+        fun zoomIn() {
+            repeat(4) {
+                clock += 16
+                scene.sendPointerEvent(
+                    PointerEventType.Scroll,
+                    Offset(600f, 500f),
+                    scrollDelta = Offset(0f, -50f),
+                    timeMillis = clock,
+                    keyboardModifiers = PointerKeyboardModifiers(isCtrlPressed = true),
+                )
+            }
+        }
+    }
+
     private class Harness(
         device: Device,
         initialZoom: Float,
         initialPan: Offset,
         viewport: DpSize?,
         content: @Composable () -> Unit
-    ) {
-        private var clock = 0L
+    ) : SceneHarness() {
         var zoom by mutableFloatStateOf(initialZoom)
         var pan by mutableStateOf(initialPan)
-        val scene = ImageComposeScene(width = 1200, height = 1000) {
+        override val scene = ImageComposeScene(width = 1200, height = 1000) {
             Box(Modifier.fillMaxSize().background(Color.White).padding(start = 100.dp, top = 50.dp)) {
                 // The preview's own bounds, which a zoomed device runs past.
                 Box(viewport?.let { Modifier.size(it).clipToBounds() } ?: Modifier) {
@@ -386,23 +458,6 @@ class SimulatedScreenLayersTest {
                     }
                 }
             }
-        }
-
-        /** Renders a second of frames, long enough for a dialog or sheet to finish appearing. */
-        fun settle(): PixelMap {
-            repeat(60) {
-                clock += 16
-                scene.render(clock * 1_000_000)
-            }
-            return scene.render(clock * 1_000_000).toComposeImageBitmap().toPixelMap()
-        }
-
-        fun tap(at: Offset) {
-            for (type in listOf(PointerEventType.Press, PointerEventType.Release)) {
-                clock += 16
-                scene.sendPointerEvent(type, at, timeMillis = clock, type = PointerType.Touch)
-            }
-            settle()
         }
     }
 }
