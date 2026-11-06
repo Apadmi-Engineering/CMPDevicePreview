@@ -8,6 +8,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -15,12 +16,17 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalPlatformWindowInsets
@@ -37,8 +43,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.toIntRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toSize
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 // Compose Multiplatform draws a Dialog or Popup in a layer of its own over the whole window, which
@@ -70,10 +78,32 @@ internal class SimulatedScreen(
     /** The screen's outline. */
     var shape by mutableStateOf(shape)
 
-    /** Where the screen's top-left corner is in the window, in pixels. */
+    /** Where the screen's top-left corner is in the window, in pixels, as it is drawn: zoomed. */
     var origin by mutableStateOf(IntOffset.Zero)
 
+    /** How many times larger the preview's zoom draws the screen than it is laid out. */
+    var scale by mutableFloatStateOf(1f)
+
+    /** The part of the screen the preview shows, in the window: a zoomed screen runs past it. */
+    var visible by mutableStateOf(Rect.Zero)
+
     val size: IntSize get() = windowInfo.containerSize
+
+    val bounds: IntRect get() = inWindow(size.toIntRect())
+
+    fun inWindow(local: IntRect): IntRect = IntRect(
+        left = (origin.x + local.left * scale).roundToInt(),
+        top = (origin.y + local.top * scale).roundToInt(),
+        right = (origin.x + local.right * scale).roundToInt(),
+        bottom = (origin.y + local.bottom * scale).roundToInt(),
+    )
+
+    fun inScreen(window: IntRect): IntRect = IntRect(
+        left = ((window.left - origin.x) / scale).roundToInt(),
+        top = ((window.top - origin.y) / scale).roundToInt(),
+        right = ((window.right - origin.x) / scale).roundToInt(),
+        bottom = ((window.bottom - origin.y) / scale).roundToInt(),
+    )
 }
 
 private class ScreenSceneContext(
@@ -127,13 +157,22 @@ private class ScreenLayer(
             _scrimColor = value
         }
 
+    // Where a popup placed itself, before the zoom enlarges it about its top-left corner.
+    private var popupBounds by mutableStateOf(IntRect.Zero)
+
     // A dialog's bounds are within the screen, as it is laid out; the wrapped layer has them in the
-    // window. They are set while the dialog is placed, so they are set again when the screen moves.
+    // window, as drawn. They are set while the dialog is placed, so they are set again when the
+    // screen moves or is zoomed.
     @Suppress("NO_CORRESPONDING_PROPERTY")  // It is the wrapped layer's, so there is no backing property.
     override var boundsInWindow: IntRect
-        get() = layer.boundsInWindow.let { if (isDialog) it.translate(-screen.origin) else it }
+        get() = if (isDialog) screen.inScreen(layer.boundsInWindow) else popupBounds
         set(value) {
-            layer.boundsInWindow = value.let { if (isDialog) it.translate(screen.origin) else it }
+            if (isDialog) {
+                layer.boundsInWindow = screen.inWindow(value)
+            } else {
+                popupBounds = value
+                layer.boundsInWindow = value.zoomedOnto(screen)
+            }
         }
 
     override fun calculateLocalPosition(positionInWindow: IntOffset): IntOffset =
@@ -160,10 +199,17 @@ private class ScreenLayer(
                 modifier = Modifier.clipToScreen(screen, layer) { scrimColor }.windowInsets(screen.insets),
             ) { measurables, constraints ->
                 val screenConstraints = Constraints(maxWidth = screen.size.width, maxHeight = screen.size.height)
+                // Laid out as if the preview weren't zoomed, so zooming doesn't lay it out again.
                 val placeables = measurables.map { it.measure(screenConstraints) }
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     val origin = layer.calculateLocalPosition(screen.origin)
-                    placeables.forEach { it.place(origin) }
+                    placeables.forEach {
+                        it.placeWithLayer(origin) {
+                            scaleX = screen.scale
+                            scaleY = screen.scale
+                            transformOrigin = TransformOrigin(0f, 0f)
+                        }
+                    }
                 }
             }
         }
@@ -172,17 +218,29 @@ private class ScreenLayer(
     @Composable
     private fun PopupOnScreen(content: @Composable () -> Unit) {
         val window = LocalWindowInfo.current.containerSize
+        val scale = screen.scale
         val around = PixelInsets(
             left = screen.origin.x,
             top = screen.origin.y,
-            right = window.width - screen.origin.x - screen.size.width,
-            bottom = window.height - screen.origin.y - screen.size.height,
+            right = window.width - screen.origin.x - (screen.size.width * scale).roundToInt(),
+            bottom = window.height - screen.origin.y - (screen.size.height * scale).roundToInt(),
         )
-        CompositionLocalProvider(LocalPlatformWindowInsets provides ScreenInWindowInsets(screen.insets, around)) {
+        CompositionLocalProvider(LocalPlatformWindowInsets provides ScreenInWindowInsets(screen.insets, around, scale)) {
             Layout(content = content, modifier = Modifier.clipToScreen(screen, layer) { null }) { measurables, constraints ->
                 val placeables = measurables.map { it.measure(constraints) }
                 layout(constraints.maxWidth, constraints.maxHeight) {
-                    placeables.forEach { it.place(0, 0) }
+                    // Compose measures a popup's anchor at its zoomed position but its unzoomed size, and a
+                    // popup can't be placed from in here, so under zoom its gap from the anchor is a little off.
+                    placeables.forEach {
+                        it.placeWithLayer(0, 0) {
+                            scaleX = screen.scale
+                            scaleY = screen.scale
+                            transformOrigin = TransformOrigin(popupBounds.left / size.width, popupBounds.top / size.height)
+                            val drawn = popupBounds.zoomedOnto(screen)
+                            translationX = (drawn.left - popupBounds.left).toFloat()
+                            translationY = (drawn.top - popupBounds.top).toFloat()
+                        }
+                    }
                 }
             }
         }
@@ -190,35 +248,66 @@ private class ScreenLayer(
 }
 
 /**
- * [screen]'s insets with the window [around] the screen added to its system bars, which are what a
- * popup keeps clear of. Its content sees the screen's own insets.
+ * [screen]'s insets, [scale] times as large as the zoom draws them, with the window [around] the
+ * screen added to its system bars, which are what a popup keeps clear of. Its content sees the
+ * screen's own insets.
  */
 private data class ScreenInWindowInsets(
     private val screen: PlatformWindowInsets,
     private val around: PixelInsets,
+    private val scale: Float,
 ) : PlatformWindowInsets {
     override val systemBars: PlatformInsets = screen.systemBars.let {
-        PixelInsets(it.left + around.left, it.top + around.top, it.right + around.right, it.bottom + around.bottom)
+        PixelInsets(
+            (it.left * scale).roundToInt() + around.left,
+            (it.top * scale).roundToInt() + around.top,
+            (it.right * scale).roundToInt() + around.right,
+            (it.bottom * scale).roundToInt() + around.bottom,
+        )
     }
 
     override fun excluding(safeInsets: Boolean, ime: Boolean): PlatformWindowInsets = screen.excluding(safeInsets, ime)
 }
 
 /**
- * Keeps [screen]'s origin up to date. Put it on a node that fills the screen.
+ * Keeps [screen]'s origin, scale and visible part up to date. Put it on a node that fills the screen.
  *
- * @param screen The screen whose origin this node sets.
- * @return This modifier, then the one that tracks the screen's position.
+ * @param screen The screen whose origin, scale and visible part this node sets.
+ * @return This modifier, then the one that tracks the screen's position, zoom and visibility.
  */
 internal fun Modifier.screenPosition(screen: SimulatedScreen): Modifier = onGloballyPositioned { coordinates ->
+    val width = coordinates.size.width.toFloat()
+    if (width == 0f) {
+        return@onGloballyPositioned
+    }
+    // A distance rather than a width, so that a turn of the device doesn't skew it.
+    val topEdge = coordinates.localToWindow(Offset(width, 0f)) - coordinates.localToWindow(Offset.Zero)
+    val scale = topEdge.getDistance() / width
     // A turn of the device swings its corners round, so the corner is found from the centre, which
     // barely moves: a dialog stays put while the device turns under it.
-    val half = Offset(coordinates.size.width / 2f, coordinates.size.height / 2f)
-    val topLeft = coordinates.localToWindow(half) - half
+    val half = Offset(width / 2f, coordinates.size.height / 2f)
+    val topLeft = coordinates.localToWindow(half) - half * scale
+    screen.scale = scale
     screen.origin = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt())
+    screen.visible = coordinates.boundsInWindow()
 }
 
-/** Clips what [layer] draws to [screen]'s outline, over [scrim] filling the screen. */
+// A popup is placed as if it weren't zoomed, so what the zoom enlarges can run off the screen's far
+// edges: it is moved back, never past the screen's near ones.
+private fun IntRect.zoomedOnto(screen: SimulatedScreen): IntRect {
+    val enlarged = IntRect(left, top, left + (width * screen.scale).roundToInt(), top + (height * screen.scale).roundToInt())
+    val onScreen = screen.bounds
+    val back = IntOffset(
+        (enlarged.right - max(right, onScreen.right)).coerceIn(0, max(0, enlarged.left - onScreen.left)),
+        (enlarged.bottom - max(bottom, onScreen.bottom)).coerceIn(0, max(0, enlarged.top - onScreen.top)),
+    )
+    return enlarged.translate(-back)
+}
+
+/**
+ * Clips what [layer] draws to [screen]'s outline as the zoom draws it, and to the part of it the
+ * preview shows, over [scrim] filling the screen.
+ */
 private fun Modifier.clipToScreen(
     screen: SimulatedScreen,
     layer: ComposeSceneLayer,
@@ -226,15 +315,22 @@ private fun Modifier.clipToScreen(
 ): Modifier =
     drawWithCache {
         val origin = layer.calculateLocalPosition(screen.origin).toOffset()
+        val visible = screen.visible.translate(layer.calculateLocalPosition(IntOffset.Zero).toOffset())
+        val zoom = screen.scale
         val size = screen.size.toSize()
         val outline = Path().apply {
             addOutline(screen.shape.createOutline(size, layoutDirection, this@drawWithCache))
-            translate(origin)
+            transform(Matrix().apply {
+                translate(origin.x, origin.y)
+                scale(zoom, zoom)
+            })
         }
         onDrawWithContent {
-            clipPath(outline) {
-                scrim()?.let { drawRect(it, origin, size) }
-                this@onDrawWithContent.drawContent()
+            clipRect(visible.left, visible.top, visible.right, visible.bottom) {
+                clipPath(outline) {
+                    scrim()?.let { drawRect(it, origin, size * zoom) }
+                    this@onDrawWithContent.drawContent()
+                }
             }
         }
     }
