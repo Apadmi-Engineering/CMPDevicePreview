@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/Apadmi-Engineering/CMPDevicePreview/compare/v0.1.1...v0.1.2) (2026-11-06)
+
+
+### Features
+
+* embedded html improved support ([#42](https://github.com/Apadmi-Engineering/CMPDevicePreview/issues/42)) ([8c0ba51](https://github.com/Apadmi-Engineering/CMPDevicePreview/commit/8c0ba51ea28e4da108a75c270f7fffd5014a8b1d))
+
 ## [0.1.1](https://github.com/Apadmi-Engineering/CMPDevicePreview/compare/v0.1.0...v0.1.1) (2026-11-02)
 
 
