@@ -1,5 +1,6 @@
 package com.apadmi.cmpdevicepreview.preview
 
+import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -19,7 +20,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toSize
 
 /** Where the [DeviceFrameView] below records its screenshots, or null when it doesn't. */
-internal val LocalDeviceScreenshots = staticCompositionLocalOf<DeviceScreenshots?> { null }
+public val LocalDeviceScreenshots: ProvidableCompositionLocal<DeviceScreenshots?> =
+    staticCompositionLocalOf { null }
 
 /**
  * Saves an image as a PNG: the browser downloads it, and the desktop asks where to save it. Null
@@ -39,20 +41,20 @@ internal typealias PngCopier = (image: ImageBitmap, onDone: (isCopied: Boolean) 
  * Screenshots of the device a [DeviceFrameView] below [LocalDeviceScreenshots] shows: of its screen,
  * or of the whole device in its frame. The view records both while it is shown and not turning.
  */
-internal class DeviceScreenshots {
+public class DeviceScreenshots {
     private var screen by mutableStateOf<Recording?>(null)
     private var device by mutableStateOf<Recording?>(null)
 
     /** Whether there is a device to take a screenshot of. */
-    val canCapture: Boolean
+    public val canCapture: Boolean
         get() = screen != null && device != null
 
-    fun attach(screen: Recording, device: Recording) {
+    internal fun attach(screen: Recording, device: Recording) {
         this.screen = screen
         this.device = device
     }
 
-    fun detach() {
+    internal fun detach() {
         screen = null
         device = null
     }
@@ -66,7 +68,7 @@ internal class DeviceScreenshots {
      * screen.
      * @return The screenshot, or null when there is no device to capture or it has no size yet.
      */
-    fun capture(includeFrame: Boolean): ImageBitmap? {
+    public fun capture(includeFrame: Boolean): ImageBitmap? {
         val recording = (if (includeFrame) device else screen) ?: return null
         val drawn = recording.layer.size
         val size = recording.size
@@ -82,13 +84,14 @@ internal class DeviceScreenshots {
         }
         return image
     }
+
     /**
      * What the view last drew into [layer], and the [size] a screenshot of it is, in pixels.
      *
      * @property layer The graphics layer the view draws into.
      * @property size The size of a screenshot of the layer, in pixels.
      */
-    data class Recording(val layer: GraphicsLayer, val size: IntSize)
+    internal data class Recording(val layer: GraphicsLayer, val size: IntSize)
 }
 
 /**

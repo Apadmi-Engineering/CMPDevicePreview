@@ -1,0 +1,35 @@
+{
+  "id": "browser-chrome",
+  "name": "Google Chrome (Web Browser)",
+  "brand": "Google",
+  "platform": "macOS",
+  "kind": "desktop",
+  "portraitSize": {
+    "width": 1600,
+    "height": 900
+  },
+  "devicePixelRatio": 1.0,
+  "frame": {
+    "size": {
+      "width": 1600,
+      "height": 982
+    },
+    "screenOffset": {
+      "x": 0,
+      "y": 82
+    },
+    "screenPath": "M 0,0 H 1600 V 900 H 0 Z",
+    "body": [
+      "<svg viewBox=\"0 0 1600 982\">",
+      "  <rect width=\"1600\" height=\"982\" fill=\"#202124\"/>",
+      "  <path d=\"M 0,0 H 1600 V 42 H 0 Z\" fill=\"#1e1f22\"/>",
+      "  <circle cx=\"20\" cy=\"21\" r=\"6\" fill=\"#ff5f56\"/>",
+      "  <circle cx=\"38\" cy=\"21\" r=\"6\" fill=\"#ffbd2e\"/>",
+      "  <circle cx=\"56\" cy=\"21\" r=\"6\" fill=\"#27c93f\"/>",
+      "  <path d=\"M 80,42 L 88,14 A 6,6 0 0 1 94,8 H 326 A 6,6 0 0 1 332,14 L 340,42 Z\" fill=\"#2b2d30\"/>",
+      "  <path d=\"M 0,42 H 1600 V 82 H 0 Z\" fill=\"#2b2d30\"/>",
+      "  <rect y=\"81\" width=\"1600\" height=\"1\" fill=\"#383a3e\"/>",
+      "</svg>"
+    ]
+  }
+}

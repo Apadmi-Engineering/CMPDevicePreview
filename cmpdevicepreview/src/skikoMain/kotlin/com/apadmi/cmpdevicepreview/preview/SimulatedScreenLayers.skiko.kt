@@ -2,12 +2,16 @@
 
 package com.apadmi.cmpdevicepreview.preview
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -74,6 +78,9 @@ internal class SimulatedScreen(
     var origin by mutableStateOf(IntOffset.Zero)
 
     val size: IntSize get() = windowInfo.containerSize
+
+    /** Active dialog and popup layers displayed within this screen. */
+    val layers = mutableStateListOf<ScreenLayer>()
 }
 
 private class ScreenSceneContext(
@@ -88,7 +95,12 @@ private class ScreenSceneContext(
         focusable: Boolean,
         consumePointerInputOutside: Boolean,
     ): ComposeSceneLayer =
-        ScreenLayer(host.createLayer(density, layoutDirection, focusable, consumePointerInputOutside), screen, density)
+        ScreenLayer(
+            layer = host.createLayer(density, layoutDirection, focusable, consumePointerInputOutside),
+            screen = screen,
+            density = density,
+            isFocusable = focusable
+        )
 }
 
 /**
@@ -99,10 +111,11 @@ private class ScreenSceneContext(
  * measured in the window, so it keeps the window, and the window around the screen is added to
  * its insets to keep it on the screen.
  */
-private class ScreenLayer(
+internal class ScreenLayer(
     private val layer: ComposeSceneLayer,
     private val screen: SimulatedScreen,
     density: Density,
+    private val isFocusable: Boolean = false,
 ) : ComposeSceneLayer by layer {
     // The device's density. On iOS a layer keeps the real screen's whatever it is given, so the
     // content is given it too.
@@ -111,8 +124,10 @@ private class ScreenLayer(
     // Drawn over the screen by the content, not over the whole window by the wrapped layer.
     private var _scrimColor by mutableStateOf<Color?>(null)
 
-    /** A dialog's layer, rather than a popup's. Only a dialog has a scrim, set before its content. */
-    private var isDialog = false
+    private var contentComposable by mutableStateOf<(@Composable () -> Unit)?>(null)
+
+    /** A dialog's layer, rather than a popup's. Only a dialog has a scrim or is focusable. */
+    val isDialog: Boolean get() = _scrimColor != null || isFocusable
 
     override var density: Density
         get() = _density
@@ -125,6 +140,7 @@ private class ScreenLayer(
         get() = _scrimColor
         set(value) {
             _scrimColor = value
+            layer.scrimColor = value
         }
 
     // A dialog's bounds are within the screen, as it is laid out; the wrapped layer has them in the
@@ -140,10 +156,48 @@ private class ScreenLayer(
         if (isDialog) positionInWindow else layer.calculateLocalPosition(positionInWindow)
 
     override fun setContent(parentCompositionContext: CompositionContext, content: @Composable () -> Unit) {
-        isDialog = scrimColor != null
+        contentComposable = content
+        if (!screen.layers.contains(this)) {
+            screen.layers.add(this)
+        }
         layer.setContent(parentCompositionContext) {
-            CompositionLocalProvider(LocalDensity provides density) {
-                if (isDialog) DialogOnScreen(content) else PopupOnScreen(content)
+            if (isDialog) {
+                DialogOnScreen(content)
+            } else {
+                PopupOnScreen(content)
+            }
+        }
+    }
+
+    override fun close() {
+        screen.layers.remove(this)
+        contentComposable = null
+        layer.close()
+    }
+
+    /**
+     * Renders this layer's content and its background scrim directly inside the simulated screen,
+     * ensuring dialogs and popups are visually clipped to the device and captured in screenshot export.
+     */
+    @Composable
+    fun RenderLayer() {
+        val currentContent = contentComposable ?: return
+        val currentScrim = _scrimColor
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (currentScrim != null) {
+                        Modifier.background(currentScrim)
+                    } else Modifier
+                )
+        ) {
+            CompositionLocalProvider(
+                LocalDensity provides _density,
+                LocalWindowInfo provides screen.windowInfo,
+                LocalPlatformWindowInsets provides screen.insets,
+            ) {
+                currentContent()
             }
         }
     }
