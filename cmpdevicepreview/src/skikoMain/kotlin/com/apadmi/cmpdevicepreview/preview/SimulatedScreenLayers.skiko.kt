@@ -2,6 +2,8 @@
 
 package com.apadmi.cmpdevicepreview.preview
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
@@ -9,9 +11,11 @@ import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
@@ -27,6 +31,10 @@ import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -45,8 +53,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.toIntRect
 import androidx.compose.ui.unit.toOffset
+import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.unit.toSize
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -62,6 +72,8 @@ import kotlin.math.roundToInt
  * those layers.
  */
 private val LocalSceneContext: ProvidableCompositionLocal<ComposeSceneContext?>? = findLocalSceneContext()
+
+private typealias OutsidePointerListener = (eventType: PointerEventType, button: PointerButton?) -> Unit
 
 /** The device's screen, as the dialogs and popups shown on it need it. */
 @Stable
@@ -88,6 +100,10 @@ internal class SimulatedScreen(
 
     /** The part of the screen the preview shows, in the window: a zoomed screen runs past it. */
     var visible by mutableStateOf(Rect.Zero)
+    val layers = mutableStateListOf<ScreenLayer>()
+
+    // The layer the screen's presses go to, which takes them from the content and the layers under it.
+    val modalLayer: ScreenLayer? get() = layers.lastOrNull { it.consumePointerInputOutside }
 
     val size: IntSize get() = windowInfo.containerSize
 
@@ -108,21 +124,6 @@ internal class SimulatedScreen(
     )
 }
 
-private class ScreenSceneContext(
-    private val host: ComposeSceneContext,
-    private val screen: SimulatedScreen,
-) : ComposeSceneContext {
-    override val platformContext: PlatformContext get() = host.platformContext
-
-    override fun createLayer(
-        density: Density,
-        layoutDirection: LayoutDirection,
-        focusable: Boolean,
-        consumePointerInputOutside: Boolean,
-    ): ComposeSceneLayer =
-        ScreenLayer(host.createLayer(density, layoutDirection, focusable, consumePointerInputOutside), screen, density)
-}
-
 /**
  * A layer over the whole window, drawn only within [screen].
  *
@@ -130,11 +131,17 @@ private class ScreenSceneContext(
  * inset within the screen, and its scrim covers only the screen. A popup is placed by an anchor
  * measured in the window, so it keeps the window, and the window around the screen is added to
  * its insets to keep it on the screen.
+ *
+ * @property layer The window's layer it draws in.
+ * @property screen The screen it is drawn on.
+ * @property consumePointerInputOutside Whether it is modal: the presses on the screen outside it
+ * reach it rather than what is under it.
  */
-private class ScreenLayer(
+internal class ScreenLayer(
     private val layer: ComposeSceneLayer,
     private val screen: SimulatedScreen,
     density: Density,
+    override var consumePointerInputOutside: Boolean,
 ) : ComposeSceneLayer by layer {
     // The device's density. On iOS a layer keeps the real screen's whatever it is given, so the
     // content is given it too.
@@ -159,26 +166,62 @@ private class ScreenLayer(
             _scrimColor = value
         }
 
-    // Where a popup placed itself, before the zoom enlarges it about its top-left corner.
-    private var popupBounds by mutableStateOf(IntRect.Zero)
+    // Where the layer placed itself: within the screen for a dialog, and for a popup in the window,
+    // before the zoom enlarges it about its top-left corner.
+    private var placed by mutableStateOf(IntRect.Zero)
+    private var onOutsidePointerEvent: OutsidePointerListener? = null
 
-    // A dialog's bounds are within the screen, as it is laid out; the wrapped layer has them in the
-    // window, as drawn. They are set while the dialog is placed, so they are set again when the
-    // screen moves or is zoomed.
+    private val drawn: IntRect get() = if (isDialog) screen.inWindow(placed) else placed.zoomedOnto(screen)
+
+    private val isCovered: Boolean
+        get() = screen.layers.indexOf(this) < screen.layers.indexOfLast { it.consumePointerInputOutside }
+
+    // The wrapped layer gets the presses within its bounds, so they are where it is drawn and the
+    // preview shows it, and none while a modal layer covers it. They are set while the layer is
+    // placed, so they are set again when the screen moves or is zoomed, or another layer opens.
     @Suppress("NO_CORRESPONDING_PROPERTY")  // It is the wrapped layer's, so there is no backing property.
     override var boundsInWindow: IntRect
-        get() = if (isDialog) screen.inScreen(layer.boundsInWindow) else popupBounds
+        get() = placed
         set(value) {
-            if (isDialog) {
-                layer.boundsInWindow = screen.inWindow(value)
-            } else {
-                popupBounds = value
-                layer.boundsInWindow = value.zoomedOnto(screen)
-            }
+            placed = value
+            layer.boundsInWindow = if (isCovered) IntRect.Zero else drawn.intersect(screen.visible.roundToIntRect())
         }
 
     override fun calculateLocalPosition(positionInWindow: IntOffset): IntOffset =
         if (isDialog) positionInWindow else layer.calculateLocalPosition(positionInWindow)
+
+    // A modal layer's is called for the screen's presses, by onScreenPointerEvent, rather than by the
+    // scene for those anywhere in the window.
+    override fun setOutsidePointerEventListener(onOutsidePointerEvent: OutsidePointerListener?) {
+        this.onOutsidePointerEvent = onOutsidePointerEvent
+        layer.setOutsidePointerEventListener(
+            onOutsidePointerEvent?.takeUnless { consumePointerInputOutside }?.let { listener ->
+                { eventType, button ->
+                    if (!isCovered) {
+                        listener(eventType, button)
+                    }
+                }
+            }
+        )
+    }
+
+    // A press on the screen outside every layer, in the screen's own pixels, passed on as the scene
+    // would pass one outside this layer if it blocked the window.
+    @OptIn(ExperimentalComposeUiApi::class)
+    fun onScreenPointerEvent(event: PointerEvent) {
+        val position = event.changes.firstOrNull()?.position ?: return
+        val isMouseOrSingleTouch = event.button != null || event.changes.size == 1
+        // Ends a press a layer above took, which Compose doesn't count as outside this one.
+        val isReleaseOnLayer = event.type == PointerEventType.Release && screen.inScreen(drawn).toRect().contains(position)
+        if (isMouseOrSingleTouch && !isReleaseOnLayer) {
+            onOutsidePointerEvent?.invoke(event.type, event.button)
+        }
+    }
+
+    override fun close() {
+        screen.layers -= this
+        layer.close()
+    }
 
     override fun setContent(parentCompositionContext: CompositionContext, content: @Composable () -> Unit) {
         isDialog = scrimColor != null
@@ -241,15 +284,33 @@ private class ScreenLayer(
                         it.placeWithLayer(0, 0) {
                             scaleX = screen.scale
                             scaleY = screen.scale
-                            transformOrigin = TransformOrigin(popupBounds.left / size.width, popupBounds.top / size.height)
-                            val drawn = popupBounds.zoomedOnto(screen)
-                            translationX = (drawn.left - popupBounds.left).toFloat()
-                            translationY = (drawn.top - popupBounds.top).toFloat()
+                            transformOrigin = TransformOrigin(placed.left / size.width, placed.top / size.height)
+                            translationX = (drawn.left - placed.left).toFloat()
+                            translationY = (drawn.top - placed.top).toFloat()
                         }
                     }
                 }
             }
         }
+    }
+}
+
+private class ScreenSceneContext(
+    private val host: ComposeSceneContext,
+    private val screen: SimulatedScreen,
+) : ComposeSceneContext {
+    override val platformContext: PlatformContext get() = host.platformContext
+
+    override fun createLayer(
+        density: Density,
+        layoutDirection: LayoutDirection,
+        focusable: Boolean,
+        consumePointerInputOutside: Boolean,
+    ): ComposeSceneLayer {
+        // Compose would block the presses outside a modal layer all over the window, the preview's
+        // included, so the screen blocks those on it instead.
+        val layer = host.createLayer(density, layoutDirection, focusable, consumePointerInputOutside = false)
+        return ScreenLayer(layer, screen, density, consumePointerInputOutside).also { screen.layers += it }
     }
 }
 
@@ -296,6 +357,29 @@ internal fun Modifier.screenPosition(screen: SimulatedScreen): Modifier = onGlob
     screen.scale = scale
     screen.origin = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt())
     screen.visible = coordinates.boundsInWindow()
+}
+
+// While a modal layer is open, the presses on the screen outside it reach it, and nothing under it
+// gets them or the hover, as Compose would have it. Put it over the screen's content.
+@Composable
+internal fun BoxScope.ModalLayerShield(screen: SimulatedScreen) {
+    if (screen.modalLayer == null) {
+        return
+    }
+    Box(Modifier.matchParentSize().pointerInput(screen) {
+        awaitPointerEventScope {
+            while (true) {
+                val event = awaitPointerEvent()
+                if (event.type == PointerEventType.Press || event.type == PointerEventType.Release) {
+                    screen.modalLayer?.onScreenPointerEvent(event)
+                }
+                // The wheel is left to pan the preview, as it does beside the device.
+                if (event.type == PointerEventType.Press) {
+                    event.changes.forEach { it.consume() }
+                }
+            }
+        }
+    })
 }
 
 // A popup is placed as if it weren't zoomed, so what the zoom enlarges can run off the screen's far

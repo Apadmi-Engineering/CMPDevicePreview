@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -72,6 +73,19 @@ class SimulatedScreenLayersTest {
     /** [smallDevice]'s screen at a zoom of 2 about its top-left corner, then moved by [pan]. */
     private val pan = Offset(150f, 40f)
     private val zoomedScreen = Rect(250f, 90f, 850f, 890f)
+
+    /** The first button of [PreviewHarness]'s toolbar, in its bottom-left corner. */
+    private val zoomOutButton = Offset(24f, 976f)
+
+    private fun showPreview(content: @Composable () -> Unit, check: PreviewHarness.() -> Unit) {
+        val harness = PreviewHarness(content)
+        try {
+            harness.settle()
+            harness.check()
+        } finally {
+            harness.scene.close()
+        }
+    }
 
     private fun show(
         device: Device = FreeformDevice(Size(400f, 800f)),
@@ -266,16 +280,162 @@ class SimulatedScreenLayersTest {
 
     @Test
     fun aDialogDoesNotDrawOverThePreviewsToolbar() {
-        val harness = PreviewHarness()
-        try {
-            harness.zoomIn()
-            val before = harness.settle()
-            harness.isDialogOpen = true
-            val after = harness.settle()
+        var isDialogOpen by mutableStateOf(false)
+        showPreview(content = {
+            if (isDialogOpen) {
+                Dialog(onDismissRequest = {}) { Box(Modifier.size(100.dp).background(Color.White)) }
+            }
+        }) {
+            zoomIn()
+            val before = settle()
+            isDialogOpen = true
+            val after = settle()
             assertEquals(before[44, 976], after[44, 976], "the toolbar in the corner")
             assertTrue(after[600, 300].red < 0.5f, "the screen is dimmed")
-        } finally {
-            harness.scene.close()
+        }
+    }
+
+    @Test
+    fun aDialogStaysOpenAndThePreviewWorksWhenTappedBesideTheDevice() {
+        var dismissals = 0
+        var screenWidth = 0f
+        showPreview(content = {
+            Box(Modifier.fillMaxSize().onGloballyPositioned { screenWidth = it.boundsInWindow().width })
+            Dialog(onDismissRequest = { dismissals++ }) { Box(Modifier.size(100.dp).background(Color.White)) }
+        }) {
+            val fitted = screenWidth
+            tap(Offset(30f, 500f))
+            tap(zoomOutButton)
+            assertTrue(screenWidth < fitted, "the toolbar zoomed out")
+            assertEquals(0, dismissals)
+        }
+    }
+
+    @Test
+    fun aMenuStaysOpenWhenThePreviewsToolbarIsTapped() {
+        var dismissals = 0
+        var screenWidth = 0f
+        showPreview(content = {
+            Box(Modifier.fillMaxSize().onGloballyPositioned { screenWidth = it.boundsInWindow().width }) {
+                DropdownMenu(expanded = true, onDismissRequest = { dismissals++ }) {
+                    DropdownMenuItem(text = { Text("An item") }, onClick = {})
+                }
+            }
+        }) {
+            val fitted = screenWidth
+            tap(zoomOutButton)
+            assertTrue(screenWidth < fitted, "the toolbar zoomed out")
+            assertEquals(0, dismissals)
+        }
+    }
+
+    @Test
+    fun aTapBesideADialogDismissesItWithoutReachingTheAppUnderIt() {
+        var appClicks = 0
+        var dismissals = 0
+        show(content = {
+            Box(Modifier.fillMaxSize().clickable { appClicks++ })
+            Dialog(onDismissRequest = { dismissals++ }) { Box(Modifier.size(100.dp)) }
+        }) {
+            tap(Offset(150f, 100f))
+            assertEquals(1, dismissals)
+            assertEquals(0, appClicks)
+        }
+    }
+
+    @Test
+    fun aTapBesideAMenuDismissesItWithoutReachingTheAppUnderIt() {
+        var appClicks = 0
+        var dismissals = 0
+        show(content = {
+            Box(Modifier.fillMaxSize().clickable { appClicks++ }) {
+                DropdownMenu(expanded = true, onDismissRequest = { dismissals++ }) {
+                    DropdownMenuItem(text = { Text("An item") }, onClick = {})
+                }
+            }
+        }) {
+            tap(Offset(300f, 700f))
+            assertEquals(1, dismissals)
+            assertEquals(0, appClicks)
+        }
+    }
+
+    @Test
+    fun aDialogUnderAnotherTakesNoTaps() {
+        var lowerClicks = 0
+        var lowerDismissals = 0
+        var upperDismissals = 0
+        show(content = {
+            Dialog(onDismissRequest = { lowerDismissals++ }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+                Box(Modifier.fillMaxSize().clickable { lowerClicks++ })
+            }
+            Dialog(onDismissRequest = { upperDismissals++ }) { Box(Modifier.size(100.dp)) }
+        }) {
+            tap(Offset(150f, 100f))
+            assertEquals(0, lowerClicks)
+            assertEquals(0, lowerDismissals)
+            assertEquals(1, upperDismissals)
+        }
+    }
+
+    @Test
+    fun aTapOnADialogBesideItsMenuDismissesOnlyTheMenu() {
+        var isMenuOpen by mutableStateOf(true)
+        var dialogDismissals = 0
+        show(content = {
+            Dialog(onDismissRequest = { dialogDismissals++ }) {
+                Box(Modifier.size(300.dp).background(Color.White)) {
+                    Box(Modifier.size(40.dp)) {
+                        DropdownMenu(expanded = isMenuOpen, onDismissRequest = { isMenuOpen = false }) {
+                            DropdownMenuItem(text = { Text("An item") }, onClick = {})
+                        }
+                    }
+                }
+            }
+        }) {
+            // Apart, so the menu has closed by the time the press ends on the dialog.
+            press(Offset(420f, 570f))
+            settle()
+            release(Offset(420f, 570f))
+            settle()
+            assertEquals(false, isMenuOpen)
+            assertEquals(0, dialogDismissals)
+        }
+    }
+
+    @Test
+    fun theAppUnderADialogIsNotHovered() {
+        var hovers = 0
+        show(content = {
+            Box(Modifier.fillMaxSize().pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent()
+                        hovers++
+                    }
+                }
+            })
+            Dialog(onDismissRequest = {}) { Box(Modifier.size(100.dp)) }
+        }) {
+            hover(Offset(150f, 100f))
+            hover(Offset(160f, 110f))
+            settle()
+            assertEquals(0, hovers)
+        }
+    }
+
+    @Test
+    fun aZoomedDialogTakesNoTapsBeyondThePreview() {
+        var clicks = 0
+        show(device = smallDevice, zoom = 2f, viewport = DpSize(400.dp, 500.dp), content = {
+            Dialog(onDismissRequest = {}, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+                Box(Modifier.fillMaxSize().clickable { clicks++ })
+            }
+        }) {
+            tap(Offset(600f, 300f))
+            assertEquals(0, clicks, "past the preview's right edge")
+            tap(Offset(300f, 300f))
+            assertEquals(1, clicks, "in the preview")
         }
     }
 
@@ -387,17 +547,29 @@ class SimulatedScreenLayersTest {
         }
 
         fun tap(at: Offset) {
-            for (type in listOf(PointerEventType.Press, PointerEventType.Release)) {
-                clock += 16
-                scene.sendPointerEvent(type, at, timeMillis = clock, type = PointerType.Touch)
-            }
+            press(at)
+            release(at)
             settle()
+        }
+
+        fun press(at: Offset) = send(PointerEventType.Press, at, PointerType.Touch)
+
+        fun release(at: Offset) = send(PointerEventType.Release, at, PointerType.Touch)
+
+        fun hover(at: Offset) = send(PointerEventType.Move, at, PointerType.Mouse)
+
+        private fun send(
+            eventType: PointerEventType,
+            at: Offset,
+            pointerType: PointerType
+        ) {
+            clock += 16
+            scene.sendPointerEvent(eventType, at, timeMillis = clock, type = pointerType)
         }
     }
 
     /** The whole preview, with its toolbars, zoomed by the wheel as a person would. */
-    private class PreviewHarness : SceneHarness() {
-        var isDialogOpen by mutableStateOf(false)
+    private class PreviewHarness(content: @Composable () -> Unit) : SceneHarness() {
         override val scene = ImageComposeScene(width = 1200, height = 1000) {
             ZoomableDevicePreview(
                 SimulatedDevice(FreeformDevice(Size(1000f, 800f))),
@@ -405,11 +577,7 @@ class SimulatedScreenLayersTest {
                 onResize = null,
                 isZoomable = true,
             ) {
-                Box(Modifier.fillMaxSize().background(Color.White)) {
-                    if (isDialogOpen) {
-                        Dialog(onDismissRequest = {}) { Box(Modifier.size(100.dp).background(Color.White)) }
-                    }
-                }
+                Box(Modifier.fillMaxSize().background(Color.White)) { content() }
             }
         }
 

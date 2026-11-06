@@ -39,9 +39,10 @@ Some of what the preview simulates has no public API in Compose Multiplatform, s
 The layers also depend on how Compose 1.12's `Dialog` and `Popup` use them, which no API promises:
 
 - A dialog sets its scrim colour before its content, and a popup never sets one. That is how a dialog's layer is told apart from a popup's.
+- A layer gets the presses within its `boundsInWindow`, a rectangle, and with `consumePointerInputOutside` blocks the rest of the window, telling the dialog or popup through its outside listener. The library turns the blocking off and passes on the presses on the device's screen itself, so the preview around the device keeps working while a dialog is open.
 - On iOS, a layer ignores the density it is given and provides the window's own density, window size and insets, so the library provides the device's again inside it.
 
-A change to either breaks no build. A change to the first shows up as `SimulatedScreenLayersTest` failing, but the tests run on the JVM, so a change to the second only shows on iOS: open a dialog in the sample on iOS after a Compose update.
+A change to any of these breaks no build. A change to the first two shows up as `SimulatedScreenLayersTest` failing, but the tests run on the JVM, so a change to the last only shows on iOS: open a dialog in the sample on iOS after a Compose update.
 
 On the web, `WebHtmlElementsContainer.kt` depends on how Compose 1.12 places `HtmlElementView`s, which no API promises either: each is in a wrapper `div` inside one container `div` per viewport at the canvas's origin, placed at its window pixels over the density it's composed at rather than the host's. The library finds that container through an invisible `HtmlElementView` of its own, then scales and clips it to the device's screen. `WebHtmlElementsContainerTest` only checks the library's side, against a copy of that DOM, so a change in Compose only shows in the sample: its web Explore tab has an HTML card.
 

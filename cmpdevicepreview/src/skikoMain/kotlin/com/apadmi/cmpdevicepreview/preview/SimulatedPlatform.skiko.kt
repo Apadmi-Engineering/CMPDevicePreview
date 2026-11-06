@@ -131,6 +131,7 @@ internal actual fun SimulatedPlatform(
             // provider above them.
             Box(Modifier.fillMaxSize().screenPosition(screen).windowInsets(insets)) {
                 content()
+                ModalLayerShield(screen)
             }
         }
     }
