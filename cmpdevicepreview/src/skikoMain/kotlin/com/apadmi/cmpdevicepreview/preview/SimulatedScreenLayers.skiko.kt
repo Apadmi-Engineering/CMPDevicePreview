@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -19,6 +20,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.ClipOp
@@ -31,6 +33,11 @@ import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -171,6 +178,11 @@ internal class ScreenLayer(
     private var placed by mutableStateOf(IntRect.Zero)
     private var onOutsidePointerEvent: OutsidePointerListener? = null
 
+    // What the layer last drew, and where the screen was in it.
+    private var recording: GraphicsLayer? = null
+    private var recordedOrigin = Offset.Zero
+    private var recordedScale = 1f
+
     private val drawn: IntRect get() = if (isDialog) screen.inWindow(placed) else placed.zoomedOnto(screen)
 
     private val isCovered: Boolean
@@ -223,6 +235,42 @@ internal class ScreenLayer(
         layer.close()
     }
 
+    // Draws what the layer last drew, in the screen's own pixels, for a screenshot.
+    fun drawRecording(scope: DrawScope) {
+        val recorded = recording ?: return
+        scope.scale(1f / recordedScale, pivot = Offset.Zero) {
+            translate(-recordedOrigin.x, -recordedOrigin.y) { drawLayer(recorded) }
+        }
+    }
+
+    // A screenshot has the whole screen, so the preview's clip is left out of the recording.
+    @Composable
+    private fun onScreen(scrim: () -> Color?): Modifier =
+        Modifier.clipToViewport(screen, layer, LocalScreenObstructions.current)
+            .then(recordedForScreenshots())
+            .clipToScreen(screen, layer, scrim)
+
+    @Composable
+    private fun recordedForScreenshots(): Modifier {
+        LocalDeviceScreenshots.current ?: return Modifier
+        val graphicsLayer = rememberGraphicsLayer()
+        DisposableEffect(graphicsLayer) {
+            recording = graphicsLayer
+            onDispose {
+                if (recording === graphicsLayer) {
+                    recording = null
+                }
+            }
+        }
+        return Modifier
+            .drawWithContent {
+                recordedOrigin = layer.calculateLocalPosition(screen.origin).toOffset()
+                recordedScale = screen.scale
+                drawContent()
+            }
+            .recordInto(graphicsLayer)
+    }
+
     override fun setContent(parentCompositionContext: CompositionContext, content: @Composable () -> Unit) {
         isDialog = scrimColor != null
         layer.setContent(parentCompositionContext) {
@@ -241,8 +289,7 @@ internal class ScreenLayer(
         ) {
             Layout(
                 content = content,
-                modifier = Modifier.clipToScreen(screen, layer, LocalScreenObstructions.current) { scrimColor }
-                    .windowInsets(screen.insets),
+                modifier = onScreen { scrimColor }.windowInsets(screen.insets),
             ) { measurables, constraints ->
                 val screenConstraints = Constraints(maxWidth = screen.size.width, maxHeight = screen.size.height)
                 // Laid out as if the preview weren't zoomed, so zooming doesn't lay it out again.
@@ -274,7 +321,7 @@ internal class ScreenLayer(
         CompositionLocalProvider(LocalPlatformWindowInsets provides ScreenInWindowInsets(screen.insets, around, scale)) {
             Layout(
                 content = content,
-                modifier = Modifier.clipToScreen(screen, layer, LocalScreenObstructions.current) { null },
+                modifier = onScreen { null },
             ) { measurables, constraints ->
                 val placeables = measurables.map { it.measure(constraints) }
                 layout(constraints.maxWidth, constraints.maxHeight) {
@@ -394,21 +441,34 @@ private fun IntRect.zoomedOnto(screen: SimulatedScreen): IntRect {
     return enlarged.translate(-back)
 }
 
+// Clips what the layer draws to the part of the screen the preview shows, less what it draws over it.
+private fun Modifier.clipToViewport(
+    screen: SimulatedScreen,
+    layer: ComposeSceneLayer,
+    obstructions: ScreenObstructions?
+): Modifier =
+    drawWithCache {
+        val toLayer = layer.calculateLocalPosition(IntOffset.Zero).toOffset()
+        val visible = screen.visible.translate(toLayer)
+        val obstructed = Path().apply { obstructions?.paths?.forEach { addPath(it, toLayer) } }
+        onDrawWithContent {
+            clipRect(visible.left, visible.top, visible.right, visible.bottom) {
+                clipOut(obstructed) { this@onDrawWithContent.drawContent() }
+            }
+        }
+    }
+
 /**
- * Clips what [layer] draws to [screen]'s outline as the zoom draws it, and to the part of it the
- * preview shows, less [obstructions], over [scrim] filling the screen.
+ * Clips what [layer] draws to [screen]'s outline as the zoom draws it, over [scrim] filling the
+ * screen.
  */
 private fun Modifier.clipToScreen(
     screen: SimulatedScreen,
     layer: ComposeSceneLayer,
-    obstructions: ScreenObstructions?,
     scrim: () -> Color?
 ): Modifier =
     drawWithCache {
         val origin = layer.calculateLocalPosition(screen.origin).toOffset()
-        val toLayer = layer.calculateLocalPosition(IntOffset.Zero).toOffset()
-        val visible = screen.visible.translate(toLayer)
-        val obstructed = Path().apply { obstructions?.paths?.forEach { addPath(it, toLayer) } }
         val zoom = screen.scale
         val size = screen.size.toSize()
         val outline = Path().apply {
@@ -419,13 +479,9 @@ private fun Modifier.clipToScreen(
             })
         }
         onDrawWithContent {
-            clipRect(visible.left, visible.top, visible.right, visible.bottom) {
-                clipPath(outline) {
-                    clipOut(obstructed) {
-                        scrim()?.let { drawRect(it, origin, size * zoom) }
-                        this@onDrawWithContent.drawContent()
-                    }
-                }
+            clipPath(outline) {
+                scrim()?.let { drawRect(it, origin, size * zoom) }
+                this@onDrawWithContent.drawContent()
             }
         }
     }
@@ -474,6 +530,16 @@ internal fun ScreenLayers(screen: SimulatedScreen, content: @Composable () -> Un
     }
     val host = local.current
     val context = remember(host, screen) { host?.let { ScreenSceneContext(it, screen) } }
+    val screenshots = LocalDeviceScreenshots.current
+    DisposableEffect(screenshots, screen) {
+        val draw: DrawScope.() -> Unit = { screen.layers.forEach { it.drawRecording(this) } }
+        screenshots?.layersOverScreen = draw
+        onDispose {
+            if (screenshots?.layersOverScreen === draw) {
+                screenshots.layersOverScreen = null
+            }
+        }
+    }
     CompositionLocalProvider(local provides context, content = content)
 }
 

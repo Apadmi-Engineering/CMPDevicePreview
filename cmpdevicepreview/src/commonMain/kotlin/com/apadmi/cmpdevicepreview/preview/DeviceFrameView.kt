@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
@@ -324,7 +325,9 @@ internal fun DeviceFrame(
         val simulatedWindowInfo = remember(hostWindowInfo, screenSize, scale, configuration.displayScale) {
             SimulatedWindowInfo(hostWindowInfo, screenSize, scale, configuration.displayScale)
         }
-        val screenshotLayers = recordScreenshots(device, screenSize, bounds.size, turn.isTurning)
+        // The body reaches past the screen, up and to the left.
+        val screenAt = IntOffset((-bounds.left * scale).roundToInt(), (-bounds.top * scale).roundToInt())
+        val screenshotLayers = recordScreenshots(device, screenSize, bounds.size, screenAt, turn.isTurning)
         val visibleSize = bounds.size.toPixels(scale)
 
         Layout(
@@ -356,7 +359,7 @@ internal fun DeviceFrame(
             val screenPixels = screenSize.toPixels(scale)
             val screen = measurables.single().measure(Constraints.fixed(screenPixels.width, screenPixels.height))
             layout(visibleSize.width, visibleSize.height) {
-                screen.place((-bounds.left * scale).roundToInt(), (-bounds.top * scale).roundToInt())
+                screen.place(screenAt)
             }
         }
 
@@ -458,6 +461,7 @@ private fun recordScreenshots(
     device: Device,
     screenSize: Size,
     deviceSize: Size,
+    screenInDevice: IntOffset,
     isTurning: Boolean
 ): ScreenshotLayers? {
     val screenshots = LocalDeviceScreenshots.current ?: return null
@@ -466,11 +470,11 @@ private fun recordScreenshots(
     val pixelRatio = device.devicePixelRatio ?: LocalDensity.current.density
     val screenPixels = screenSize.toPixels(pixelRatio)
     val devicePixels = deviceSize.toPixels(pixelRatio)
-    DisposableEffect(screenshots, screenLayer, deviceLayer, screenPixels, devicePixels, isTurning) {
+    DisposableEffect(screenshots, screenLayer, deviceLayer, screenPixels, devicePixels, screenInDevice, isTurning) {
         if (!isTurning) {
             screenshots.attach(
                 screen = DeviceScreenshots.Recording(screenLayer, screenPixels),
-                device = DeviceScreenshots.Recording(deviceLayer, devicePixels),
+                device = DeviceScreenshots.Recording(deviceLayer, devicePixels, screenInDevice),
             )
         }
         onDispose { screenshots.detach() }

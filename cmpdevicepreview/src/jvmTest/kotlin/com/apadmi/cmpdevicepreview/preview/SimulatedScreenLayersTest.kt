@@ -29,14 +29,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.toComposeImageBitmap
-import androidx.compose.ui.graphics.toPixelMap
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
-import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.layout
@@ -344,6 +338,23 @@ class SimulatedScreenLayersTest {
     }
 
     @Test
+    fun theAppTakesTapsAgainOnceADialogCloses() {
+        var isDialogOpen by mutableStateOf(true)
+        var appClicks = 0
+        show(content = {
+            Box(Modifier.fillMaxSize().clickable { appClicks++ })
+            if (isDialogOpen) {
+                Dialog(onDismissRequest = { isDialogOpen = false }) { Box(Modifier.size(100.dp)) }
+            }
+        }) {
+            tap(Offset(150f, 100f))
+            assertEquals(false, isDialogOpen)
+            tap(Offset(150f, 100f))
+            assertEquals(1, appClicks)
+        }
+    }
+
+    @Test
     fun aTapBesideAMenuDismissesItWithoutReachingTheAppUnderIt() {
         var appClicks = 0
         var dismissals = 0
@@ -533,41 +544,6 @@ class SimulatedScreenLayersTest {
         }
     }
 
-    private abstract class SceneHarness {
-        protected var clock = 0L
-        abstract val scene: ImageComposeScene
-
-        /** Renders a second of frames, long enough for a dialog or sheet to finish appearing. */
-        fun settle(): PixelMap {
-            repeat(60) {
-                clock += 16
-                scene.render(clock * 1_000_000)
-            }
-            return scene.render(clock * 1_000_000).toComposeImageBitmap().toPixelMap()
-        }
-
-        fun tap(at: Offset) {
-            press(at)
-            release(at)
-            settle()
-        }
-
-        fun press(at: Offset) = send(PointerEventType.Press, at, PointerType.Touch)
-
-        fun release(at: Offset) = send(PointerEventType.Release, at, PointerType.Touch)
-
-        fun hover(at: Offset) = send(PointerEventType.Move, at, PointerType.Mouse)
-
-        private fun send(
-            eventType: PointerEventType,
-            at: Offset,
-            pointerType: PointerType
-        ) {
-            clock += 16
-            scene.sendPointerEvent(eventType, at, timeMillis = clock, type = pointerType)
-        }
-    }
-
     /** The whole preview, with its toolbars, zoomed by the wheel as a person would. */
     private class PreviewHarness(content: @Composable () -> Unit) : SceneHarness() {
         override val scene = ImageComposeScene(width = 1200, height = 1000) {
@@ -582,18 +558,7 @@ class SimulatedScreenLayersTest {
         }
 
         /** Ctrl and the wheel zoom about the centre, until the screen runs under the toolbar in the corner. */
-        fun zoomIn() {
-            repeat(4) {
-                clock += 16
-                scene.sendPointerEvent(
-                    PointerEventType.Scroll,
-                    Offset(600f, 500f),
-                    scrollDelta = Offset(0f, -50f),
-                    timeMillis = clock,
-                    keyboardModifiers = PointerKeyboardModifiers(isCtrlPressed = true),
-                )
-            }
-        }
+        fun zoomIn() = repeat(4) { scroll(Offset(600f, 500f), Offset(0f, -50f), isCtrlPressed = true) }
     }
 
     private class Harness(

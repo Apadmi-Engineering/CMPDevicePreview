@@ -10,10 +10,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toSize
@@ -42,6 +45,10 @@ internal typealias PngCopier = (image: ImageBitmap, onDone: (isCopied: Boolean) 
 internal class DeviceScreenshots {
     private var screen by mutableStateOf<Recording?>(null)
     private var device by mutableStateOf<Recording?>(null)
+
+    // Dialogs and popups are drawn over the whole window rather than in the screen, so the screen
+    // draws them again over the recording, in its own pixels.
+    var layersOverScreen: (DrawScope.() -> Unit)? = null
 
     /** Whether there is a device to take a screenshot of. */
     val canCapture: Boolean
@@ -78,6 +85,9 @@ internal class DeviceScreenshots {
         CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, Canvas(image), size.toSize()) {
             scale(size.width / drawn.width.toFloat(), size.height / drawn.height.toFloat(), pivot = Offset.Zero) {
                 drawLayer(recording.layer)
+                translate(recording.screenAt.x.toFloat(), recording.screenAt.y.toFloat()) {
+                    layersOverScreen?.invoke(this)
+                }
             }
         }
         return image
@@ -87,8 +97,13 @@ internal class DeviceScreenshots {
      *
      * @property layer The graphics layer the view draws into.
      * @property size The size of a screenshot of the layer, in pixels.
+     * @property screenAt Where the screen's top-left corner is in the layer.
      */
-    data class Recording(val layer: GraphicsLayer, val size: IntSize)
+    data class Recording(
+        val layer: GraphicsLayer,
+        val size: IntSize,
+        val screenAt: IntOffset = IntOffset.Zero
+    )
 }
 
 /**
