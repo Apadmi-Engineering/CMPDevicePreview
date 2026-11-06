@@ -25,7 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -45,14 +45,12 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 
 import com.apadmi.cmpdevicepreview.core.Appearance
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
-import com.apadmi.cmpdevicepreview.core.DeviceInsets
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
 import com.apadmi.cmpdevicepreview.core.hasFrameArtwork
 import com.apadmi.cmpdevicepreview.core.isLaidOutInPortrait
@@ -64,10 +62,9 @@ import com.apadmi.cmpdevicepreview.core.screenSizeIn
 import com.apadmi.cmpdevicepreview.core.turned
 import com.apadmi.cmpdevicepreview.frame.DeviceFramePainter
 import com.apadmi.cmpdevicepreview.frame.DeviceScreenShape
-import com.apadmi.cmpdevicepreview.frame.SystemUiColors
+import com.apadmi.cmpdevicepreview.frame.OverlayPart
 import com.apadmi.cmpdevicepreview.frame.SystemUiPainter
-import com.apadmi.cmpdevicepreview.frame.paintSimulatedKeyboard
-import com.apadmi.cmpdevicepreview.frame.paintSystemUi
+import com.apadmi.cmpdevicepreview.frame.overlayParts
 
 import kotlin.math.PI
 import kotlin.math.abs
@@ -129,34 +126,18 @@ private class SimulatedWindowInfo(
     override val containerDpSize: DpSize = DpSize((screenSize.width / displayScale).dp, (screenSize.height / displayScale).dp)
 }
 
-/**
- * Draws the keyboard band and the system bars over the content. The bars use the device's safe
- * area, so the gesture pill stays on top of the keyboard band, and its layout direction, so a
- * phone in RTL mirrors its status bar.
- */
-private fun Modifier.systemOverlay(
-    systemUi: SystemUiPainter?,
-    keyboardInset: Float,
-    screenSize: Size,
-    safeArea: DeviceInsets,
-    isDarkMode: Boolean,
-    deviceLayoutDirection: LayoutDirection,
-): Modifier {
-    if (systemUi == null && keyboardInset <= 0f) {
+/** Draws [overlay] over the content, scaled from screen units to the screen's size. */
+private fun Modifier.systemOverlay(overlay: List<OverlayPart>, screenSize: Size): Modifier {
+    if (overlay.isEmpty()) {
         return this
     }
-    val iconColor = SystemUiColors.icons(isDarkMode)
-    return drawWithCache {
-        val bars = systemUi?.layout(screenSize, safeArea, deviceLayoutDirection).orEmpty()
-        onDrawWithContent {
-            drawContent()
-            drawIntoCanvas { canvas ->
-                canvas.save()
-                canvas.scale(size.width / screenSize.width, size.height / screenSize.height)
-                paintSimulatedKeyboard(canvas, screenSize, keyboardInset)
-                paintSystemUi(canvas, bars, iconColor)
-                canvas.restore()
-            }
+    return drawWithContent {
+        drawContent()
+        drawIntoCanvas { canvas ->
+            canvas.save()
+            canvas.scale(size.width / screenSize.width, size.height / screenSize.height)
+            overlay.forEach { it.paint(canvas) }
+            canvas.restore()
         }
     }
 }
@@ -281,6 +262,8 @@ internal fun DeviceFrame(
     val keyboardInset = if (configuration.isKeyboardVisible) device.keyboardHeightIn(isPortrait) ?: 0f else 0f
     val layoutDirection = configuration.layoutDirection ?: LocalLayoutDirection.current
 
+    val htmlElements = rememberHtmlElementsContainer()
+
     val painter = remember(device.frame) { device.frame?.let(::DeviceFramePainter) }
     val bodyPainter = painter?.takeIf { configuration.isFrameVisible && it.body != null }
     // What has to stay visible, in screen coordinates: the whole body when it is drawn.
@@ -290,8 +273,12 @@ internal fun DeviceFrame(
     }.takeIf { configuration.isSystemUiVisible }
 
     val screenShape = rememberScreenShape(painter, screenSize, isPortrait, isWindow = !device.hasFrameArtwork, configuration.isFrameVisible)
+    val isDarkMode = configuration.appearance == Appearance.Dark
+    val overlay = remember(systemUiPainter, keyboardInset, screenSize, safeArea, layoutDirection, isDarkMode) {
+        overlayParts(systemUiPainter, keyboardInset, screenSize, safeArea, layoutDirection, isDarkMode)
+    }
     val screenModifier = Modifier.screenClip(screenShape)
-        .systemOverlay(systemUiPainter, keyboardInset, screenSize, safeArea, configuration.appearance == Appearance.Dark, layoutDirection)
+        .systemOverlay(overlay, screenSize)
         .then(if (isMouseAsTouch) Modifier.mouseAsTouch() else Modifier)
 
     // The scale a resized device keeps instead of fitting the space again. Forgotten once another
@@ -328,6 +315,10 @@ internal fun DeviceFrame(
         val simulatedDensity = remember(scale, configuration.displayScale, configuration.fontScale) {
             Density(density = scale * configuration.displayScale, fontScale = configuration.fontScale)
         }
+        val htmlElementsOnScreen = htmlElements?.let {
+            val covers = overlay.map { part -> part.region }
+            Modifier.htmlElementsOnScreen(it, HtmlElementsScreen(screenSize, screenShape, covers, simulatedDensity.density, turn.isTurning))
+        } ?: Modifier
         // So that window size classes follow the device's screen rather than the host's window.
         val hostWindowInfo = LocalWindowInfo.current
         val simulatedWindowInfo = remember(hostWindowInfo, screenSize, scale, configuration.displayScale) {
@@ -343,7 +334,8 @@ internal fun DeviceFrame(
                 .deviceBody(bodyPainter, bounds, scale, screenSize, isPortrait),
             content = {
                 val screenCapture = screenshotLayers?.screen?.let { Modifier.recordInto(it) } ?: Modifier
-                Box(screenCapture.then(screenModifier)) {
+                Box(screenCapture.then(screenModifier).then(htmlElementsOnScreen)) {
+                    htmlElements?.Marker()
                     CompositionLocalProvider(
                         LocalDensity provides simulatedDensity,
                         LocalWindowInfo provides simulatedWindowInfo,

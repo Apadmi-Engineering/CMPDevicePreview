@@ -101,6 +101,9 @@ private fun PhoneExplore(state: WanderState, modifier: Modifier) {
         if (isOfferShown) {
             item { OfferBanner(Modifier.fillMaxWidth()) }
         }
+        embeddedHtmlCard?.let { card ->
+            item { card(Modifier.fillMaxWidth()) }
+        }
         item { CategoryChips(state.category, { state.category = it }) }
         val featured = results.firstOrNull()
         featured?.let {
@@ -149,6 +152,7 @@ private fun LandscapeExplore(state: WanderState, modifier: Modifier) {
                     if (isOfferShown) {
                         OfferBanner(Modifier.fillMaxWidth())
                     }
+                    embeddedHtmlCard?.invoke(Modifier.fillMaxWidth())
                     CategoryChips(state.category, { state.category = it }, wrap = true)
                 }
             }
@@ -181,6 +185,9 @@ private fun GridExplore(
         item(span = { GridItemSpan(maxLineSpan) }) { ExploreHeader(state, layout) }
         if (isOfferShown) {
             item(span = { GridItemSpan(maxLineSpan) }) { OfferBanner(Modifier.fillMaxWidth()) }
+        }
+        embeddedHtmlCard?.let { card ->
+            item(span = { GridItemSpan(maxLineSpan) }) { card(Modifier.fillMaxWidth()) }
         }
         item(span = { GridItemSpan(maxLineSpan) }) { CategoryChips(state.category, { state.category = it }, wrap = true) }
         if (results.isEmpty()) {

@@ -36,30 +36,34 @@ internal class SystemUiPainter(val systemUi: DeviceSystemUi) {
         screenSize: Size,
         safeArea: DeviceInsets,
         layoutDirection: LayoutDirection
-    ): List<PlacedArtwork> {
-        val placed = mutableListOf<PlacedArtwork>()
-        val statusBar = systemUi.statusBar
-        if (statusBar != null && safeArea.top > 0f) {
-            placeBar(statusBar, Rect(0f, 0f, screenSize.width, safeArea.top), layoutDirection, placed)
-        }
-        val navigationBar = systemUi.navigationBar
-        if (navigationBar != null && safeArea.bottom > 0f) {
-            val region = Rect(0f, screenSize.height - safeArea.bottom, screenSize.width, screenSize.height)
-            placeBar(navigationBar, region, layoutDirection, placed)
-        }
-        return placed
-    }
+    ): List<PlacedArtwork> = bars(screenSize, safeArea, layoutDirection).flatMap { it.artwork }
+
+    // Each bar with a safe area to sit in, in paint order.
+    fun bars(
+        screenSize: Size,
+        safeArea: DeviceInsets,
+        layoutDirection: LayoutDirection
+    ): List<PlacedBar> = listOfNotNull(
+        systemUi.statusBar?.takeIf { safeArea.top > 0f }?.let { bar ->
+            placeBar(bar, Rect(0f, 0f, screenSize.width, safeArea.top), layoutDirection)
+        },
+        systemUi.navigationBar?.takeIf { safeArea.bottom > 0f }?.let { bar ->
+            placeBar(bar, Rect(0f, screenSize.height - safeArea.bottom, screenSize.width, screenSize.height), layoutDirection)
+        },
+    )
 
     private fun placeBar(
         bar: SystemUiBar,
         region: Rect,
-        layoutDirection: LayoutDirection,
-        into: MutableList<PlacedArtwork>
-    ) {
+        layoutDirection: LayoutDirection
+    ): PlacedBar {
         val rtl = layoutDirection == LayoutDirection.Rtl
-        place(if (rtl) bar.trailing else bar.leading, region, bar, Anchor.Start)?.let(into::add)
-        place(bar.center, region, bar, Anchor.Center)?.let(into::add)
-        place(if (rtl) bar.leading else bar.trailing, region, bar, Anchor.End)?.let(into::add)
+        val artwork = listOfNotNull(
+            place(if (rtl) bar.trailing else bar.leading, region, bar, Anchor.Start),
+            place(bar.center, region, bar, Anchor.Center),
+            place(if (rtl) bar.leading else bar.trailing, region, bar, Anchor.End),
+        )
+        return PlacedBar(region, artwork)
     }
 
     private fun place(
@@ -99,6 +103,14 @@ internal class SystemUiPainter(val systemUi: DeviceSystemUi) {
         Start, Center, End
     }
 }
+
+/**
+ * A bar of system UI and the artwork laid out in it.
+ *
+ * @property region The band the bar covers, in screen coordinates.
+ * @property artwork The bar's artwork, in paint order.
+ */
+internal class PlacedBar(val region: Rect, val artwork: List<PlacedArtwork>)
 
 /**
  * A piece of system UI artwork and where it is drawn, in screen coordinates.

@@ -16,6 +16,8 @@ implementation("com.apadmi:cmpdevicepreview:0.1.1")
 ```
 <!-- x-release-please-end -->
 
+Each release is built with a particular Compose Multiplatform and Kotlin version: see [Compatibility](COMPATIBILITY.md).
+
 Wrap your root composable in `DeviceWithConfigurationView`. You can do this in a single platform's entry point, such as the web one, and leave the rest of your code untouched:
 ```kotlin
 DeviceWithConfigurationView {
@@ -182,8 +184,22 @@ Inside the device, `stringResource` and the rest of [Compose Resources](https://
 ## Platform differences
 
 - **Android** can't override the window insets or the dark mode its host reports, so the app inside the device sees the real ones. Its dialogs, bottom sheets and menus are windows of their own, so they aren't kept to the device's screen.
-- **Screenshots** of the device are saved or copied from the web and desktop builds only, and leave out an open dialog, bottom sheet or menu. On the web, copying needs a page served over HTTPS or from localhost.
+- **Screenshots** of the device are saved or copied from the web and desktop builds only, and leave out an open dialog, bottom sheet or menu, and any HTML element. On the web, copying needs a page served over HTTPS or from localhost.
 - **Languages** only change Compose Resources: Android's own `R.string` and what the system localises follow the host's language.
+- **HTML elements** (`HtmlElementView`) on the web can't be previewed accurately: see [HTML elements on the web](#html-elements-on-the-web).
+
+### HTML elements on the web
+
+> [!WARNING]
+> HTML embedded with `HtmlElementView` can't be previewed accurately on the web. The browser draws it, not Compose, in a layer over everything else, and the preview can only line that layer up with the device's screen. So HTML elements:
+>
+> - are drawn over the panel, the zoom toolbar and your app's own dialogs, sheets and menus;
+> - are left out of screenshots;
+> - follow the browser rather than the device, so dark mode, text size and language don't reach them;
+> - reflow rather than scale when you zoom;
+> - are cut out from under the status bar, navigation bar and keyboard, and hidden while the device turns;
+> - take the mouse, so scrolling and zooming don't work with the pointer over them;
+> - must be inside the device: elsewhere on the page they're moved too, and with two devices in one `ComposeViewport` they're misplaced.
 
 ## Credits
 
