@@ -104,8 +104,13 @@ private class DeviceTurn(isPortrait: Boolean) {
  *
  * @property screen The layer for the screen alone.
  * @property device The layer for the whole device, in its frame.
+ * @property screenLayers What the dialogs and popups over the screen last drew.
  */
-private class ScreenshotLayers(val screen: GraphicsLayer, val device: GraphicsLayer)
+private class ScreenshotLayers(
+    val screen: GraphicsLayer,
+    val device: GraphicsLayer,
+    val screenLayers: ScreenLayerRecordings
+)
 
 /**
  * A [scale] a resized [device] keeps while it is the one shown.
@@ -349,6 +354,7 @@ internal fun DeviceFrame(
                             keyboardInset / configuration.displayScale,
                             configuration.appearance == Appearance.Dark,
                             screenShape,
+                            screenshotLayers?.screenLayers,
                         ) {
                             ProvideLanguage(configuration.language, content)
                         }
@@ -467,19 +473,20 @@ private fun recordScreenshots(
     val screenshots = LocalDeviceScreenshots.current ?: return null
     val screenLayer = rememberGraphicsLayer()
     val deviceLayer = rememberGraphicsLayer()
+    val screenLayers = remember { ScreenLayerRecordings() }
     val pixelRatio = device.devicePixelRatio ?: LocalDensity.current.density
     val screenPixels = screenSize.toPixels(pixelRatio)
     val devicePixels = deviceSize.toPixels(pixelRatio)
     DisposableEffect(screenshots, screenLayer, deviceLayer, screenPixels, devicePixels, screenInDevice, isTurning) {
         if (!isTurning) {
             screenshots.attach(
-                screen = DeviceScreenshots.Recording(screenLayer, screenPixels),
-                device = DeviceScreenshots.Recording(deviceLayer, devicePixels, screenInDevice),
+                screen = DeviceScreenshots.Recording(screenLayer, screenPixels, IntOffset.Zero, screenLayers),
+                device = DeviceScreenshots.Recording(deviceLayer, devicePixels, screenInDevice, screenLayers),
             )
         }
         onDispose { screenshots.detach() }
     }
-    return remember(screenLayer, deviceLayer) { ScreenshotLayers(screenLayer, deviceLayer) }
+    return remember(screenLayer, deviceLayer) { ScreenshotLayers(screenLayer, deviceLayer, screenLayers) }
 }
 
 /** The largest the device can get at the scale a drag started with, in dp, within [room]. */

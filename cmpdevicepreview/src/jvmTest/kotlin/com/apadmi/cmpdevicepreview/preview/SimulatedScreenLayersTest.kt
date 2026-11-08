@@ -17,9 +17,11 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ImageComposeScene
@@ -42,6 +44,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import com.apadmi.cmpdevicepreview.core.Device
 import com.apadmi.cmpdevicepreview.core.DeviceConfiguration
 import com.apadmi.cmpdevicepreview.core.FreeformDevice
@@ -70,6 +74,9 @@ class SimulatedScreenLayersTest {
 
     /** The first button of [PreviewHarness]'s toolbar, in its bottom-left corner. */
     private val zoomOutButton = Offset(24f, 976f)
+
+    /** The screenshot button of [PreviewHarness]'s other toolbar, in its bottom-right corner. */
+    private val screenshotButton = Offset(1176f, 976f)
 
     private fun showPreview(content: @Composable () -> Unit, check: PreviewHarness.() -> Unit) {
         val harness = PreviewHarness(content)
@@ -415,6 +422,58 @@ class SimulatedScreenLayersTest {
     }
 
     @Test
+    fun aDialogTakesTapsAgainOnceTheMenuOverItCloses() {
+        var isMenuOpen by mutableStateOf(true)
+        var clicks = 0
+        show(content = {
+            Dialog(onDismissRequest = {}) {
+                Box(Modifier.size(300.dp).clickable { clicks++ }) {
+                    Box(Modifier.size(40.dp)) {
+                        DropdownMenu(expanded = isMenuOpen, onDismissRequest = { isMenuOpen = false }) {
+                            DropdownMenuItem(text = { Text("An item") }, onClick = {})
+                        }
+                    }
+                }
+            }
+        }) {
+            tap(Offset(420f, 570f))
+            assertEquals(false, isMenuOpen)
+            assertEquals(0, clicks, "the tap that closed the menu")
+            tap(Offset(420f, 570f))
+            assertEquals(1, clicks)
+        }
+    }
+
+    @Test
+    fun aPopupUnderADialogStaysOpenWhenTappedBesideTheDevice() {
+        var popupDismissals = 0
+        show(content = {
+            Popup(onDismissRequest = { popupDismissals++ }, properties = PopupProperties(focusable = false)) {
+                Box(Modifier.size(50.dp))
+            }
+            Dialog(onDismissRequest = {}) { Box(Modifier.size(100.dp)) }
+        }) {
+            tap(Offset(50f, 450f))
+            assertEquals(0, popupDismissals, "the dialog over it takes the tap from it, as on its own")
+        }
+    }
+
+    @Test
+    fun theScreenshotMenuOpensOverAnOpenDialog() {
+        var dismissals = 0
+        showPreview(content = {
+            Dialog(onDismissRequest = { dismissals++ }) { Box(Modifier.size(100.dp).background(Color.White)) }
+        }) {
+            // Where the menu opens, over the backdrop beside the device.
+            val before = settle()[1180, 800]
+            tap(screenshotButton)
+            val after = settle()[1180, 800]
+            assertTrue(before.red > 0.5f && after.red < 0.3f, "the menu is open: $before, then $after")
+            assertEquals(0, dismissals)
+        }
+    }
+
+    @Test
     fun theAppUnderADialogIsNotHovered() {
         var hovers = 0
         show(content = {
@@ -447,6 +506,23 @@ class SimulatedScreenLayersTest {
             assertEquals(0, clicks, "past the preview's right edge")
             tap(Offset(300f, 300f))
             assertEquals(1, clicks, "in the preview")
+        }
+    }
+
+    @Test
+    fun aDialogsTapsFollowAPreviewThatShrinksWhileItIsOpen() {
+        var clicks = 0
+        show(device = smallDevice, zoom = 2f, viewport = DpSize(400.dp, 500.dp), content = {
+            Dialog(onDismissRequest = {}, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+                Box(Modifier.fillMaxSize().clickable { clicks++ })
+            }
+        }) {
+            tap(Offset(300f, 450f))
+            assertEquals(1, clicks, "in the preview")
+            viewport = DpSize(400.dp, 300.dp)
+            settle()
+            tap(Offset(300f, 450f))
+            assertEquals(1, clicks, "now past the preview's bottom edge")
         }
     }
 
@@ -547,13 +623,16 @@ class SimulatedScreenLayersTest {
     /** The whole preview, with its toolbars, zoomed by the wheel as a person would. */
     private class PreviewHarness(content: @Composable () -> Unit) : SceneHarness() {
         override val scene = ImageComposeScene(width = 1200, height = 1000) {
-            ZoomableDevicePreview(
-                SimulatedDevice(FreeformDevice(Size(1000f, 800f))),
-                PreviewSettings(),
-                onResize = null,
-                isZoomable = true,
-            ) {
-                Box(Modifier.fillMaxSize().background(Color.White)) { content() }
+            // So the toolbar has its screenshot button, as in the panel on the desktop and the web.
+            CompositionLocalProvider(LocalDeviceScreenshots provides remember { DeviceScreenshots() }) {
+                ZoomableDevicePreview(
+                    SimulatedDevice(FreeformDevice(Size(1000f, 800f))),
+                    PreviewSettings(),
+                    onResize = null,
+                    isZoomable = true,
+                ) {
+                    Box(Modifier.fillMaxSize().background(Color.White)) { content() }
+                }
             }
         }
 
@@ -565,11 +644,12 @@ class SimulatedScreenLayersTest {
         device: Device,
         initialZoom: Float,
         initialPan: Offset,
-        viewport: DpSize?,
+        initialViewport: DpSize?,
         content: @Composable () -> Unit
     ) : SceneHarness() {
         var zoom by mutableFloatStateOf(initialZoom)
         var pan by mutableStateOf(initialPan)
+        var viewport by mutableStateOf(initialViewport)
         override val scene = ImageComposeScene(width = 1200, height = 1000) {
             Box(Modifier.fillMaxSize().background(Color.White).padding(start = 100.dp, top = 50.dp)) {
                 // The preview's own bounds, which a zoomed device runs past.

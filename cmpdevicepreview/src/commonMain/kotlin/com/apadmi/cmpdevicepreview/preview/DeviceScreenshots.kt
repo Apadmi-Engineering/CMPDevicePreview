@@ -1,5 +1,7 @@
 package com.apadmi.cmpdevicepreview.preview
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -15,6 +17,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -45,10 +48,6 @@ internal typealias PngCopier = (image: ImageBitmap, onDone: (isCopied: Boolean) 
 internal class DeviceScreenshots {
     private var screen by mutableStateOf<Recording?>(null)
     private var device by mutableStateOf<Recording?>(null)
-
-    // Dialogs and popups are drawn over the whole window rather than in the screen, so the screen
-    // draws them again over the recording, in its own pixels.
-    var layersOverScreen: (DrawScope.() -> Unit)? = null
 
     /** Whether there is a device to take a screenshot of. */
     val canCapture: Boolean
@@ -86,7 +85,7 @@ internal class DeviceScreenshots {
             scale(size.width / drawn.width.toFloat(), size.height / drawn.height.toFloat(), pivot = Offset.Zero) {
                 drawLayer(recording.layer)
                 translate(recording.screenAt.x.toFloat(), recording.screenAt.y.toFloat()) {
-                    layersOverScreen?.invoke(this)
+                    recording.screenLayers.drawOnScreen(this)
                 }
             }
         }
@@ -98,12 +97,65 @@ internal class DeviceScreenshots {
      * @property layer The graphics layer the view draws into.
      * @property size The size of a screenshot of the layer, in pixels.
      * @property screenAt Where the screen's top-left corner is in the layer.
+     * @property screenLayers What the dialogs and popups over the screen last drew.
      */
     data class Recording(
         val layer: GraphicsLayer,
         val size: IntSize,
-        val screenAt: IntOffset = IntOffset.Zero
+        val screenAt: IntOffset,
+        val screenLayers: ScreenLayerRecordings,
     )
+}
+
+// A dialog or popup is drawn over the whole window rather than in the device's screen, so a
+// screenshot draws what each last drew again, from the bottom one up.
+internal class ScreenLayerRecordings {
+    private val recordings = mutableListOf<ScreenLayerRecording>()
+
+    fun add(recording: ScreenLayerRecording) {
+        recordings += recording
+    }
+
+    fun remove(recording: ScreenLayerRecording) {
+        recordings -= recording
+    }
+
+    fun drawOnScreen(scope: DrawScope) = recordings.forEach { it.drawOnScreen(scope) }
+}
+
+// What one dialog or popup last drew, in the window, with where the screen was and how much larger
+// it was drawn than it is laid out, to draw it again in the screen's own pixels.
+internal class ScreenLayerRecording {
+    private var layer: GraphicsLayer? = null
+    private var recordedOrigin = Offset.Zero
+    private var recordedScale = 1f
+
+    @Composable
+    fun modifier(screenOrigin: () -> Offset, scale: () -> Float): Modifier {
+        val recorded = rememberGraphicsLayer()
+        DisposableEffect(recorded) {
+            layer = recorded
+            onDispose {
+                if (layer === recorded) {
+                    layer = null
+                }
+            }
+        }
+        return Modifier
+            .drawWithContent {
+                recordedOrigin = screenOrigin()
+                recordedScale = scale()
+                drawContent()
+            }
+            .recordInto(recorded)
+    }
+
+    fun drawOnScreen(scope: DrawScope) {
+        val recorded = layer ?: return
+        scope.scale(1f / recordedScale, pivot = Offset.Zero) {
+            translate(-recordedOrigin.x, -recordedOrigin.y) { drawLayer(recorded) }
+        }
+    }
 }
 
 /**
