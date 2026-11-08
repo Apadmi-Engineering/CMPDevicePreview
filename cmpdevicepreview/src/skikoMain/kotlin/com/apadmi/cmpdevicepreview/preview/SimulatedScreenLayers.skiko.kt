@@ -55,11 +55,9 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.roundToIntRect
-import androidx.compose.ui.unit.toIntRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.unit.toSize
-import kotlin.math.max
 import kotlin.math.roundToInt
 
 // Compose Multiplatform draws a Dialog or Popup in a layer of its own over the whole window, which
@@ -103,8 +101,6 @@ internal class SimulatedScreen(
     var visible by mutableStateOf(Rect.Zero)
 
     val size: IntSize get() = windowInfo.containerSize
-
-    val bounds: IntRect get() = inWindow(size.toIntRect())
 
     fun inWindow(local: IntRect): IntRect = IntRect(
         left = (origin.x + local.left * scale).roundToInt(),
@@ -165,12 +161,12 @@ private class ScreenLayer(
             _scrimColor = value
         }
 
-    // Where the layer placed itself: within the screen for a dialog, and for a popup in the window,
-    // before the zoom enlarges it about its top-left corner.
+    // Where the layer placed itself: within the screen for a dialog, and in the window, as it is
+    // drawn, for a popup.
     private var placed by mutableStateOf(IntRect.Zero)
     private var onOutsidePointerEvent: OutsidePointerListener? = null
 
-    private val drawn: IntRect get() = if (isDialog) screen.inWindow(placed) else placed.zoomedOnto(screen)
+    private val drawn: IntRect get() = if (isDialog) screen.inWindow(placed) else placed
 
     private val isCovered: Boolean get() = scene.isCovered(this)
 
@@ -280,24 +276,20 @@ private class ScreenLayer(
             right = window.width - screen.origin.x - (screen.size.width * scale).roundToInt(),
             bottom = window.height - screen.origin.y - (screen.size.height * scale).roundToInt(),
         )
-        CompositionLocalProvider(LocalPlatformWindowInsets provides ScreenInWindowInsets(screen.insets, around, scale)) {
+        // Compose places a popup against where the zoom draws its anchor, in the window, so the popup is
+        // laid out at the zoom too, or it would be measured against the space in other units and jump
+        // between sides of its anchor. Only the anchor's size isn't zoomed, which puts it a little off.
+        CompositionLocalProvider(
+            LocalDensity provides Density(density.density * scale, density.fontScale),
+            LocalPlatformWindowInsets provides ScreenInWindowInsets(screen.insets, around, scale),
+        ) {
             Layout(
                 content = content,
                 modifier = onScreen { null },
             ) { measurables, constraints ->
                 val placeables = measurables.map { it.measure(constraints) }
                 layout(constraints.maxWidth, constraints.maxHeight) {
-                    // Compose measures a popup's anchor at its zoomed position but its unzoomed size, and a
-                    // popup can't be placed from in here, so under zoom its gap from the anchor is a little off.
-                    placeables.forEach {
-                        it.placeWithLayer(0, 0) {
-                            scaleX = screen.scale
-                            scaleY = screen.scale
-                            transformOrigin = TransformOrigin(placed.left / size.width, placed.top / size.height)
-                            translationX = (drawn.left - placed.left).toFloat()
-                            translationY = (drawn.top - placed.top).toFloat()
-                        }
-                    }
+                    placeables.forEach { it.place(0, 0) }
                 }
             }
         }
@@ -345,7 +337,7 @@ private class ScreenSceneContext(
 /**
  * [screen]'s insets, [scale] times as large as the zoom draws them, with the window [around] the
  * screen added to its system bars, which are what a popup keeps clear of. Its content sees the
- * screen's own insets.
+ * screen's own insets, zoomed.
  */
 private data class ScreenInWindowInsets(
     private val screen: PlatformWindowInsets,
@@ -363,7 +355,35 @@ private data class ScreenInWindowInsets(
         )
     }
 
-    override fun excluding(safeInsets: Boolean, ime: Boolean): PlatformWindowInsets = screen.excluding(safeInsets, ime)
+    override fun excluding(safeInsets: Boolean, ime: Boolean): PlatformWindowInsets =
+        ZoomedInsets(screen.excluding(safeInsets, ime), scale)
+}
+
+// The screen's insets as large as the zoom draws them, for a popup's content, which is laid out at the zoom.
+private data class ZoomedInsets(
+    private val insets: PlatformWindowInsets,
+    private val scale: Float,
+) : PlatformWindowInsets {
+    override val captionBar: PlatformInsets get() = insets.captionBar.zoomed()
+    override val displayCutout: PlatformInsets get() = insets.displayCutout.zoomed()
+    override val ime: PlatformInsets get() = insets.ime.zoomed()
+    override val mandatorySystemGestures: PlatformInsets get() = insets.mandatorySystemGestures.zoomed()
+    override val navigationBars: PlatformInsets get() = insets.navigationBars.zoomed()
+    override val statusBars: PlatformInsets get() = insets.statusBars.zoomed()
+    override val systemBars: PlatformInsets get() = insets.systemBars.zoomed()
+    override val systemGestures: PlatformInsets get() = insets.systemGestures.zoomed()
+    override val tappableElement: PlatformInsets get() = insets.tappableElement.zoomed()
+    override val waterfall: PlatformInsets get() = insets.waterfall.zoomed()
+
+    override fun excluding(safeInsets: Boolean, ime: Boolean): PlatformWindowInsets =
+        ZoomedInsets(insets.excluding(safeInsets, ime), scale)
+
+    private fun PlatformInsets.zoomed(): PlatformInsets = PixelInsets(
+        (left * scale).roundToInt(),
+        (top * scale).roundToInt(),
+        (right * scale).roundToInt(),
+        (bottom * scale).roundToInt(),
+    )
 }
 
 /**
@@ -410,18 +430,6 @@ private fun BoxScope.ModalLayerShield(scene: ScreenSceneContext) {
             }
         }
     })
-}
-
-// A popup is placed as if it weren't zoomed, so what the zoom enlarges can run off the screen's far
-// edges: it is moved back, never past the screen's near ones.
-private fun IntRect.zoomedOnto(screen: SimulatedScreen): IntRect {
-    val enlarged = IntRect(left, top, left + (width * screen.scale).roundToInt(), top + (height * screen.scale).roundToInt())
-    val onScreen = screen.bounds
-    val back = IntOffset(
-        (enlarged.right - max(right, onScreen.right)).coerceIn(0, max(0, enlarged.left - onScreen.left)),
-        (enlarged.bottom - max(bottom, onScreen.bottom)).coerceIn(0, max(0, enlarged.top - onScreen.top)),
-    )
-    return enlarged.translate(-back)
 }
 
 // Clips what the layer draws to the part of the screen the preview shows, less what it draws over it.

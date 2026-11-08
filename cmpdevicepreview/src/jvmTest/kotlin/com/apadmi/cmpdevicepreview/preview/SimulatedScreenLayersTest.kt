@@ -588,25 +588,87 @@ class SimulatedScreenLayersTest {
 
     @Test
     fun aMenuKeepsItsSizeWhenTheZoomedScreenRunsPastTheWindow() {
-        var laidOut = IntSize.Zero
+        var drawn = Rect.Zero
         show(content = {
             Box(Modifier.fillMaxSize()) {
                 Box(Modifier.align(Alignment.TopEnd).padding(top = 100.dp).size(40.dp)) {
                     DropdownMenu(
                         expanded = true,
                         onDismissRequest = {},
-                        modifier = Modifier.onGloballyPositioned { laidOut = it.size },
+                        modifier = Modifier.onGloballyPositioned { drawn = it.boundsInWindow() },
                     ) {
                         DropdownMenuItem(text = { Text("An item") }, onClick = {})
                     }
                 }
             }
         }) {
-            val fitted = laidOut
+            val fitted = drawn
             // The screen, 800 px tall, runs 650 px past the window's bottom edge.
             zoom = 2f
             settle()
-            assertEquals(fitted, laidOut)
+            assertEquals(fitted.height * 2, drawn.height, absoluteTolerance = 2f, message = "$fitted, then $drawn")
+        }
+    }
+
+    @Test
+    fun aMenuStaysBelowItsAnchorAsThePreviewZoomsOut() {
+        var anchor = Rect.Zero
+        var menu = Rect.Zero
+        show(content = {
+            Box(Modifier.fillMaxSize()) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 360.dp)
+                        .size(40.dp)
+                        .onGloballyPositioned { anchor = it.boundsInWindow() }
+                ) {
+                    DropdownMenu(
+                        expanded = true,
+                        onDismissRequest = {},
+                        modifier = Modifier.onGloballyPositioned { menu = it.boundsInWindow() },
+                    ) {
+                        repeat(4) { DropdownMenuItem(text = { Text("An item") }, onClick = {}) }
+                    }
+                }
+            }
+        }) {
+            assertTrue(menu.top >= anchor.bottom, "$menu is below $anchor")
+            // Too little room below the anchor for the menu as it is laid out, but enough as it is drawn.
+            zoom = 0.5f
+            settle()
+            assertTrue(menu.top >= anchor.bottom, "$menu is below $anchor, zoomed out")
+        }
+    }
+
+    @Test
+    fun aMenuStaysBesideItsAnchorAsThePreviewZoomsIn() {
+        var anchor = Rect.Zero
+        var menu = Rect.Zero
+        show(content = {
+            Box(Modifier.fillMaxSize()) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 100.dp, end = 60.dp)
+                        .size(40.dp)
+                        .onGloballyPositioned { anchor = it.boundsInWindow() }
+                ) {
+                    DropdownMenu(
+                        expanded = true,
+                        onDismissRequest = {},
+                        modifier = Modifier.onGloballyPositioned { menu = it.boundsInWindow() },
+                    ) {
+                        DropdownMenuItem(text = { Text("An item") }, onClick = {})
+                    }
+                }
+            }
+        }) {
+            assertTrue(menu.right <= anchor.right + 1f, "$menu ends with $anchor")
+            // Room beside the anchor for the menu as it is laid out, but not as it is drawn.
+            zoom = 2f
+            settle()
+            assertTrue(menu.right <= anchor.right + 1f, "$menu ends with $anchor, zoomed in")
         }
     }
 
