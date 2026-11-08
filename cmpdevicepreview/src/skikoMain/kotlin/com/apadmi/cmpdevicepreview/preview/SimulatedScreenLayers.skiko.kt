@@ -352,12 +352,14 @@ private data class ScreenInWindowInsets(
     private val around: PixelInsets,
     private val scale: Float,
 ) : PlatformWindowInsets {
+    // A zoomed screen can run past the window, but Compose takes an inset less than 0 from a popup's
+    // smallest size as well as its largest and would make it bigger, so it keeps to what's in the window.
     override val systemBars: PlatformInsets = screen.systemBars.let {
         PixelInsets(
-            (it.left * scale).roundToInt() + around.left,
-            (it.top * scale).roundToInt() + around.top,
-            (it.right * scale).roundToInt() + around.right,
-            (it.bottom * scale).roundToInt() + around.bottom,
+            ((it.left * scale).roundToInt() + around.left).coerceAtLeast(0),
+            ((it.top * scale).roundToInt() + around.top).coerceAtLeast(0),
+            ((it.right * scale).roundToInt() + around.right).coerceAtLeast(0),
+            ((it.bottom * scale).roundToInt() + around.bottom).coerceAtLeast(0),
         )
     }
 

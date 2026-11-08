@@ -586,6 +586,30 @@ class SimulatedScreenLayersTest {
         }
     }
 
+    @Test
+    fun aMenuKeepsItsSizeWhenTheZoomedScreenRunsPastTheWindow() {
+        var laidOut = IntSize.Zero
+        show(content = {
+            Box(Modifier.fillMaxSize()) {
+                Box(Modifier.align(Alignment.TopEnd).padding(top = 100.dp).size(40.dp)) {
+                    DropdownMenu(
+                        expanded = true,
+                        onDismissRequest = {},
+                        modifier = Modifier.onGloballyPositioned { laidOut = it.size },
+                    ) {
+                        DropdownMenuItem(text = { Text("An item") }, onClick = {})
+                    }
+                }
+            }
+        }) {
+            val fitted = laidOut
+            // The screen, 800 px tall, runs 650 px past the window's bottom edge.
+            zoom = 2f
+            settle()
+            assertEquals(fitted, laidOut)
+        }
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Test
     fun aBottomSheetSitsAtTheBottomOfTheZoomedScreen() {
