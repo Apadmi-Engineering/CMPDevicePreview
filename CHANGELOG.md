@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/Apadmi-Engineering/CMPDevicePreview/compare/v0.1.2...v0.1.3) (2026-11-09)
+
+
+### Features
+
+* dialogs in screenshots ([#45](https://github.com/Apadmi-Engineering/CMPDevicePreview/issues/45)) ([fd4e1f3](https://github.com/Apadmi-Engineering/CMPDevicePreview/commit/fd4e1f3ef7c09185e50fbee7425f589d03948149))
+
 ## [0.1.2](https://github.com/Apadmi-Engineering/CMPDevicePreview/compare/v0.1.1...v0.1.2) (2026-11-06)
 
 
