@@ -64,6 +64,7 @@ private const val SurfaceAlpha = 0.9f
 private val ButtonSize = 28.dp
 private val MenuWidth = 180.dp
 private val SurfacePadding = 2.dp
+private val SurfaceShape = RoundedCornerShape(percent = 50)
 
 /**
  * A class rather than a string, so a second "Copied" is a new notice and stays up for its full time.
@@ -75,7 +76,7 @@ private class Notice(val text: String)
 // In the backdrop's own colour, so over the backdrop it only clears the dots, and over the device the ink stays legible.
 private fun Modifier.toolbarSurface(isBackdropDark: Boolean): Modifier {
     val color = if (isBackdropDark) DotGridDefaults.DarkBackground else DotGridDefaults.Background
-    return background(color.copy(alpha = SurfaceAlpha), RoundedCornerShape(percent = 50)).padding(SurfacePadding)
+    return background(color.copy(alpha = SurfaceAlpha), SurfaceShape).padding(SurfacePadding)
 }
 
 @Composable
@@ -96,7 +97,10 @@ internal fun PreviewToolbar(
         viewport.zoomTo(if (isPassingActualSize) actualSize else target)
     }
     PanelTheme {
-        Row(modifier.toolbarSurface(isBackdropDark), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier.obstructingScreenLayers(SurfaceShape).toolbarSurface(isBackdropDark),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             PanelIconButton(
                 Icons.Outlined.Remove, "Zoom out", "Zoom out", { step(1f / ZoomStep) },
                 size = ButtonSize, tint = resting, hoverTint = hovered,
@@ -154,7 +158,10 @@ internal fun ScreenshotMenu(
         screenshots.capture(includeFrame)?.let(use)
     }
     PanelTheme {
-        Row(modifier.toolbarSurface(isBackdropDark), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier.obstructingScreenLayers(SurfaceShape).toolbarSurface(isBackdropDark),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             notice?.let {
                 Text(
                     it.text,

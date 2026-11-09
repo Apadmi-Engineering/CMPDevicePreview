@@ -2,8 +2,6 @@
 
 package com.apadmi.cmpdevicepreview.preview
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -113,6 +111,7 @@ internal actual fun SimulatedPlatform(
     keyboardHeight: Float,
     isDarkMode: Boolean,
     screenShape: Shape,
+    screenLayers: ScreenLayerRecordings?,
     content: @Composable () -> Unit,
 ) {
     val density = LocalDensity.current
@@ -126,12 +125,8 @@ internal actual fun SimulatedPlatform(
         LocalPlatformWindowInsets provides insets,
         LocalSystemTheme provides if (isDarkMode) SystemTheme.Dark else SystemTheme.Light,
     ) {
-        ScreenLayers(screen) {
-            // Read by modifiers such as `safeDrawingPadding()` and `imePadding()`, from the nearest
-            // provider above them.
-            Box(Modifier.fillMaxSize().screenPosition(screen).windowInsets(insets)) {
-                content()
-            }
-        }
+        // Read by modifiers such as `safeDrawingPadding()` and `imePadding()`, from the nearest
+        // provider above them.
+        ScreenLayers(screen, screenLayers, Modifier.windowInsets(insets), content)
     }
 }

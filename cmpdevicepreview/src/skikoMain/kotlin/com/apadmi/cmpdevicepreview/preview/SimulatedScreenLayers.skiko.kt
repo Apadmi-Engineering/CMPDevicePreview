@@ -2,25 +2,42 @@
 
 package com.apadmi.cmpdevicepreview.preview
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.addOutline
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalPlatformWindowInsets
@@ -37,7 +54,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.toOffset
+import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.unit.toSize
 import kotlin.math.roundToInt
 
@@ -52,6 +71,8 @@ import kotlin.math.roundToInt
  * those layers.
  */
 private val LocalSceneContext: ProvidableCompositionLocal<ComposeSceneContext?>? = findLocalSceneContext()
+
+private typealias OutsidePointerListener = (eventType: PointerEventType, button: PointerButton?) -> Unit
 
 /** The device's screen, as the dialogs and popups shown on it need it. */
 @Stable
@@ -70,25 +91,30 @@ internal class SimulatedScreen(
     /** The screen's outline. */
     var shape by mutableStateOf(shape)
 
-    /** Where the screen's top-left corner is in the window, in pixels. */
+    /** Where the screen's top-left corner is in the window, in pixels, as it is drawn: zoomed. */
     var origin by mutableStateOf(IntOffset.Zero)
 
+    /** How many times larger the preview's zoom draws the screen than it is laid out. */
+    var scale by mutableFloatStateOf(1f)
+
+    /** The part of the screen the preview shows, in the window: a zoomed screen runs past it. */
+    var visible by mutableStateOf(Rect.Zero)
+
     val size: IntSize get() = windowInfo.containerSize
-}
 
-private class ScreenSceneContext(
-    private val host: ComposeSceneContext,
-    private val screen: SimulatedScreen,
-) : ComposeSceneContext {
-    override val platformContext: PlatformContext get() = host.platformContext
+    fun inWindow(local: IntRect): IntRect = IntRect(
+        left = (origin.x + local.left * scale).roundToInt(),
+        top = (origin.y + local.top * scale).roundToInt(),
+        right = (origin.x + local.right * scale).roundToInt(),
+        bottom = (origin.y + local.bottom * scale).roundToInt(),
+    )
 
-    override fun createLayer(
-        density: Density,
-        layoutDirection: LayoutDirection,
-        focusable: Boolean,
-        consumePointerInputOutside: Boolean,
-    ): ComposeSceneLayer =
-        ScreenLayer(host.createLayer(density, layoutDirection, focusable, consumePointerInputOutside), screen, density)
+    fun inScreen(window: IntRect): IntRect = IntRect(
+        left = ((window.left - origin.x) / scale).roundToInt(),
+        top = ((window.top - origin.y) / scale).roundToInt(),
+        right = ((window.right - origin.x) / scale).roundToInt(),
+        bottom = ((window.bottom - origin.y) / scale).roundToInt(),
+    )
 }
 
 /**
@@ -98,12 +124,20 @@ private class ScreenSceneContext(
  * inset within the screen, and its scrim covers only the screen. A popup is placed by an anchor
  * measured in the window, so it keeps the window, and the window around the screen is added to
  * its insets to keep it on the screen.
+ *
+ * @property consumePointerInputOutside Whether it is modal: the presses on the screen outside it
+ * reach it, not what is under it.
+ * @property recording Where it records what it draws for screenshots, or null when none are taken.
  */
 private class ScreenLayer(
     private val layer: ComposeSceneLayer,
-    private val screen: SimulatedScreen,
+    private val scene: ScreenSceneContext,
     density: Density,
+    override var consumePointerInputOutside: Boolean,
+    val recording: ScreenLayerRecording?,
 ) : ComposeSceneLayer by layer {
+    private val screen = scene.screen
+
     // The device's density. On iOS a layer keeps the real screen's whatever it is given, so the
     // content is given it too.
     private var _density by mutableStateOf(density)
@@ -127,17 +161,73 @@ private class ScreenLayer(
             _scrimColor = value
         }
 
-    // A dialog's bounds are within the screen, as it is laid out; the wrapped layer has them in the
-    // window. They are set while the dialog is placed, so they are set again when the screen moves.
+    // Where the layer placed itself: within the screen for a dialog, and in the window, as it is
+    // drawn, for a popup.
+    private var placed by mutableStateOf(IntRect.Zero)
+    private var onOutsidePointerEvent: OutsidePointerListener? = null
+
+    private val drawn: IntRect get() = if (isDialog) screen.inWindow(placed) else placed
+
+    private val isCovered: Boolean get() = scene.isCovered(this)
+
+    // The wrapped layer gets the presses within its bounds, so they are where it is drawn and the
+    // preview shows it, and none while a modal layer covers it. They are set while the layer is
+    // placed, so they are set again when the screen moves or is zoomed, or another layer opens.
     @Suppress("NO_CORRESPONDING_PROPERTY")  // It is the wrapped layer's, so there is no backing property.
     override var boundsInWindow: IntRect
-        get() = layer.boundsInWindow.let { if (isDialog) it.translate(-screen.origin) else it }
+        get() = placed
         set(value) {
-            layer.boundsInWindow = value.let { if (isDialog) it.translate(screen.origin) else it }
+            placed = value
+            layer.boundsInWindow = if (isCovered) IntRect.Zero else drawn.intersect(screen.visible.roundToIntRect())
         }
 
     override fun calculateLocalPosition(positionInWindow: IntOffset): IntOffset =
         if (isDialog) positionInWindow else layer.calculateLocalPosition(positionInWindow)
+
+    // A modal layer's is called for the screen's presses, by onScreenPointerEvent, rather than by the
+    // scene for those anywhere in the window.
+    override fun setOutsidePointerEventListener(onOutsidePointerEvent: OutsidePointerListener?) {
+        this.onOutsidePointerEvent = onOutsidePointerEvent
+        layer.setOutsidePointerEventListener(
+            onOutsidePointerEvent?.takeUnless { consumePointerInputOutside }?.let { listener ->
+                { eventType, button ->
+                    if (!isCovered) {
+                        listener(eventType, button)
+                    }
+                }
+            }
+        )
+    }
+
+    // A press on the screen outside every layer, in the screen's own pixels, passed on as the scene
+    // would pass one outside this layer if it blocked the window.
+    @OptIn(ExperimentalComposeUiApi::class)
+    fun onScreenPointerEvent(event: PointerEvent) {
+        val position = event.changes.firstOrNull()?.position ?: return
+        val isMouseOrSingleTouch = event.button != null || event.changes.size == 1
+        // Ends a press a layer above took, which Compose doesn't count as outside this one.
+        val isReleaseOnLayer = event.type == PointerEventType.Release && screen.inScreen(drawn).toRect().contains(position)
+        if (isMouseOrSingleTouch && !isReleaseOnLayer) {
+            onOutsidePointerEvent?.invoke(event.type, event.button)
+        }
+    }
+
+    override fun close() {
+        scene.remove(this)
+        layer.close()
+    }
+
+    // A screenshot has the whole screen, so the preview's clip is left out of the recording.
+    @Composable
+    private fun onScreen(scrim: () -> Color?): Modifier {
+        val recorded = recording?.modifier(
+            screenOrigin = { layer.calculateLocalPosition(screen.origin).toOffset() },
+            scale = { screen.scale },
+        )
+        return Modifier.clipToViewport(screen, layer, LocalScreenObstructions.current)
+            .then(recorded ?: Modifier)
+            .clipToScreen(screen, layer, scrim)
+    }
 
     override fun setContent(parentCompositionContext: CompositionContext, content: @Composable () -> Unit) {
         isDialog = scrimColor != null
@@ -157,13 +247,20 @@ private class ScreenLayer(
         ) {
             Layout(
                 content = content,
-                modifier = Modifier.clipToScreen(screen, layer) { scrimColor }.windowInsets(screen.insets),
+                modifier = onScreen { scrimColor }.windowInsets(screen.insets),
             ) { measurables, constraints ->
                 val screenConstraints = Constraints(maxWidth = screen.size.width, maxHeight = screen.size.height)
+                // Laid out as if the preview weren't zoomed, so zooming doesn't lay it out again.
                 val placeables = measurables.map { it.measure(screenConstraints) }
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     val origin = layer.calculateLocalPosition(screen.origin)
-                    placeables.forEach { it.place(origin) }
+                    placeables.forEach {
+                        it.placeWithLayer(origin) {
+                            scaleX = screen.scale
+                            scaleY = screen.scale
+                            transformOrigin = TransformOrigin(0f, 0f)
+                        }
+                    }
                 }
             }
         }
@@ -172,14 +269,24 @@ private class ScreenLayer(
     @Composable
     private fun PopupOnScreen(content: @Composable () -> Unit) {
         val window = LocalWindowInfo.current.containerSize
+        val scale = screen.scale
         val around = PixelInsets(
             left = screen.origin.x,
             top = screen.origin.y,
-            right = window.width - screen.origin.x - screen.size.width,
-            bottom = window.height - screen.origin.y - screen.size.height,
+            right = window.width - screen.origin.x - (screen.size.width * scale).roundToInt(),
+            bottom = window.height - screen.origin.y - (screen.size.height * scale).roundToInt(),
         )
-        CompositionLocalProvider(LocalPlatformWindowInsets provides ScreenInWindowInsets(screen.insets, around)) {
-            Layout(content = content, modifier = Modifier.clipToScreen(screen, layer) { null }) { measurables, constraints ->
+        // Compose places a popup against where the zoom draws its anchor, in the window, so the popup is
+        // laid out at the zoom too, or it would be measured against the space in other units and jump
+        // between sides of its anchor. Only the anchor's size isn't zoomed, which puts it a little off.
+        CompositionLocalProvider(
+            LocalDensity provides Density(density.density * scale, density.fontScale),
+            LocalPlatformWindowInsets provides ScreenInWindowInsets(screen.insets, around, scale),
+        ) {
+            Layout(
+                content = content,
+                modifier = onScreen { null },
+            ) { measurables, constraints ->
                 val placeables = measurables.map { it.measure(constraints) }
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     placeables.forEach { it.place(0, 0) }
@@ -190,35 +297,162 @@ private class ScreenLayer(
 }
 
 /**
- * [screen]'s insets with the window [around] the screen added to its system bars, which are what a
- * popup keeps clear of. Its content sees the screen's own insets.
+ * Opens the layers Dialog and Popup ask for on the screen, and keeps them from the bottom one up.
+ *
+ * @property screen The screen the layers are kept to.
+ */
+private class ScreenSceneContext(
+    private val host: ComposeSceneContext,
+    val screen: SimulatedScreen,
+    private val recordings: ScreenLayerRecordings?,
+) : ComposeSceneContext {
+    private val layers = mutableStateListOf<ScreenLayer>()
+
+    // The top layer that takes the screen's presses from the content and the layers under it.
+    val modalLayer: ScreenLayer? get() = layers.lastOrNull { it.consumePointerInputOutside }
+
+    override val platformContext: PlatformContext get() = host.platformContext
+
+    override fun createLayer(
+        density: Density,
+        layoutDirection: LayoutDirection,
+        focusable: Boolean,
+        consumePointerInputOutside: Boolean,
+    ): ComposeSceneLayer {
+        // Compose would block the presses outside a modal layer all over the window, the preview's
+        // included, so the screen blocks those on it instead.
+        val layer = host.createLayer(density, layoutDirection, focusable, consumePointerInputOutside = false)
+        val recording = recordings?.let { ScreenLayerRecording().also(it::add) }
+        return ScreenLayer(layer, this, density, consumePointerInputOutside, recording).also { layers += it }
+    }
+
+    fun isCovered(layer: ScreenLayer): Boolean = layers.indexOf(layer) < layers.indexOfLast { it.consumePointerInputOutside }
+
+    fun remove(layer: ScreenLayer) {
+        layers -= layer
+        layer.recording?.let { recordings?.remove(it) }
+    }
+}
+
+/**
+ * [screen]'s insets, [scale] times as large as the zoom draws them, with the window [around] the
+ * screen added to its system bars, which are what a popup keeps clear of. Its content sees the
+ * screen's own insets, zoomed.
  */
 private data class ScreenInWindowInsets(
     private val screen: PlatformWindowInsets,
     private val around: PixelInsets,
+    private val scale: Float,
 ) : PlatformWindowInsets {
+    // A zoomed screen can run past the window, but Compose takes an inset less than 0 from a popup's
+    // smallest size as well as its largest and would make it bigger, so it keeps to what's in the window.
     override val systemBars: PlatformInsets = screen.systemBars.let {
-        PixelInsets(it.left + around.left, it.top + around.top, it.right + around.right, it.bottom + around.bottom)
+        PixelInsets(
+            ((it.left * scale).roundToInt() + around.left).coerceAtLeast(0),
+            ((it.top * scale).roundToInt() + around.top).coerceAtLeast(0),
+            ((it.right * scale).roundToInt() + around.right).coerceAtLeast(0),
+            ((it.bottom * scale).roundToInt() + around.bottom).coerceAtLeast(0),
+        )
     }
 
-    override fun excluding(safeInsets: Boolean, ime: Boolean): PlatformWindowInsets = screen.excluding(safeInsets, ime)
+    override fun excluding(safeInsets: Boolean, ime: Boolean): PlatformWindowInsets =
+        ZoomedInsets(screen.excluding(safeInsets, ime), scale)
+}
+
+// The screen's insets as large as the zoom draws them, for a popup's content, which is laid out at the zoom.
+private data class ZoomedInsets(
+    private val insets: PlatformWindowInsets,
+    private val scale: Float,
+) : PlatformWindowInsets {
+    override val captionBar: PlatformInsets get() = insets.captionBar.zoomed()
+    override val displayCutout: PlatformInsets get() = insets.displayCutout.zoomed()
+    override val ime: PlatformInsets get() = insets.ime.zoomed()
+    override val mandatorySystemGestures: PlatformInsets get() = insets.mandatorySystemGestures.zoomed()
+    override val navigationBars: PlatformInsets get() = insets.navigationBars.zoomed()
+    override val statusBars: PlatformInsets get() = insets.statusBars.zoomed()
+    override val systemBars: PlatformInsets get() = insets.systemBars.zoomed()
+    override val systemGestures: PlatformInsets get() = insets.systemGestures.zoomed()
+    override val tappableElement: PlatformInsets get() = insets.tappableElement.zoomed()
+    override val waterfall: PlatformInsets get() = insets.waterfall.zoomed()
+
+    override fun excluding(safeInsets: Boolean, ime: Boolean): PlatformWindowInsets =
+        ZoomedInsets(insets.excluding(safeInsets, ime), scale)
+
+    private fun PlatformInsets.zoomed(): PlatformInsets = PixelInsets(
+        (left * scale).roundToInt(),
+        (top * scale).roundToInt(),
+        (right * scale).roundToInt(),
+        (bottom * scale).roundToInt(),
+    )
 }
 
 /**
- * Keeps [screen]'s origin up to date. Put it on a node that fills the screen.
+ * Keeps [screen]'s origin, scale and visible part up to date. Put it on a node that fills the screen.
  *
- * @param screen The screen whose origin this node sets.
- * @return This modifier, then the one that tracks the screen's position.
+ * @param screen The screen whose origin, scale and visible part this node sets.
+ * @return This modifier, then the one that tracks the screen's position, zoom and visibility.
  */
-internal fun Modifier.screenPosition(screen: SimulatedScreen): Modifier = onGloballyPositioned { coordinates ->
+private fun Modifier.screenPosition(screen: SimulatedScreen): Modifier = onGloballyPositioned { coordinates ->
+    val width = coordinates.size.width.toFloat()
+    if (width == 0f) {
+        return@onGloballyPositioned
+    }
+    // A distance rather than a width, so that a turn of the device doesn't skew it.
+    val topEdge = coordinates.localToWindow(Offset(width, 0f)) - coordinates.localToWindow(Offset.Zero)
+    val scale = topEdge.getDistance() / width
     // A turn of the device swings its corners round, so the corner is found from the centre, which
     // barely moves: a dialog stays put while the device turns under it.
-    val half = Offset(coordinates.size.width / 2f, coordinates.size.height / 2f)
-    val topLeft = coordinates.localToWindow(half) - half
+    val half = Offset(width / 2f, coordinates.size.height / 2f)
+    val topLeft = coordinates.localToWindow(half) - half * scale
+    screen.scale = scale
     screen.origin = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt())
+    screen.visible = coordinates.boundsInWindow()
 }
 
-/** Clips what [layer] draws to [screen]'s outline, over [scrim] filling the screen. */
+// While a modal layer is open, the presses on the screen outside it reach it, and nothing under it
+// gets them or the hover, as Compose would have it. Put it over the screen's content.
+@Composable
+private fun BoxScope.ModalLayerShield(scene: ScreenSceneContext) {
+    if (scene.modalLayer == null) {
+        return
+    }
+    Box(Modifier.matchParentSize().pointerInput(scene) {
+        awaitPointerEventScope {
+            while (true) {
+                val event = awaitPointerEvent()
+                if (event.type == PointerEventType.Press || event.type == PointerEventType.Release) {
+                    scene.modalLayer?.onScreenPointerEvent(event)
+                }
+                // The wheel is left to pan the preview, as it does beside the device.
+                if (event.type == PointerEventType.Press) {
+                    event.changes.forEach { it.consume() }
+                }
+            }
+        }
+    })
+}
+
+// Clips what the layer draws to the part of the screen the preview shows, less what it draws over it.
+private fun Modifier.clipToViewport(
+    screen: SimulatedScreen,
+    layer: ComposeSceneLayer,
+    obstructions: ScreenObstructions?
+): Modifier =
+    drawWithCache {
+        val toLayer = layer.calculateLocalPosition(IntOffset.Zero).toOffset()
+        val visible = screen.visible.translate(toLayer)
+        val obstructed = Path().apply { obstructions?.paths?.forEach { addPath(it, toLayer) } }
+        onDrawWithContent {
+            clipRect(visible.left, visible.top, visible.right, visible.bottom) {
+                clipOut(obstructed) { this@onDrawWithContent.drawContent() }
+            }
+        }
+    }
+
+/**
+ * Clips what [layer] draws to [screen]'s outline as the zoom draws it, over [scrim] filling the
+ * screen.
+ */
 private fun Modifier.clipToScreen(
     screen: SimulatedScreen,
     layer: ComposeSceneLayer,
@@ -226,18 +460,30 @@ private fun Modifier.clipToScreen(
 ): Modifier =
     drawWithCache {
         val origin = layer.calculateLocalPosition(screen.origin).toOffset()
+        val zoom = screen.scale
         val size = screen.size.toSize()
         val outline = Path().apply {
             addOutline(screen.shape.createOutline(size, layoutDirection, this@drawWithCache))
-            translate(origin)
+            transform(Matrix().apply {
+                translate(origin.x, origin.y)
+                scale(zoom, zoom)
+            })
         }
         onDrawWithContent {
             clipPath(outline) {
-                scrim()?.let { drawRect(it, origin, size) }
+                scrim()?.let { drawRect(it, origin, size * zoom) }
                 this@onDrawWithContent.drawContent()
             }
         }
     }
+
+private inline fun DrawScope.clipOut(path: Path, block: DrawScope.() -> Unit) {
+    if (path.isEmpty) {
+        block()
+    } else {
+        clipPath(path, ClipOp.Difference, block)
+    }
+}
 
 /**
  * Remembers the device's screen, updated to the latest of each of these.
@@ -260,22 +506,32 @@ internal fun rememberSimulatedScreen(
     }
 
 /**
- * Keeps the dialogs and popups opened in [content] to [screen], unless the Compose this runs with
- * has no [LocalSceneContext].
+ * Fills [screen] with [content], and keeps the dialogs and popups opened in it to [screen], unless
+ * the Compose this runs with has no [LocalSceneContext].
  *
  * @param screen The screen to keep them to.
+ * @param recordings Where they record what they draw for screenshots, or null when none are taken.
+ * @param modifier The modifier for the screen's node, after the one that tracks where it is.
  * @param content What is shown, and opens the dialogs and popups.
  */
 @Composable
-internal fun ScreenLayers(screen: SimulatedScreen, content: @Composable () -> Unit) {
+internal fun ScreenLayers(
+    screen: SimulatedScreen,
+    recordings: ScreenLayerRecordings?,
+    modifier: Modifier,
+    content: @Composable () -> Unit
+) {
     val local = LocalSceneContext
-    if (local == null) {
-        content()
-        return
+    val host = local?.current
+    val scene = remember(host, screen, recordings) { host?.let { ScreenSceneContext(it, screen, recordings) } }
+    Box(Modifier.fillMaxSize().screenPosition(screen).then(modifier)) {
+        if (local == null) {
+            content()
+        } else {
+            CompositionLocalProvider(local provides scene, content = content)
+        }
+        scene?.let { ModalLayerShield(it) }
     }
-    val host = local.current
-    val context = remember(host, screen) { host?.let { ScreenSceneContext(it, screen) } }
-    CompositionLocalProvider(local provides context, content = content)
 }
 
 // Why the try/catch: LocalComposeSceneContext is internal, so any Compose release may rename or

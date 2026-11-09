@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
@@ -103,8 +104,13 @@ private class DeviceTurn(isPortrait: Boolean) {
  *
  * @property screen The layer for the screen alone.
  * @property device The layer for the whole device, in its frame.
+ * @property screenLayers What the dialogs and popups over the screen last drew.
  */
-private class ScreenshotLayers(val screen: GraphicsLayer, val device: GraphicsLayer)
+private class ScreenshotLayers(
+    val screen: GraphicsLayer,
+    val device: GraphicsLayer,
+    val screenLayers: ScreenLayerRecordings
+)
 
 /**
  * A [scale] a resized [device] keeps while it is the one shown.
@@ -324,7 +330,9 @@ internal fun DeviceFrame(
         val simulatedWindowInfo = remember(hostWindowInfo, screenSize, scale, configuration.displayScale) {
             SimulatedWindowInfo(hostWindowInfo, screenSize, scale, configuration.displayScale)
         }
-        val screenshotLayers = recordScreenshots(device, screenSize, bounds.size, turn.isTurning)
+        // The body reaches past the screen, up and to the left.
+        val screenAt = IntOffset((-bounds.left * scale).roundToInt(), (-bounds.top * scale).roundToInt())
+        val screenshotLayers = recordScreenshots(device, screenSize, bounds.size, screenAt, turn.isTurning)
         val visibleSize = bounds.size.toPixels(scale)
 
         Layout(
@@ -346,6 +354,7 @@ internal fun DeviceFrame(
                             keyboardInset / configuration.displayScale,
                             configuration.appearance == Appearance.Dark,
                             screenShape,
+                            screenshotLayers?.screenLayers,
                         ) {
                             ProvideLanguage(configuration.language, content)
                         }
@@ -356,7 +365,7 @@ internal fun DeviceFrame(
             val screenPixels = screenSize.toPixels(scale)
             val screen = measurables.single().measure(Constraints.fixed(screenPixels.width, screenPixels.height))
             layout(visibleSize.width, visibleSize.height) {
-                screen.place((-bounds.left * scale).roundToInt(), (-bounds.top * scale).roundToInt())
+                screen.place(screenAt)
             }
         }
 
@@ -458,24 +467,26 @@ private fun recordScreenshots(
     device: Device,
     screenSize: Size,
     deviceSize: Size,
+    screenInDevice: IntOffset,
     isTurning: Boolean
 ): ScreenshotLayers? {
     val screenshots = LocalDeviceScreenshots.current ?: return null
     val screenLayer = rememberGraphicsLayer()
     val deviceLayer = rememberGraphicsLayer()
+    val screenLayers = remember { ScreenLayerRecordings() }
     val pixelRatio = device.devicePixelRatio ?: LocalDensity.current.density
     val screenPixels = screenSize.toPixels(pixelRatio)
     val devicePixels = deviceSize.toPixels(pixelRatio)
-    DisposableEffect(screenshots, screenLayer, deviceLayer, screenPixels, devicePixels, isTurning) {
+    DisposableEffect(screenshots, screenLayer, deviceLayer, screenPixels, devicePixels, screenInDevice, isTurning) {
         if (!isTurning) {
             screenshots.attach(
-                screen = DeviceScreenshots.Recording(screenLayer, screenPixels),
-                device = DeviceScreenshots.Recording(deviceLayer, devicePixels),
+                screen = DeviceScreenshots.Recording(screenLayer, screenPixels, IntOffset.Zero, screenLayers),
+                device = DeviceScreenshots.Recording(deviceLayer, devicePixels, screenInDevice, screenLayers),
             )
         }
         onDispose { screenshots.detach() }
     }
-    return remember(screenLayer, deviceLayer) { ScreenshotLayers(screenLayer, deviceLayer) }
+    return remember(screenLayer, deviceLayer) { ScreenshotLayers(screenLayer, deviceLayer, screenLayers) }
 }
 
 /** The largest the device can get at the scale a drag started with, in dp, within [room]. */

@@ -15,6 +15,8 @@ import com.apadmi.cmpdevicepreview.core.DeviceInsets
  * @param keyboardHeight The height `WindowInsets` reports for the keyboard, in the content's dp.
  * @param isDarkMode Whether `isSystemInDarkTheme()` reports dark.
  * @param screenShape The outline of the device's screen, which dialogs and popups are clipped to.
+ * @param screenLayers Where the dialogs and popups record what they draw for screenshots, or null
+ * when none are taken.
  * @param content What is shown with these insets and this theme.
  */
 @Composable
@@ -23,5 +25,6 @@ internal expect fun SimulatedPlatform(
     keyboardHeight: Float,
     isDarkMode: Boolean,
     screenShape: Shape,
+    screenLayers: ScreenLayerRecordings?,
     content: @Composable () -> Unit,
 )

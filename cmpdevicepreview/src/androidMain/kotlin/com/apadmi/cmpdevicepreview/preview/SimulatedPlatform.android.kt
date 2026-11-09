@@ -14,6 +14,7 @@ internal actual fun SimulatedPlatform(
     keyboardHeight: Float,
     isDarkMode: Boolean,
     screenShape: Shape,
+    screenLayers: ScreenLayerRecordings?,
     content: @Composable () -> Unit,
 ) {
     content()
