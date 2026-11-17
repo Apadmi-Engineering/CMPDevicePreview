@@ -1,5 +1,5 @@
 [versions]
-agp = "9.5.0"
+agp = "9.5.1"
 android-compileSdk = "37"
 android-minSdk = "24"
 android-targetSdk = "37"
@@ -17,7 +17,7 @@ kotlinpoet = "2.4.0"
 mavenPublish = "0.37.0"
 
 # Code formatting
-spotless = "8.10.4" # https://github.com/diffplug/spotless
+spotless = "8.11.0" # https://github.com/diffplug/spotless
 
 [libraries]
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose-multiplatform" }
